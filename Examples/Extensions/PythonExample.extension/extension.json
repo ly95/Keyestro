@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "com.keyestro.example.python",
+  "name": "Python Example",
+  "version": "1.0.0",
+  "description": "A minimal Keyestro JSON-RPC extension written in Python.",
+  "author": "Keyestro Contributors",
+  "license": "Apache-2.0",
+  "executable": "bin/extension",
+  "minimumHostVersion": "0.1.0",
+  "capabilities": [],
+  "searchPolicy": "explicit",
+  "commands": [
+    {
+      "id": "search-notes",
+      "title": "Search Example Notes",
+      "mode": "search",
+      "keywords": ["example", "python", "notes"]
+    }
+  ],
+  "preferences": []
+}

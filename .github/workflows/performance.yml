@@ -1,0 +1,45 @@
+name: Performance Gate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Build the packaged Release artifact once
+        run: ./scripts/build-app.sh release
+      - name: Run 30-sample release benchmarks
+        run: ./scripts/run-performance-gate.sh
+      - name: Run 30-process packaged UI benchmarks
+        run: KEYESTRO_UI_BENCHMARK_SKIP_BUILD=1 ./scripts/run-ui-performance-gate.sh
+      - name: Measure packaged idle CPU and RSS for 10 minutes
+        run: KEYESTRO_IDLE_BENCHMARK_SKIP_BUILD=1 ./scripts/run-idle-performance-gate.sh
+      - name: Run 10,000 packaged activation and hide cycles
+        run: KEYESTRO_LIFECYCLE_SKIP_BUILD=1 ./scripts/run-lifecycle-soak.sh
+      - name: Run hostile extension isolation matrix
+        run: ./scripts/run-extension-fault-gate.sh
+      - name: Verify database after forced process kill
+        run: KEYESTRO_DATABASE_CRASH_SKIP_BUILD=1 ./scripts/run-database-crash-gate.sh
+      - name: Verify report completeness and packaged-app identity
+        run: ./scripts/verify-release-evidence.py --app build/Keyestro.app
+      - name: Upload benchmark evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Keyestro-performance-${{ github.sha }}
+          path: |
+            build/performance/*.json
+            build/reliability/*.json
+            build/security/*.json
+          if-no-files-found: error

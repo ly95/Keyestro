@@ -1,0 +1,89 @@
+#!/usr/bin/python3
+"""Minimal Keyestro extension. Protocol output goes only to stdout; logs use stderr."""
+
+import json
+import sys
+
+
+def read_message():
+    content_length = None
+    while True:
+        line = sys.stdin.buffer.readline()
+        if not line:
+            return None
+        if line == b"\r\n":
+            break
+        name, value = line.decode("ascii").split(":", 1)
+        if name.lower() == "content-length":
+            content_length = int(value.strip())
+    if content_length is None:
+        raise ValueError("missing Content-Length")
+    return json.loads(sys.stdin.buffer.read(content_length).decode("utf-8"))
+
+
+def send(message):
+    body = json.dumps(message, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    sys.stdout.buffer.write(f"Content-Length: {len(body)}\r\n\r\n".encode("ascii"))
+    sys.stdout.buffer.write(body)
+    sys.stdout.buffer.flush()
+
+
+def response(request, result=None, error=None):
+    message = {"jsonrpc": "2.0", "id": request["id"]}
+    if error is None:
+        message["result"] = result
+    else:
+        message["error"] = error
+    send(message)
+
+
+def main():
+    print("Python example started", file=sys.stderr, flush=True)
+    while True:
+        request = read_message()
+        if request is None:
+            return
+        method = request.get("method")
+        params = request.get("params") or {}
+        if method == "initialize":
+            response(request, {"protocolVersion": {"major": 1, "minor": 0}})
+        elif method == "initialized":
+            continue
+        elif method == "search":
+            query = params.get("query", "")
+            item = {
+                "id": "note:" + (query or "welcome"),
+                "title": "Example note" + (f": {query}" if query else ""),
+                "subtitle": "Returned by the bundled Python contract example",
+                "icon": {"type": "symbol", "name": "note.text"},
+                "keywords": ["python", "example"],
+                "actions": [
+                    {
+                        "id": "select",
+                        "title": "Select Example",
+                        "risk": "safe",
+                        "behavior": "keepLauncherOpen"
+                    }
+                ],
+                "defaultActionId": "select"
+            }
+            send({
+                "jsonrpc": "2.0",
+                "method": "publishItems",
+                "params": {"requestId": params["requestId"], "items": [item], "isFinal": True}
+            })
+            response(request, None)
+        elif method == "execute":
+            response(request, {"status": "success", "message": "Python example action completed"})
+        elif method == "cancel":
+            continue
+        elif method == "shutdown":
+            response(request, None)
+        elif method == "exit":
+            return
+        elif "id" in request:
+            response(request, error={"code": -32601, "message": "Method not found"})
+
+
+if __name__ == "__main__":
+    main()

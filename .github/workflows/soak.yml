@@ -1,0 +1,26 @@
+name: Eight-hour Soak Gate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clipboard-query-soak:
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 540
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        run: swift --version
+      - name: Run eight-hour packaged clipboard/query soak
+        run: ./scripts/run-clipboard-query-soak.sh
+      - name: Upload soak evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: Keyestro-soak-${{ github.sha }}
+          path: build/reliability/clipboard-query-soak.json
+          if-no-files-found: error

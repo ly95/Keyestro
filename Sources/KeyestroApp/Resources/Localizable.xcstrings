@@ -1,0 +1,6776 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%arg non-secret settings merged": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已合并 %arg 项非敏感设置"
+          }
+        }
+      }
+    },
+    "%arg quick links added · %arg replaced": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$arg quick links added · %2$arg replaced"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增 %arg 个快捷链接 · 替换 %arg 个"
+          }
+        }
+      }
+    },
+    "%arg scripts require reconnection · %arg extensions require reinstallation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$arg scripts require reconnection · %2$arg extensions require reinstallation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%arg 个脚本需要重新连接 · %arg 个扩展需要重新安装"
+          }
+        }
+      }
+    },
+    "%arg scripts still require reconnection · %arg extensions still require reinstallation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$arg scripts still require reconnection · %2$arg extensions still require reinstallation"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%arg 个脚本仍需重新连接 · %arg 个扩展仍需重新安装"
+          }
+        }
+      }
+    },
+    "%arg unsupported settings ignored": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略 %arg 项不支持的设置"
+          }
+        }
+      }
+    },
+    "%arg · %arg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "%1$arg · %2$arg"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%arg · %arg"
+          }
+        }
+      }
+    },
+    "/Applications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "/Applications"
+          }
+        }
+      }
+    },
+    "1 day": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 天"
+          }
+        }
+      }
+    },
+    "30 days or 1,000 items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "30 天或 1,000 项"
+          }
+        }
+      }
+    },
+    "7 days": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "7 天"
+          }
+        }
+      }
+    },
+    "90 days": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "90 天"
+          }
+        }
+      }
+    },
+    "A Keychain item has an invalid length.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "某个钥匙串项目长度无效。"
+          }
+        }
+      }
+    },
+    "A backup is written before the transactional quick-link merge.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "事务式合并快捷链接前会先写入备份。"
+          }
+        }
+      }
+    },
+    "A link argument could not be encoded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接参数无法编码。"
+          }
+        }
+      }
+    },
+    "A link argument is invalid or too long.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接参数无效或过长。"
+          }
+        }
+      }
+    },
+    "A migration backup could not be created.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建迁移备份。"
+          }
+        }
+      }
+    },
+    "A required link argument is missing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少必填的链接参数。"
+          }
+        }
+      }
+    },
+    "A required script argument is missing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少必填的脚本参数。"
+          }
+        }
+      }
+    },
+    "A safe image thumbnail could not be created.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建安全的图像缩略图。"
+          }
+        }
+      }
+    },
+    "A script argument has the wrong type.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本参数类型错误。"
+          }
+        }
+      }
+    },
+    "A script argument is too long.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本参数过长。"
+          }
+        }
+      }
+    },
+    "A script choice is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本选项无效。"
+          }
+        }
+      }
+    },
+    "A script path is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本路径无效。"
+          }
+        }
+      }
+    },
+    "A search provider could not complete the search.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索提供器无法完成搜索。"
+          }
+        }
+      }
+    },
+    "A search provider did not return in time.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索提供器未及时返回。"
+          }
+        }
+      }
+    },
+    "A selected display is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选显示器已不可用。"
+          }
+        }
+      }
+    },
+    "A stored extension preference is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储的扩展偏好无效。"
+          }
+        }
+      }
+    },
+    "Absolute path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "绝对路径"
+          }
+        }
+      }
+    },
+    "Accessibility": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辅助功能"
+          }
+        }
+      }
+    },
+    "Accessibility permission is required for automatic paste.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动粘贴需要辅助功能权限。"
+          }
+        }
+      }
+    },
+    "Accessibility permission is required for window management.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口管理需要辅助功能权限。"
+          }
+        }
+      }
+    },
+    "Action": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        }
+      }
+    },
+    "Action hint": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作提示"
+          }
+        }
+      }
+    },
+    "Add Parameter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加参数"
+          }
+        }
+      }
+    },
+    "Add Quick Link": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加快捷链接"
+          }
+        }
+      }
+    },
+    "Add Script…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加脚本…"
+          }
+        }
+      }
+    },
+    "All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部"
+          }
+        }
+      }
+    },
+    "Allow Keyestro in System Settings → Privacy & Security → Screen Recording.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在“系统设置”→“隐私与安全性”→“屏幕与系统录音”中允许 Keyestro。"
+          }
+        }
+      }
+    },
+    "Allow Keyestro in System Settings → Privacy & Security → Screen Recording. If macOS still reports access as denied, quit and reopen Keyestro.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在“系统设置”→“隐私与安全性”→“屏幕与系统录音”中允许 Keyestro。如果 macOS 仍显示未授权，请退出并重新打开 Keyestro。"
+          }
+        }
+      }
+    },
+    "Allowed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已允许"
+          }
+        }
+      }
+    },
+    "Alpha Application": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alpha 应用程序"
+          }
+        }
+      }
+    },
+    "Always confirm before putting this Mac to sleep": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次让 Mac 睡眠前都确认"
+          }
+        }
+      }
+    },
+    "An application data path escaped its owned directory.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用数据路径超出了应用拥有的目录。"
+          }
+        }
+      }
+    },
+    "An encrypted clipboard thumbnail is incomplete.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密的剪贴板缩略图不完整。"
+          }
+        }
+      }
+    },
+    "An encrypted clipboard thumbnail is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密的剪贴板缩略图无效。"
+          }
+        }
+      }
+    },
+    "An interrupted clipboard capture could not be rolled back.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法回滚中断的剪贴板捕获。"
+          }
+        }
+      }
+    },
+    "Application Support data": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Application Support 数据"
+          }
+        }
+      }
+    },
+    "Application pinned": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已固定应用"
+          }
+        }
+      }
+    },
+    "Application unpinned": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消固定应用"
+          }
+        }
+      }
+    },
+    "Applications": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用"
+          }
+        }
+      }
+    },
+    "Apply Import": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用导入"
+          }
+        }
+      }
+    },
+    "Automatic": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动"
+          }
+        }
+      }
+    },
+    "Automatically check for updates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动检查更新"
+          }
+        }
+      }
+    },
+    "Automatically download updates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动下载更新"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
+          }
+        }
+      }
+    },
+    "Benchmark": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基准测试"
+          }
+        }
+      }
+    },
+    "Beta": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测试版"
+          }
+        }
+      }
+    },
+    "Bottom Half": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下半屏"
+          }
+        }
+      }
+    },
+    "Bottom Left Quarter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左下四分之一屏"
+          }
+        }
+      }
+    },
+    "Bottom Right Quarter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右下四分之一屏"
+          }
+        }
+      }
+    },
+    "Browser bundle identifier (optional)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览器 Bundle Identifier（可选）"
+          }
+        }
+      }
+    },
+    "Bundle identifier copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制 Bundle ID"
+          }
+        }
+      }
+    },
+    "Caches": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缓存"
+          }
+        }
+      }
+    },
+    "Caches cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缓存已清除。"
+          }
+        }
+      }
+    },
+    "Caches could not be cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法清除缓存。"
+          }
+        }
+      }
+    },
+    "Calculate and convert units without a network request": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需联网即可计算并转换单位"
+          }
+        }
+      }
+    },
+    "Calculator": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "计算器"
+          }
+        }
+      }
+    },
+    "Cancel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "Cancelled": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消"
+          }
+        }
+      }
+    },
+    "Capabilities": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能力"
+          }
+        }
+      }
+    },
+    "Capability denied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能力未获授权"
+          }
+        }
+      }
+    },
+    "Capture": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取"
+          }
+        }
+      }
+    },
+    "Capture Area and Recognize Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取区域并识别文本"
+          }
+        }
+      }
+    },
+    "Capture Area to Clipboard": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取区域到剪贴板"
+          }
+        }
+      }
+    },
+    "Capture Area to PNG File": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取区域为 PNG 文件"
+          }
+        }
+      }
+    },
+    "Center": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "居中"
+          }
+        }
+      }
+    },
+    "Check Now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即检查"
+          }
+        }
+      }
+    },
+    "Check Spotlight settings and try again later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查 Spotlight 设置，稍后重试。"
+          }
+        }
+      }
+    },
+    "Check Spotlight status and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查 Spotlight 状态后重试。"
+          }
+        }
+      }
+    },
+    "Choice": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选项"
+          }
+        }
+      }
+    },
+    "Choice parameters need at least one option.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选项参数至少需要一个选项。"
+          }
+        }
+      }
+    },
+    "Choices (comma-separated)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选项（以逗号分隔）"
+          }
+        }
+      }
+    },
+    "Choose a local .extension directory to inspect it before installation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择本地 .extension 目录，在安装前进行检查。"
+          }
+        }
+      }
+    },
+    "Choose action": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择操作"
+          }
+        }
+      }
+    },
+    "Choose an executable file. The linked script was not added.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择可执行文件；链接脚本未添加。"
+          }
+        }
+      }
+    },
+    "Choose an executable file. The script was not installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择可执行文件。脚本未安装。"
+          }
+        }
+      }
+    },
+    "Choose the original script, or install this file as a new script.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择原始脚本，或将此文件作为新脚本安装。"
+          }
+        }
+      }
+    },
+    "Choose…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择…"
+          }
+        }
+      }
+    },
+    "Clear": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除"
+          }
+        }
+      }
+    },
+    "Clear %arg for %arg?": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "Clear %1$arg for %2$arg?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除 %arg（扩展：%arg）？"
+          }
+        }
+      }
+    },
+    "Clear Caches": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除缓存"
+          }
+        }
+      }
+    },
+    "Clear History…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除历史…"
+          }
+        }
+      }
+    },
+    "Clear Performance Samples": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除性能样本"
+          }
+        }
+      }
+    },
+    "Clear Preference": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除偏好设置"
+          }
+        }
+      }
+    },
+    "Clear Ranking History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除排序历史"
+          }
+        }
+      }
+    },
+    "Clear all learned ranking history?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部已学习的排序历史？"
+          }
+        }
+      }
+    },
+    "Clear by Type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按类型清除"
+          }
+        }
+      }
+    },
+    "Clear older items or increase the quota in settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请清除较旧项目，或在设置中提高配额。"
+          }
+        }
+      }
+    },
+    "Clear ranking history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除排序历史"
+          }
+        }
+      }
+    },
+    "Clear ranking history…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除排序历史…"
+          }
+        }
+      }
+    },
+    "Clear the preference and set it again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除该偏好后重新设置。"
+          }
+        }
+      }
+    },
+    "Clear…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除…"
+          }
+        }
+      }
+    },
+    "Clipboard": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板"
+          }
+        }
+      }
+    },
+    "Clipboard History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史"
+          }
+        }
+      }
+    },
+    "Clipboard capture skipped: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已跳过剪贴板捕获：%@"
+          }
+        }
+      }
+    },
+    "Clipboard capture was cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板捕获已取消。"
+          }
+        }
+      }
+    },
+    "Clipboard history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史"
+          }
+        }
+      }
+    },
+    "Clipboard history could not be cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法清除剪贴板历史。"
+          }
+        }
+      }
+    },
+    "Clipboard history could not be initialized.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法初始化剪贴板历史。"
+          }
+        }
+      }
+    },
+    "Clipboard history could not be reinitialized.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法重新初始化剪贴板历史。"
+          }
+        }
+      }
+    },
+    "Clipboard history is disabled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已停用。"
+          }
+        }
+      }
+    },
+    "Clipboard history is loading.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史正在加载。"
+          }
+        }
+      }
+    },
+    "Clipboard history is not ready.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史尚未就绪。"
+          }
+        }
+      }
+    },
+    "Clipboard history is off by default and will be encrypted before persistence.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史默认关闭，持久化前会先加密。"
+          }
+        }
+      }
+    },
+    "Clipboard history is ready.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已就绪。"
+          }
+        }
+      }
+    },
+    "Clipboard history reached its disk quota.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已达到磁盘配额。"
+          }
+        }
+      }
+    },
+    "Clipboard issue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板问题"
+          }
+        }
+      }
+    },
+    "Clipboard item deleted": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板项目已删除"
+          }
+        }
+      }
+    },
+    "Clipboard reading was cancelled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板读取已取消。"
+          }
+        }
+      }
+    },
+    "Clipboard recovery is not required.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史无需恢复。"
+          }
+        }
+      }
+    },
+    "Clipboard retention": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板保留期限"
+          }
+        }
+      }
+    },
+    "Clipboard retention could not be applied.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法应用剪贴板保留策略。"
+          }
+        }
+      }
+    },
+    "Clipboard warning": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板警告"
+          }
+        }
+      }
+    },
+    "Code signature": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "代码签名"
+          }
+        }
+      }
+    },
+    "Command-number opens visible results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Command + 数字打开可见结果"
+          }
+        }
+      }
+    },
+    "Commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令"
+          }
+        }
+      }
+    },
+    "Configuration": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置"
+          }
+        }
+      }
+    },
+    "Configure Script": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置脚本"
+          }
+        }
+      }
+    },
+    "Configure…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置…"
+          }
+        }
+      }
+    },
+    "Confirm action": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认操作"
+          }
+        }
+      }
+    },
+    "Confirm settings change": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认设置更改"
+          }
+        }
+      }
+    },
+    "Confirmation required": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要确认"
+          }
+        }
+      }
+    },
+    "Content matches are labeled and rank below file-name matches. Keyestro never requests Full Disk Access automatically.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容匹配会明确标注，并排在文件名匹配之后。Keyestro 绝不会自动请求完全磁盘访问权限。"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续"
+          }
+        }
+      }
+    },
+    "Copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制"
+          }
+        }
+      }
+    },
+    "Copy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制"
+          }
+        }
+      }
+    },
+    "Copy Bundle Identifier": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制 Bundle ID"
+          }
+        }
+      }
+    },
+    "Copy File URL": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制文件 URL"
+          }
+        }
+      }
+    },
+    "Copy Path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制路径"
+          }
+        }
+      }
+    },
+    "Copy Performance Report": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制性能报告"
+          }
+        }
+      }
+    },
+    "Copy Result": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制结果"
+          }
+        }
+      }
+    },
+    "Copy Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制文本"
+          }
+        }
+      }
+    },
+    "Copy to Clipboard": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制到剪贴板"
+          }
+        }
+      }
+    },
+    "Current launcher shortcut: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前启动器快捷键：%@"
+          }
+        }
+      }
+    },
+    "Default settings could not be restored, and automatic rollback was incomplete. Restore a configuration backup.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法恢复默认设置，且自动回滚未完整完成。请恢复配置备份。"
+          }
+        }
+      }
+    },
+    "Default settings could not be restored. Previous values were kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法恢复默认设置；已保留先前的值。"
+          }
+        }
+      }
+    },
+    "Default settings restored.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢复默认设置。"
+          }
+        }
+      }
+    },
+    "Delete %arg": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 %arg"
+          }
+        }
+      }
+    },
+    "Delete %arg?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 %arg？"
+          }
+        }
+      }
+    },
+    "Delete All Clipboard Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除所有剪贴板项目"
+          }
+        }
+      }
+    },
+    "Delete All Local Data and Quit": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部本地数据并退出"
+          }
+        }
+      }
+    },
+    "Delete All Local Data and Quit…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除全部本地数据并退出…"
+          }
+        }
+      }
+    },
+    "Delete File Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除文件项目"
+          }
+        }
+      }
+    },
+    "Delete Image Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除图像项目"
+          }
+        }
+      }
+    },
+    "Delete Quick Link": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除快捷链接"
+          }
+        }
+      }
+    },
+    "Delete Text Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除文本项目"
+          }
+        }
+      }
+    },
+    "Delete URL Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 URL 项目"
+          }
+        }
+      }
+    },
+    "Delete Undecryptable History and Reinitialize…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除无法解密的历史并重新初始化…"
+          }
+        }
+      }
+    },
+    "Delete all local Keyestro data and quit?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 Keyestro 的全部本地数据并退出？"
+          }
+        }
+      }
+    },
+    "Delete and Reinitialize Encryption": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除并重新初始化加密"
+          }
+        }
+      }
+    },
+    "Delete from History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从历史中删除"
+          }
+        }
+      }
+    },
+    "Destructive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "破坏性操作"
+          }
+        }
+      }
+    },
+    "Diagnostics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断"
+          }
+        }
+      }
+    },
+    "Directory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录"
+          }
+        }
+      }
+    },
+    "Disable the extension or retry it from Extensions settings after updating it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请停用该扩展，或更新后在“扩展”设置中重试。"
+          }
+        }
+      }
+    },
+    "Division by zero is undefined.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不能除以零。"
+          }
+        }
+      }
+    },
+    "Do not delete the database. Export diagnostics and restore a verified backup.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请勿删除数据库。请导出诊断信息并恢复经过验证的备份。"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Downloads": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载"
+          }
+        }
+      }
+    },
+    "Drag a region at least 2 × 2 points.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请拖出至少 2 × 2 点的区域。"
+          }
+        }
+      }
+    },
+    "Enable /, >, =, and @ query prefixes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用 /、>、= 和 @ 查询前缀"
+          }
+        }
+      }
+    },
+    "Enabled": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已启用"
+          }
+        }
+      }
+    },
+    "English": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英语"
+          }
+        }
+      }
+    },
+    "English + 简体中文": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英语 + 简体中文"
+          }
+        }
+      }
+    },
+    "Enter a calculation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入计算式。"
+          }
+        }
+      }
+    },
+    "Enter a new secret": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入新秘密"
+          }
+        }
+      }
+    },
+    "Enter a title and an absolute URL template.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入标题和绝对 URL 模板。"
+          }
+        }
+      }
+    },
+    "Enter a valid SF Symbol name.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入有效的 SF Symbol 名称。"
+          }
+        }
+      }
+    },
+    "Enter parameters": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入参数"
+          }
+        }
+      }
+    },
+    "Esc": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esc"
+          }
+        }
+      }
+    },
+    "Every URL placeholder must have one argument definition.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个 URL 占位符都必须有对应的参数定义。"
+          }
+        }
+      }
+    },
+    "Every parameter needs a name and title.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个参数都需要名称和标题。"
+          }
+        }
+      }
+    },
+    "Excluded application Bundle IDs (one per line)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排除的应用 Bundle ID（每行一个）"
+          }
+        }
+      }
+    },
+    "Executable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可执行文件"
+          }
+        }
+      }
+    },
+    "Executing action…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在执行操作…"
+          }
+        }
+      }
+    },
+    "Explicit search: query text is shared only after you open one of this extension’s commands in @ mode.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显式搜索：仅当你在 @ 模式中打开此扩展的命令后，才会共享查询文本。"
+          }
+        }
+      }
+    },
+    "Export Configuration…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出配置…"
+          }
+        }
+      }
+    },
+    "Export Diagnostics ZIP…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出诊断 ZIP…"
+          }
+        }
+      }
+    },
+    "Export Preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出预览"
+          }
+        }
+      }
+    },
+    "Export diagnostics and restore a verified backup.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请导出诊断信息，并恢复已验证的备份。"
+          }
+        }
+      }
+    },
+    "Exports contain non-secret settings, quick links, script registration metadata, and extension manifests. They never contain Keychain values, clipboard payloads, script bodies, or private environment values.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出内容包含非敏感设置、快捷链接、脚本注册元数据和扩展清单；绝不包含钥匙串值、剪贴板内容、脚本正文或私有环境变量。"
+          }
+        }
+      }
+    },
+    "Extension preference Keychain values": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展偏好的钥匙串值"
+          }
+        }
+      }
+    },
+    "Extensions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展"
+          }
+        }
+      }
+    },
+    "Extensions could not be loaded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载扩展。"
+          }
+        }
+      }
+    },
+    "File": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
+    "File Search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件搜索"
+          }
+        }
+      }
+    },
+    "File URL copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件 URL 已复制"
+          }
+        }
+      }
+    },
+    "File search failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件搜索失败。"
+          }
+        }
+      }
+    },
+    "Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
+    "Files: %arg": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件：%arg"
+          }
+        }
+      }
+    },
+    "Files…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件…"
+          }
+        }
+      }
+    },
+    "Find applications and Spotlight-indexed files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查找应用和 Spotlight 已索引的文件"
+          }
+        }
+      }
+    },
+    "Focus Window": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聚焦窗口"
+          }
+        }
+      }
+    },
+    "Gatekeeper": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gatekeeper"
+          }
+        }
+      }
+    },
+    "Gatekeeper and quarantine remain enforced. Keyestro never removes quarantine or bypasses system security.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gatekeeper 与隔离机制始终生效。Keyestro 绝不会移除隔离属性或绕过系统安全。"
+          }
+        }
+      }
+    },
+    "Hide sensitive preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏敏感预览"
+          }
+        }
+      }
+    },
+    "Home": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "个人文件夹"
+          }
+        }
+      }
+    },
+    "Images…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图像…"
+          }
+        }
+      }
+    },
+    "Import Configuration…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入配置…"
+          }
+        }
+      }
+    },
+    "Import Preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入预览"
+          }
+        }
+      }
+    },
+    "Imported Code Requires Confirmation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入的代码需要确认"
+          }
+        }
+      }
+    },
+    "Imported Extensions Requiring Reinstallation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要重新安装的导入扩展"
+          }
+        }
+      }
+    },
+    "Imported Scripts Requiring Reconnection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要重新连接的导入脚本"
+          }
+        }
+      }
+    },
+    "Imported code remains disabled and unavailable until you select and review its local source.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入的代码会保持禁用且不可用，直到你选择并检查其本地来源。"
+          }
+        }
+      }
+    },
+    "Include hidden files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含隐藏文件"
+          }
+        }
+      }
+    },
+    "Include system locations": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含系统位置"
+          }
+        }
+      }
+    },
+    "Include the Trash": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "包含废纸篓"
+          }
+        }
+      }
+    },
+    "Install Local Extension…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装本地扩展…"
+          }
+        }
+      }
+    },
+    "Install Managed Copy…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装托管副本…"
+          }
+        }
+      }
+    },
+    "Install Script…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装脚本…"
+          }
+        }
+      }
+    },
+    "Install and Enable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装并启用"
+          }
+        }
+      }
+    },
+    "Installed Extensions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装扩展"
+          }
+        }
+      }
+    },
+    "Invalid params": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参数无效"
+          }
+        }
+      }
+    },
+    "Invalid token at position %lld.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "位置 %lld 处的符号无效。"
+          }
+        }
+      }
+    },
+    "Keychain could not complete the request.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钥匙串无法完成请求。"
+          }
+        }
+      }
+    },
+    "Keychain installation and clipboard keys": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钥匙串中的安装密钥和剪贴板密钥"
+          }
+        }
+      }
+    },
+    "Keyestro does not request Accessibility or Screen Recording during setup.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 不会在设置引导期间请求辅助功能或屏幕录制权限。"
+          }
+        }
+      }
+    },
+    "Keyestro keeps only bounded timing samples in memory. Queries, result titles, clipboard content, and file paths are never recorded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 只在内存中保留有界的计时样本，绝不记录查询、结果标题、剪贴板内容或文件路径。"
+          }
+        }
+      }
+    },
+    "Keyestro remains available from the menu bar when the Dock icon is hidden.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏 Dock 图标后，仍可从菜单栏使用 Keyestro。"
+          }
+        }
+      }
+    },
+    "Keyestro will copy the selected executable only if its SHA-256 matches the exported registration.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅当所选可执行文件的 SHA-256 与导出的注册信息匹配时，Keyestro 才会复制该文件。"
+          }
+        }
+      }
+    },
+    "Keyestro will replace the trusted file identity and SHA-256 with the values currently on disk.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 将使用磁盘上的当前值替换受信任的文件身份和 SHA-256。"
+          }
+        }
+      }
+    },
+    "Keywords (comma-separated)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关键词（以逗号分隔）"
+          }
+        }
+      }
+    },
+    "Launch at Login": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录时启动"
+          }
+        }
+      }
+    },
+    "Learn from successful actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从成功操作中学习"
+          }
+        }
+      }
+    },
+    "Left Half": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左半屏"
+          }
+        }
+      }
+    },
+    "Link Original File…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接原始文件…"
+          }
+        }
+      }
+    },
+    "Link this script without copying it?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不复制并链接此脚本？"
+          }
+        }
+      }
+    },
+    "Local Performance Diagnostics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机性能诊断"
+          }
+        }
+      }
+    },
+    "Local performance report updated.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机性能报告已更新。"
+          }
+        }
+      }
+    },
+    "Local performance samples cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机性能样本已清除。"
+          }
+        }
+      }
+    },
+    "Login item registration": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录项注册"
+          }
+        }
+      }
+    },
+    "Manage capture permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理截图权限"
+          }
+        }
+      }
+    },
+    "Manage window-control permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理窗口控制权限"
+          }
+        }
+      }
+    },
+    "Managed extension storage is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展的托管存储不可用。"
+          }
+        }
+      }
+    },
+    "Managed script storage is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本的托管存储不可用。"
+          }
+        }
+      }
+    },
+    "Maximize": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大化"
+          }
+        }
+      }
+    },
+    "Method not found": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方法不存在"
+          }
+        }
+      }
+    },
+    "Minimized": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已最小化"
+          }
+        }
+      }
+    },
+    "Move to Next Display": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移到下一台显示器"
+          }
+        }
+      }
+    },
+    "Name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        }
+      }
+    },
+    "Native extensions run with your user permissions. Process isolation protects Keyestro from crashes, but it is not a security sandbox. Install only code you trust.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生扩展以你的用户权限运行。进程隔离可保护 Keyestro 不受扩展崩溃影响，但并非安全沙箱。请仅安装你信任的代码。"
+          }
+        }
+      }
+    },
+    "Native, open source, and local-first. Apache-2.0 licensed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生、开源、本地优先。采用 Apache-2.0 许可证。"
+          }
+        }
+      }
+    },
+    "No extensions installed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未安装扩展"
+          }
+        }
+      }
+    },
+    "No timing samples yet. Open and use the launcher, then run the diagnostic again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚无计时样本。请打开并使用启动器，然后再次运行诊断。"
+          }
+        }
+      }
+    },
+    "Not Allowed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未允许"
+          }
+        }
+      }
+    },
+    "Not set": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未设置"
+          }
+        }
+      }
+    },
+    "Notarization": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公证"
+          }
+        }
+      }
+    },
+    "OCR recognition languages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OCR 识别语言"
+          }
+        }
+      }
+    },
+    "OK": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
+    },
+    "Off by default. When enabled, this extension receives queries outside @ mode.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认关闭。启用后，此扩展会接收 @ 模式以外的查询。"
+          }
+        }
+      }
+    },
+    "Onboarding step %lld of %lld": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引导第 %lld 步，共 %lld 步"
+          }
+        }
+      }
+    },
+    "One of the units is not supported.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其中一个单位不受支持。"
+          }
+        }
+      }
+    },
+    "Open": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开"
+          }
+        }
+      }
+    },
+    "Open Accessibility Privacy Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开辅助功能隐私设置"
+          }
+        }
+      }
+    },
+    "Open Applications Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开应用程序文件夹"
+          }
+        }
+      }
+    },
+    "Open Downloads Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开下载文件夹"
+          }
+        }
+      }
+    },
+    "Open Extension Command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开扩展命令"
+          }
+        }
+      }
+    },
+    "Open Home Folder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开个人文件夹"
+          }
+        }
+      }
+    },
+    "Open Keyestro": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Keyestro"
+          }
+        }
+      }
+    },
+    "Open Keyestro shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Keyestro 的快捷键"
+          }
+        }
+      }
+    },
+    "Open Link": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开链接"
+          }
+        }
+      }
+    },
+    "Open Permissions Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开权限设置"
+          }
+        }
+      }
+    },
+    "Open Privacy settings and review clipboard history before continuing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续前请打开“隐私”设置并检查剪贴板历史。"
+          }
+        }
+      }
+    },
+    "Open Privacy settings to review recovery options.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“隐私”设置以查看恢复选项。"
+          }
+        }
+      }
+    },
+    "Open Screen Recording Privacy Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开屏幕录制隐私设置"
+          }
+        }
+      }
+    },
+    "Open Settings → Permissions to grant access, then refresh.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“设置”→“权限”授予访问权限，然后刷新。"
+          }
+        }
+      }
+    },
+    "Open Settings → Permissions to grant access, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开“设置”→“权限”授予访问权限，然后重试。"
+          }
+        }
+      }
+    },
+    "Open System Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开系统设置"
+          }
+        }
+      }
+    },
+    "Open macOS settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 macOS 设置"
+          }
+        }
+      }
+    },
+    "Packaged Lifecycle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包生命周期测试"
+          }
+        }
+      }
+    },
+    "Packaged UI Performance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包 UI 性能测试"
+          }
+        }
+      }
+    },
+    "Packaged UI Smoke": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打包 UI 冒烟测试"
+          }
+        }
+      }
+    },
+    "Parameters": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参数"
+          }
+        }
+      }
+    },
+    "Password": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码"
+          }
+        }
+      }
+    },
+    "Paste into Previous App": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴到先前应用"
+          }
+        }
+      }
+    },
+    "Path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径"
+          }
+        }
+      }
+    },
+    "Path copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径已复制"
+          }
+        }
+      }
+    },
+    "Pause clipboard monitoring": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停剪贴板监控"
+          }
+        }
+      }
+    },
+    "Pending extension reinstallations could not be read.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取待重新安装的扩展。"
+          }
+        }
+      }
+    },
+    "Pending script reconnections could not be read.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取待重新连接的脚本。"
+          }
+        }
+      }
+    },
+    "Performance report copied without query or result content.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "性能报告已复制，其中不含查询或结果内容。"
+          }
+        }
+      }
+    },
+    "Permissions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限"
+          }
+        }
+      }
+    },
+    "Permissions are requested only when needed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在需要时请求权限"
+          }
+        }
+      }
+    },
+    "Pin or Unpin": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定或取消固定"
+          }
+        }
+      }
+    },
+    "Pinning is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "固定功能不可用。"
+          }
+        }
+      }
+    },
+    "Preferences": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏好设置"
+          }
+        }
+      }
+    },
+    "Prepare Export Preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "准备导出预览"
+          }
+        }
+      }
+    },
+    "Preview hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预览已隐藏"
+          }
+        }
+      }
+    },
+    "Previous application (currently unavailable)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一个应用程序（当前不可用）"
+          }
+        }
+      }
+    },
+    "Privacy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私"
+          }
+        }
+      }
+    },
+    "Put this Mac to sleep": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让此 Mac 进入睡眠"
+          }
+        }
+      }
+    },
+    "Quarantine": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隔离状态"
+          }
+        }
+      }
+    },
+    "Quick Links": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷链接"
+          }
+        }
+      }
+    },
+    "Quick Look": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速查看"
+          }
+        }
+      }
+    },
+    "Quick Look could not preview this file.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速查看无法预览此文件。"
+          }
+        }
+      }
+    },
+    "Quick links could not be loaded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载快捷链接。"
+          }
+        }
+      }
+    },
+    "Ranking history cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已清除排序历史。"
+          }
+        }
+      }
+    },
+    "Ranking history could not be cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法清除排序历史。"
+          }
+        }
+      }
+    },
+    "Raw queries are never persisted. Clipboard, screenshots, and diagnostics remain local unless you explicitly export them.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始查询绝不持久化。除非你明确导出，否则剪贴板、截图和诊断数据始终留在本机。"
+          }
+        }
+      }
+    },
+    "Ready": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就绪"
+          }
+        }
+      }
+    },
+    "Recent p50 / p95": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近的 p50 / p95"
+          }
+        }
+      }
+    },
+    "Recognized Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "识别出的文本"
+          }
+        }
+      }
+    },
+    "Reconfirm Identity and Contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新确认身份和内容"
+          }
+        }
+      }
+    },
+    "Reconfirm…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新确认…"
+          }
+        }
+      }
+    },
+    "Reconnect %arg?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新连接 %arg？"
+          }
+        }
+      }
+    },
+    "Reconnect Scripts…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新连接脚本…"
+          }
+        }
+      }
+    },
+    "Reconnect…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新连接…"
+          }
+        }
+      }
+    },
+    "Refresh": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新"
+          }
+        }
+      }
+    },
+    "Refresh status": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新状态"
+          }
+        }
+      }
+    },
+    "Refresh the application results.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请刷新应用结果。"
+          }
+        }
+      }
+    },
+    "Refresh the file results.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请刷新文件结果。"
+          }
+        }
+      }
+    },
+    "Refresh the results and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请刷新结果后重试。"
+          }
+        }
+      }
+    },
+    "Refresh the results or use a different action.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请刷新结果或改用其他操作。"
+          }
+        }
+      }
+    },
+    "Refresh the search and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请刷新搜索后重试。"
+          }
+        }
+      }
+    },
+    "Reinstall Extensions…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新安装扩展…"
+          }
+        }
+      }
+    },
+    "Remove %arg": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %arg"
+          }
+        }
+      }
+    },
+    "Remove %arg?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %arg？"
+          }
+        }
+      }
+    },
+    "Remove Extension and Managed Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除扩展和托管文件"
+          }
+        }
+      }
+    },
+    "Remove Script": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除脚本"
+          }
+        }
+      }
+    },
+    "Remove…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除…"
+          }
+        }
+      }
+    },
+    "Request Access": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请求访问"
+          }
+        }
+      }
+    },
+    "Required": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必填"
+          }
+        }
+      }
+    },
+    "Restore Default Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认设置"
+          }
+        }
+      }
+    },
+    "Restore Previous Frame": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复上一个窗口位置"
+          }
+        }
+      }
+    },
+    "Restore all default settings?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复全部默认设置？"
+          }
+        }
+      }
+    },
+    "Restore default settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认设置"
+          }
+        }
+      }
+    },
+    "Restore default settings…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认设置…"
+          }
+        }
+      }
+    },
+    "Result copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制结果"
+          }
+        }
+      }
+    },
+    "Results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结果"
+          }
+        }
+      }
+    },
+    "Retry": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
+          }
+        }
+      }
+    },
+    "Retry it manually from Extensions settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在“扩展”设置中手动重试。"
+          }
+        }
+      }
+    },
+    "Review Before Installing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装前检查"
+          }
+        }
+      }
+    },
+    "Review and reinstall the script before running it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在运行前检查并重新安装该脚本。"
+          }
+        }
+      }
+    },
+    "Review highlighted-quality output before copying; low-confidence text is never inserted automatically.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制前请检查质量较低的识别结果；低置信度文本绝不会自动插入。"
+          }
+        }
+      }
+    },
+    "Review installed extensions before trying the removal again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次尝试删除前，请检查已安装的扩展。"
+          }
+        }
+      }
+    },
+    "Review managed scripts before trying the removal again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次尝试删除前，请检查托管脚本。"
+          }
+        }
+      }
+    },
+    "Review the Backups folder and export diagnostics before changing local data.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更改本地数据前，请检查 Backups 文件夹并导出诊断信息。"
+          }
+        }
+      }
+    },
+    "Review the current extension preferences and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查当前扩展偏好设置后重试。"
+          }
+        }
+      }
+    },
+    "Review the current extension version and confirm removal again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查当前扩展版本并再次确认移除。"
+          }
+        }
+      }
+    },
+    "Review the current quick link and confirm deletion again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查当前快捷链接并再次确认删除。"
+          }
+        }
+      }
+    },
+    "Review the current script and confirm removal again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请检查当前脚本并再次确认移除。"
+          }
+        }
+      }
+    },
+    "Review the local Vision result before copying.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制前请检查本机 Vision 的识别结果。"
+          }
+        }
+      }
+    },
+    "Review the preference and set it again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查该偏好后重新设置。"
+          }
+        }
+      }
+    },
+    "Review the recovery screen before deleting or reinitializing clipboard history.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除或重新初始化剪贴板历史前，请先检查恢复界面。"
+          }
+        }
+      }
+    },
+    "Right Half": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右半屏"
+          }
+        }
+      }
+    },
+    "Run": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行"
+          }
+        }
+      }
+    },
+    "Run Local Performance Diagnostics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行本机性能诊断"
+          }
+        }
+      }
+    },
+    "Run Script": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行脚本"
+          }
+        }
+      }
+    },
+    "Run only the local workflows you explicitly enable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅运行你明确启用的本机工作流"
+          }
+        }
+      }
+    },
+    "Run the search again and choose the current result.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新搜索并选择当前结果。"
+          }
+        }
+      }
+    },
+    "Run the search again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新搜索。"
+          }
+        }
+      }
+    },
+    "SF Symbol icon": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SF Symbol 图标"
+          }
+        }
+      }
+    },
+    "SHA-256": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SHA-256"
+          }
+        }
+      }
+    },
+    "SHA-256 %arg": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SHA-256 %arg"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存"
+          }
+        }
+      }
+    },
+    "Screen Recording": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕录制"
+          }
+        }
+      }
+    },
+    "Screen Recording access is required.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要屏幕录制权限。"
+          }
+        }
+      }
+    },
+    "Screen capture region selector": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕截图区域选择器"
+          }
+        }
+      }
+    },
+    "Screenshot OCR uses Vision accurate mode on this Mac and never sends images to a network service.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图 OCR 在本机使用 Vision 精确模式，绝不会将图像发送到网络服务。"
+          }
+        }
+      }
+    },
+    "Screenshot copied": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制截图"
+          }
+        }
+      }
+    },
+    "Screenshot saved": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已保存截图"
+          }
+        }
+      }
+    },
+    "Script Commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本命令"
+          }
+        }
+      }
+    },
+    "Script command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本命令"
+          }
+        }
+      }
+    },
+    "Scripts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本"
+          }
+        }
+      }
+    },
+    "Scripts are trusted local code with your user permissions. Keyestro copies installed scripts into managed storage and never interpolates arguments into a shell command.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本是以你的用户权限运行的受信任本地代码。Keyestro 会将已安装脚本复制到托管存储，且绝不会把参数插值到 shell 命令中。"
+          }
+        }
+      }
+    },
+    "Scripts are trusted local code with your user permissions. Managed copies are the default. Linked originals stay in place and must be reconfirmed after their file identity or contents change. Arguments are never interpolated into a shell command.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本是以你的用户权限运行的受信任本地代码。默认使用托管副本。链接的原始文件会留在原处；其文件身份或内容改变后必须重新确认。参数绝不会插值到 shell 命令中。"
+          }
+        }
+      }
+    },
+    "Scripts could not be loaded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法加载脚本。"
+          }
+        }
+      }
+    },
+    "Search and act locally": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在本机搜索并执行操作"
+          }
+        }
+      }
+    },
+    "Search for the file again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新搜索该文件。"
+          }
+        }
+      }
+    },
+    "Search indexed file contents": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索已索引的文件内容"
+          }
+        }
+      }
+    },
+    "Searching": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在搜索"
+          }
+        }
+      }
+    },
+    "Searching…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在搜索…"
+          }
+        }
+      }
+    },
+    "Security inspection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全检查"
+          }
+        }
+      }
+    },
+    "Select Package…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择软件包…"
+          }
+        }
+      }
+    },
+    "Select a region across any display": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在任意显示器上选择区域"
+          }
+        }
+      }
+    },
+    "Select a region and choose where to save it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择区域并指定保存位置"
+          }
+        }
+      }
+    },
+    "Select and review the exact exported package. Its identifier, version, and SHA-256 must all match.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择并检查导出时对应的软件包；其标识符、版本和 SHA-256 必须全部匹配。"
+          }
+        }
+      }
+    },
+    "Select the original executable for each registration. Its SHA-256 must match before Keyestro creates a managed copy.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请为每条注册信息选择原始可执行文件；SHA-256 匹配后，Keyestro 才会创建托管副本。"
+          }
+        }
+      }
+    },
+    "Sensitive item": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感项目"
+          }
+        }
+      }
+    },
+    "Set": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已设置"
+          }
+        }
+      }
+    },
+    "Share global query text with this extension": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与此扩展共享全局查询文本"
+          }
+        }
+      }
+    },
+    "Show Keyestro in the Dock": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在程序坞中显示 Keyestro"
+          }
+        }
+      }
+    },
+    "Show in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 中显示"
+          }
+        }
+      }
+    },
+    "Show sensitive preview": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示敏感预览"
+          }
+        }
+      }
+    },
+    "Shown in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在 Finder 中显示"
+          }
+        }
+      }
+    },
+    "Skip setup": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳过设置"
+          }
+        }
+      }
+    },
+    "Sleep Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让 Mac 进入睡眠"
+          }
+        }
+      }
+    },
+    "Source": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源"
+          }
+        }
+      }
+    },
+    "Spotlight could not complete the search.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight 无法完成搜索。"
+          }
+        }
+      }
+    },
+    "Spotlight is unavailable or still indexing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spotlight 不可用或仍在建立索引。"
+          }
+        }
+      }
+    },
+    "Stable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "稳定版"
+          }
+        }
+      }
+    },
+    "Start typing to search enabled providers.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始输入以搜索已启用的提供器。"
+          }
+        }
+      }
+    },
+    "Stored data is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储的数据无效。"
+          }
+        }
+      }
+    },
+    "Stored in Keychain. When requested, the secret itself is delivered to this trusted extension process; it is never sent in preferencesChanged notifications.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储于钥匙串。扩展请求时，秘密本身会交给这个受信任的扩展进程；它绝不会通过 preferencesChanged 通知发送。"
+          }
+        }
+      }
+    },
+    "Stored local data is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储的本地数据无效。"
+          }
+        }
+      }
+    },
+    "Sync from Template": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从模板同步"
+          }
+        }
+      }
+    },
+    "System Commands": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统命令"
+          }
+        }
+      }
+    },
+    "System sleep is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统睡眠不可用。"
+          }
+        }
+      }
+    },
+    "Tab Next · Esc Back": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tab 下一项 · Esc 返回"
+          }
+        }
+      }
+    },
+    "Tables that could not be fully recovered: %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未能完整恢复的表：%@"
+          }
+        }
+      }
+    },
+    "Target": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标"
+          }
+        }
+      }
+    },
+    "Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本"
+          }
+        }
+      }
+    },
+    "Text could not be recognized in the selected image.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别所选图像中的文本。"
+          }
+        }
+      }
+    },
+    "Text recognition complete": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本识别完成"
+          }
+        }
+      }
+    },
+    "Text…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本…"
+          }
+        }
+      }
+    },
+    "That extension version is already installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该扩展版本已安装。"
+          }
+        }
+      }
+    },
+    "The Keychain item has an invalid format.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "钥匙串项目格式无效。"
+          }
+        }
+      }
+    },
+    "The Mac could not be put to sleep.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法使 Mac 进入睡眠。"
+          }
+        }
+      }
+    },
+    "The URL could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开 URL。"
+          }
+        }
+      }
+    },
+    "The action provider is not available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作提供器不可用。"
+          }
+        }
+      }
+    },
+    "The application action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用操作无效。"
+          }
+        }
+      }
+    },
+    "The application cache path is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用缓存路径无效。"
+          }
+        }
+      }
+    },
+    "The application cache path is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用缓存路径不可用。"
+          }
+        }
+      }
+    },
+    "The application could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开应用。"
+          }
+        }
+      }
+    },
+    "The application has moved or was removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用已移动或被删除。"
+          }
+        }
+      }
+    },
+    "The application is no longer installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该应用已不再安装。"
+          }
+        }
+      }
+    },
+    "The application item is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用项目无效。"
+          }
+        }
+      }
+    },
+    "The bundle identifier is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bundle Identifier 无效。"
+          }
+        }
+      }
+    },
+    "The calculation action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "计算操作无效。"
+          }
+        }
+      }
+    },
+    "The calculation could not be completed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成计算。"
+          }
+        }
+      }
+    },
+    "The capture action is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图操作不可用。"
+          }
+        }
+      }
+    },
+    "The capture operation could not start.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法启动截图操作。"
+          }
+        }
+      }
+    },
+    "The capture operation failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截图操作失败。"
+          }
+        }
+      }
+    },
+    "The captured image could not be assembled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法拼合截取的图像。"
+          }
+        }
+      }
+    },
+    "The clipboard action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板操作无效。"
+          }
+        }
+      }
+    },
+    "The clipboard encryption key is missing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板加密密钥缺失。"
+          }
+        }
+      }
+    },
+    "The clipboard image is invalid or exceeds 100 megapixels.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板图像无效或超过 1 亿像素。"
+          }
+        }
+      }
+    },
+    "The clipboard item could not be decrypted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解密剪贴板项目。"
+          }
+        }
+      }
+    },
+    "The clipboard item could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法删除剪贴板项目。"
+          }
+        }
+      }
+    },
+    "The clipboard item could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存剪贴板项目。"
+          }
+        }
+      }
+    },
+    "The clipboard item failed authentication.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板项目认证失败。"
+          }
+        }
+      }
+    },
+    "The clipboard item is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板项目无效。"
+          }
+        }
+      }
+    },
+    "The clipboard item was removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板项目已被移除。"
+          }
+        }
+      }
+    },
+    "The damaged local database could not be safely isolated.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法安全隔离损坏的本地数据库。"
+          }
+        }
+      }
+    },
+    "The encrypted clipboard nonce is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密剪贴板的 nonce 无效。"
+          }
+        }
+      }
+    },
+    "The executable is missing or is not executable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可执行文件缺失或不可执行。"
+          }
+        }
+      }
+    },
+    "The expression contains an unexpected token.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表达式中包含意外符号。"
+          }
+        }
+      }
+    },
+    "The expression is incomplete.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表达式不完整。"
+          }
+        }
+      }
+    },
+    "The expression is too long or deeply nested.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表达式过长或嵌套过深。"
+          }
+        }
+      }
+    },
+    "The extension action arguments are invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展操作参数无效。"
+          }
+        }
+      }
+    },
+    "The extension action failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展操作失败。"
+          }
+        }
+      }
+    },
+    "The extension action is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展操作已不可用。"
+          }
+        }
+      }
+    },
+    "The extension changed after the removal confirmation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认移除后，扩展已发生变化。"
+          }
+        }
+      }
+    },
+    "The extension changed after this preference was reviewed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查此偏好设置后，扩展已发生变化。"
+          }
+        }
+      }
+    },
+    "The extension command is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展命令不可用。"
+          }
+        }
+      }
+    },
+    "The extension could not be installed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法安装扩展。"
+          }
+        }
+      }
+    },
+    "The extension could not be isolated in its own process group.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将扩展隔离到独立进程组。"
+          }
+        }
+      }
+    },
+    "The extension could not be removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移除扩展。"
+          }
+        }
+      }
+    },
+    "The extension could not complete the action.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展无法完成操作。"
+          }
+        }
+      }
+    },
+    "The extension crashed repeatedly and is disabled for this session.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展反复崩溃，已在本次会话中停用。"
+          }
+        }
+      }
+    },
+    "The extension did not declare this preference.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展未声明此偏好。"
+          }
+        }
+      }
+    },
+    "The extension did not respond before the deadline.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展未在截止时间前响应。"
+          }
+        }
+      }
+    },
+    "The extension is disabled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展已停用。"
+          }
+        }
+      }
+    },
+    "The extension is no longer installed or enabled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展已不再安装或启用。"
+          }
+        }
+      }
+    },
+    "The extension is not authorized for that operation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展未获授权执行该操作。"
+          }
+        }
+      }
+    },
+    "The extension is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展不可用。"
+          }
+        }
+      }
+    },
+    "The extension may start again on its next query.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展可能会在下次查询时重新启动。"
+          }
+        }
+      }
+    },
+    "The extension package is invalid or unsafe.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展包无效或不安全。"
+          }
+        }
+      }
+    },
+    "The extension preference could not be cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法清除扩展偏好。"
+          }
+        }
+      }
+    },
+    "The extension preference could not be restored after a storage failure.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存储失败后无法恢复扩展偏好。"
+          }
+        }
+      }
+    },
+    "The extension preference could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存扩展偏好。"
+          }
+        }
+      }
+    },
+    "The extension process could not be launched.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法启动扩展进程。"
+          }
+        }
+      }
+    },
+    "The extension process ended unexpectedly.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展进程意外结束。"
+          }
+        }
+      }
+    },
+    "The extension registration and installed files could not be restored together.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法同时恢复扩展注册信息和已安装文件。"
+          }
+        }
+      }
+    },
+    "The extension reported an error.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展报告了错误。"
+          }
+        }
+      }
+    },
+    "The extension requires a newer version of Keyestro.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展需要更新版本的 Keyestro。"
+          }
+        }
+      }
+    },
+    "The extension secret is no longer available in Keychain.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展秘密已不在钥匙串中。"
+          }
+        }
+      }
+    },
+    "The extension sent invalid protocol data.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展发送了无效协议数据。"
+          }
+        }
+      }
+    },
+    "The extension setting could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存扩展设置。"
+          }
+        }
+      }
+    },
+    "The extension uses an incompatible protocol version.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展使用了不兼容的协议版本。"
+          }
+        }
+      }
+    },
+    "The extension violated the communication protocol.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展违反了通信协议。"
+          }
+        }
+      }
+    },
+    "The extension was unregistered, but its installed files could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展已取消注册，但无法删除其已安装文件。"
+          }
+        }
+      }
+    },
+    "The extension was unregistered, but its staged files could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展已取消注册，但无法删除其暂存文件。"
+          }
+        }
+      }
+    },
+    "The file action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件操作无效。"
+          }
+        }
+      }
+    },
+    "The file could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开文件。"
+          }
+        }
+      }
+    },
+    "The file item is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件项目无效。"
+          }
+        }
+      }
+    },
+    "The file query is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件查询无效。"
+          }
+        }
+      }
+    },
+    "The file remains at its current path and runs with your user permissions. Keyestro records its identity and SHA-256 and refuses to run it after either changes until you reconfirm.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该文件会留在当前路径并以你的用户权限运行。Keyestro 会记录其身份和 SHA-256；任一项发生变化后，在你重新确认前都会拒绝运行。"
+          }
+        }
+      }
+    },
+    "The file result is no longer current.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件结果已过期。"
+          }
+        }
+      }
+    },
+    "The file was moved or deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件已移动或删除。"
+          }
+        }
+      }
+    },
+    "The first sleep action always explains its effect. You can keep confirmation enabled for every use.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次睡眠操作始终会说明其影响；你也可以保留每次确认。"
+          }
+        }
+      }
+    },
+    "The item could not be written to the clipboard.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法将项目写入剪贴板。"
+          }
+        }
+      }
+    },
+    "The linked script could not be reconfirmed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法重新确认链接脚本。"
+          }
+        }
+      }
+    },
+    "The local database could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开本地数据库。"
+          }
+        }
+      }
+    },
+    "The local database could not be prepared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法准备本地数据库。"
+          }
+        }
+      }
+    },
+    "The local database could not be upgraded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法升级本地数据库。"
+          }
+        }
+      }
+    },
+    "The local database is damaged and was left unchanged.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地数据库已损坏，且未被修改。"
+          }
+        }
+      }
+    },
+    "The local database operation failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地数据库操作失败。"
+          }
+        }
+      }
+    },
+    "The login item setting could not be changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法更改登录项设置。"
+          }
+        }
+      }
+    },
+    "The macOS application data directories are unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 应用数据目录不可用。"
+          }
+        }
+      }
+    },
+    "The merged action target is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合并操作的目标已不可用。"
+          }
+        }
+      }
+    },
+    "The old encryption key is missing. Existing entries cannot be recovered and will be permanently deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "旧加密密钥已丢失。现有项目无法恢复，并将被永久删除。"
+          }
+        }
+      }
+    },
+    "The paste keystroke could not be created.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法创建粘贴按键事件。"
+          }
+        }
+      }
+    },
+    "The pin state could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存固定状态。"
+          }
+        }
+      }
+    },
+    "The preference value is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "偏好值无效。"
+          }
+        }
+      }
+    },
+    "The previous application could not be activated.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法激活先前的应用。"
+          }
+        }
+      }
+    },
+    "The previous application is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先前的应用已不可用。"
+          }
+        }
+      }
+    },
+    "The process could not be launched.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法启动进程。"
+          }
+        }
+      }
+    },
+    "The process request contains an invalid argument.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "进程请求包含无效参数。"
+          }
+        }
+      }
+    },
+    "The quick link action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷链接操作无效。"
+          }
+        }
+      }
+    },
+    "The quick link changed after the deletion confirmation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认删除后，快捷链接已发生变化。"
+          }
+        }
+      }
+    },
+    "The quick link could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法删除快捷链接。"
+          }
+        }
+      }
+    },
+    "The quick link could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开快捷链接。"
+          }
+        }
+      }
+    },
+    "The quick link could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存快捷链接。"
+          }
+        }
+      }
+    },
+    "The quick link definition is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷链接定义无效。"
+          }
+        }
+      }
+    },
+    "The quick link is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷链接无效。"
+          }
+        }
+      }
+    },
+    "The quick link was removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷链接已被移除。"
+          }
+        }
+      }
+    },
+    "The rendered URL is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成的 URL 无效。"
+          }
+        }
+      }
+    },
+    "The result could not be copied.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法复制结果。"
+          }
+        }
+      }
+    },
+    "The result is outside the supported numeric range.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结果超出支持的数值范围。"
+          }
+        }
+      }
+    },
+    "The script action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本操作无效。"
+          }
+        }
+      }
+    },
+    "The script changed after installation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本在安装后已更改。"
+          }
+        }
+      }
+    },
+    "The script changed after the removal confirmation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "确认移除后，脚本已发生变化。"
+          }
+        }
+      }
+    },
+    "The script configuration could not be saved.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存脚本配置。"
+          }
+        }
+      }
+    },
+    "The script configuration is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本配置无效。"
+          }
+        }
+      }
+    },
+    "The script could not be executed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法执行脚本。"
+          }
+        }
+      }
+    },
+    "The script could not be removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法移除脚本。"
+          }
+        }
+      }
+    },
+    "The script definition is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本定义无效。"
+          }
+        }
+      }
+    },
+    "The script exceeded its timeout.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本超过了超时时限。"
+          }
+        }
+      }
+    },
+    "The script is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本不可用。"
+          }
+        }
+      }
+    },
+    "The script registration and managed file could not be restored together.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法同时恢复脚本注册信息和托管文件。"
+          }
+        }
+      }
+    },
+    "The script was unregistered, but its managed files could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本已取消注册，但无法删除其托管文件。"
+          }
+        }
+      }
+    },
+    "The script was unregistered, but its staged managed files could not be deleted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本已取消注册，但无法删除其暂存的托管文件。"
+          }
+        }
+      }
+    },
+    "The search result is no longer current.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索结果已过期。"
+          }
+        }
+      }
+    },
+    "The selected action is no longer available": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选操作已不可用"
+          }
+        }
+      }
+    },
+    "The selected browser is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选浏览器不可用。"
+          }
+        }
+      }
+    },
+    "The selected directory is not a valid extension package.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选目录不是有效的扩展包。"
+          }
+        }
+      }
+    },
+    "The selected display is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选显示器已不可用。"
+          }
+        }
+      }
+    },
+    "The selected item or action is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项目或操作已不可用。"
+          }
+        }
+      }
+    },
+    "The selected package does not match the imported extension registration.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选软件包与导入的扩展注册信息不匹配。"
+          }
+        }
+      }
+    },
+    "The selected region could not be captured.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法截取所选区域。"
+          }
+        }
+      }
+    },
+    "The selected region is too large to process safely.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选区域过大，无法安全处理。"
+          }
+        }
+      }
+    },
+    "The selected script does not match the exported registration.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选脚本与导出的注册信息不匹配。"
+          }
+        }
+      }
+    },
+    "The selected script does not match the imported registration.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选脚本与导入的注册信息不匹配。"
+          }
+        }
+      }
+    },
+    "The sensitive action does not identify a safe confirmation target.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此敏感操作未提供可安全显示的确认目标。"
+          }
+        }
+      }
+    },
+    "The setting could not be saved. The previous value was restored.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法保存此设置，已恢复先前有效值。"
+          }
+        }
+      }
+    },
+    "The source application is inferred best-effort when the clipboard changes; exclusions are a privacy convenience, not a security boundary.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板变化时会尽力推断来源应用；排除项只是隐私便利功能，并非安全边界。"
+          }
+        }
+      }
+    },
+    "The system command is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统命令无效。"
+          }
+        }
+      }
+    },
+    "The system location could not be opened.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法打开系统位置。"
+          }
+        }
+      }
+    },
+    "The window action failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口操作失败。"
+          }
+        }
+      }
+    },
+    "The window action is invalid.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口操作无效。"
+          }
+        }
+      }
+    },
+    "The window is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口已不可用。"
+          }
+        }
+      }
+    },
+    "The window operation failed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口操作失败。"
+          }
+        }
+      }
+    },
+    "This Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这台 Mac"
+          }
+        }
+      }
+    },
+    "This action affects something outside Keyestro. Review the target before continuing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此操作会影响 Keyestro 之外的内容。继续前请检查目标。"
+          }
+        }
+      }
+    },
+    "This action was already submitted.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此操作已提交。"
+          }
+        }
+      }
+    },
+    "This application has no bundle identifier.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此应用没有 Bundle Identifier。"
+          }
+        }
+      }
+    },
+    "This clipboard image exceeds the 25 MiB limit.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此剪贴板图像超过 25 MiB 限制。"
+          }
+        }
+      }
+    },
+    "This clipboard item exceeds the 2 MiB limit.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此剪贴板项目超过 2 MiB 限制。"
+          }
+        }
+      }
+    },
+    "This database was created by a newer Keyestro version.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此数据库由更新版本的 Keyestro 创建。"
+          }
+        }
+      }
+    },
+    "This permanently deletes all learned usage events from Keyestro's local database. Manual pins are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从 Keyestro 的本地数据库永久删除全部已学习的使用事件；手动固定项会保留。"
+          }
+        }
+      }
+    },
+    "This permanently deletes the quick link targeting %arg.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会永久删除目标为 %arg 的快捷链接。"
+          }
+        }
+      }
+    },
+    "This permanently deletes the selected encrypted clipboard entries from this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从此 Mac 永久删除所选的加密剪贴板项目。"
+          }
+        }
+      }
+    },
+    "This permanently removes this extension's saved secret from the Keychain. The secret value is never shown in this confirmation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从钥匙串永久移除此扩展保存的秘密；确认内容绝不会显示秘密值。"
+          }
+        }
+      }
+    },
+    "This removes the database, caches, clipboard history, managed scripts and extensions, Keychain keys, login item, and preferences. This cannot be undone.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会移除数据库、缓存、剪贴板历史、托管脚本与扩展、钥匙串密钥、登录项和偏好设置。此操作无法撤销。"
+          }
+        }
+      }
+    },
+    "This removes the saved value and notifies the extension that this exact preference is now unset.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会移除保存的值，并通知扩展此项偏好设置现已取消设置。"
+          }
+        }
+      }
+    },
+    "This resets all non-secret Keyestro settings, including the launcher shortcut and privacy choices. Quicklinks, scripts, extensions, and their saved data are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会重置 Keyestro 的全部非敏感设置，包括启动器快捷键和隐私选项；快捷链接、脚本、扩展及其保存的数据会保留。"
+          }
+        }
+      }
+    },
+    "This stops its entire process group and deletes all managed versions. External source files are not changed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会停止其整个进程组并删除所有托管版本。外部源文件不会改变。"
+          }
+        }
+      }
+    },
+    "This window does not support that operation.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此窗口不支持该操作。"
+          }
+        }
+      }
+    },
+    "Those clipboard items could not be cleared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法清除这些剪贴板项目。"
+          }
+        }
+      }
+    },
+    "Those units measure different kinds of values.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些单位衡量的是不同类型的值。"
+          }
+        }
+      }
+    },
+    "Timeout: %arg seconds": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "超时：%arg 秒"
+          }
+        }
+      }
+    },
+    "Title": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标题"
+          }
+        }
+      }
+    },
+    "Top Half": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上半屏"
+          }
+        }
+      }
+    },
+    "Top Left Quarter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左上四分之一屏"
+          }
+        }
+      }
+    },
+    "Top Right Quarter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右上四分之一屏"
+          }
+        }
+      }
+    },
+    "Trust and Link Original": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信任并链接原始文件"
+          }
+        }
+      }
+    },
+    "Trust the current contents of %arg?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "信任 %arg 的当前内容？"
+          }
+        }
+      }
+    },
+    "Trusted local script": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "受信任的本地脚本"
+          }
+        }
+      }
+    },
+    "Try a shorter file name or check Spotlight settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请缩短文件名，或检查 Spotlight 设置。"
+          }
+        }
+      }
+    },
+    "Try again or disable this provider.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重试或停用此提供器。"
+          }
+        }
+      }
+    },
+    "Try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重试。"
+          }
+        }
+      }
+    },
+    "Type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "类型"
+          }
+        }
+      }
+    },
+    "URL template": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL 模板"
+          }
+        }
+      }
+    },
+    "URLs…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL…"
+          }
+        }
+      }
+    },
+    "Unlimited items (500 MiB quota)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不限项目数（500 MiB 配额）"
+          }
+        }
+      }
+    },
+    "Update channel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新通道"
+          }
+        }
+      }
+    },
+    "Use Command, Option, or Control with another key. Conflicts remain visible and the menu bar stays available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请将 Command、Option 或 Control 与另一个按键组合使用。冲突会保持可见，菜单栏也始终可用。"
+          }
+        }
+      }
+    },
+    "Use Delete All Local Data to remove remaining extension files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请使用“删除全部本地数据”移除残留的扩展文件。"
+          }
+        }
+      }
+    },
+    "Use Delete All Local Data to remove remaining managed files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请使用“删除全部本地数据”移除残留的托管文件。"
+          }
+        }
+      }
+    },
+    "Use placeholders such as {query}; values are percent-encoded.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 {query} 等占位符；值会进行百分号编码。"
+          }
+        }
+      }
+    },
+    "Use this shortcut from any application. You can change it later in Shortcuts settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可在任意应用中使用此快捷键；稍后也可在“快捷键”设置中更改。"
+          }
+        }
+      }
+    },
+    "Value": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "值"
+          }
+        }
+      }
+    },
+    "Verify and Reconnect": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "验证并重新连接"
+          }
+        }
+      }
+    },
+    "Verify the application is valid and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请验证应用有效后重试。"
+          }
+        }
+      }
+    },
+    "Vision OCR runs entirely on this Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vision OCR 完全在此 Mac 上运行"
+          }
+        }
+      }
+    },
+    "Welcome to Keyestro": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "欢迎使用 Keyestro"
+          }
+        }
+      }
+    },
+    "When disabled, saved usage history is neither applied nor updated. Manual pins still affect ranking.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停用后，已保存的使用历史既不会用于排序，也不会更新；手动固定仍会影响排序。"
+          }
+        }
+      }
+    },
+    "Window actions and screenshot capture explain their permission at the moment you use them. You can skip those features and grant access later.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口操作和截图会在使用时说明所需权限。你可以跳过这些功能，稍后再授权。"
+          }
+        }
+      }
+    },
+    "Window updated": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口已更新"
+          }
+        }
+      }
+    },
+    "Windows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口"
+          }
+        }
+      }
+    },
+    "Windows could not be listed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法列出窗口。"
+          }
+        }
+      }
+    },
+    "Your launcher shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的启动器快捷键"
+          }
+        }
+      }
+    },
+    "about.version.format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro %@ (%@)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro %@（构建 %@）"
+          }
+        }
+      }
+    },
+    "accessibility.results.count": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld results"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个结果"
+          }
+        }
+      }
+    },
+    "capture.selection.instructions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Drag across any display · Return to capture · Esc to cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可跨显示器拖动 · 按 Return 截取 · 按 Esc 取消"
+          }
+        }
+      }
+    },
+    "clipboard.keyMissing.format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The encryption key for %lld clipboard items is missing."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个剪贴板项目的加密密钥已丢失。"
+          }
+        }
+      }
+    },
+    "database.newerSchema.recovery": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a version that supports database schema %lld; this build supports %lld."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请使用支持数据库 Schema %lld 的版本；当前版本支持 %lld。"
+          }
+        }
+      }
+    },
+    "error.deletion.partial": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some local data could not be deleted"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分本地数据未能删除"
+          }
+        }
+      }
+    },
+    "error.deletion.paths": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Application data paths could not be resolved"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法解析应用数据路径"
+          }
+        }
+      }
+    },
+    "extension": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展"
+          }
+        }
+      }
+    },
+    "extension preference": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展偏好设置"
+          }
+        }
+      }
+    },
+    "extension.hud.accessibility": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extension message"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展消息"
+          }
+        }
+      }
+    },
+    "extension.preference.clear.confirmation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear %@ for %@?"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除 %@（扩展：%@）？"
+          }
+        }
+      }
+    },
+    "file.content.match": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Content match · %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容匹配 · %@"
+          }
+        }
+      }
+    },
+    "launcher.actions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Actions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        }
+      }
+    },
+    "launcher.empty": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No results"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有结果"
+          }
+        }
+      }
+    },
+    "launcher.parameter.required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is required"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 为必填项"
+          }
+        }
+      }
+    },
+    "launcher.search.placeholder": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search apps, files, and commands"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索应用、文件和命令"
+          }
+        }
+      }
+    },
+    "launcher.shortcut.status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键：%@"
+          }
+        }
+      }
+    },
+    "launcher.shortcut.unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcut unavailable (%d); use the menu bar or record another shortcut."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键不可用（%d）；请使用菜单栏或录制其他快捷键。"
+          }
+        }
+      }
+    },
+    "macOS requires approval in System Settings → General → Login Items.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "macOS 需要在“系统设置”→“通用”→“登录项”中批准。"
+          }
+        }
+      }
+    },
+    "menu.checkUpdates": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for Updates…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新…"
+          }
+        }
+      }
+    },
+    "menu.clipboard.enable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable Clipboard History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用剪贴板历史"
+          }
+        }
+      }
+    },
+    "menu.clipboard.off": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clipboard History Off"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已关闭"
+          }
+        }
+      }
+    },
+    "menu.clipboard.pause": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause Clipboard History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停剪贴板历史"
+          }
+        }
+      }
+    },
+    "menu.clipboard.resume": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Resume Clipboard History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续剪贴板历史"
+          }
+        }
+      }
+    },
+    "menu.open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Keyestro"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Keyestro"
+          }
+        }
+      }
+    },
+    "menu.permissions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限…"
+          }
+        }
+      }
+    },
+    "menu.permissions.status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions: Accessibility %@ · Screen Recording %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限：辅助功能 %@ · 屏幕录制 %@"
+          }
+        }
+      }
+    },
+    "menu.quit": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quit Keyestro"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退出 Keyestro"
+          }
+        }
+      }
+    },
+    "menu.settings": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置…"
+          }
+        }
+      }
+    },
+    "onboarding.permissions.explanation": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Window actions and screenshot capture explain their permission at the moment you use them. You can skip those features and grant access later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口操作和截图会在使用时说明所需权限。你可以跳过这些功能，稍后再授权。"
+          }
+        }
+      }
+    },
+    "p50 %@ ms · p95 %@ ms · n=%arg": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "new",
+            "value": "p50 %1$@ ms · p95 %2$@ ms · n=%3$arg"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "p50 %@ 毫秒 · p95 %@ 毫秒 · n=%arg"
+          }
+        }
+      }
+    },
+    "queries are shared only after opening this command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在打开此命令后共享查询"
+          }
+        }
+      }
+    },
+    "scripts.exit.format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script exited with code %lld."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本以退出码 %lld 结束。"
+          }
+        }
+      }
+    },
+    "scripts.signal.format": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The script was terminated by signal %lld."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本被信号 %lld 终止。"
+          }
+        }
+      }
+    },
+    "settings.section.about": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "About"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关于"
+          }
+        }
+      }
+    },
+    "settings.section.advanced": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Advanced"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "高级"
+          }
+        }
+      }
+    },
+    "settings.section.extensions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Extensions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展"
+          }
+        }
+      }
+    },
+    "settings.section.features": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Features"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "功能"
+          }
+        }
+      }
+    },
+    "settings.section.general": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "General"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "通用"
+          }
+        }
+      }
+    },
+    "settings.section.permissions": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Permissions"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限"
+          }
+        }
+      }
+    },
+    "settings.section.privacy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Privacy"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐私"
+          }
+        }
+      }
+    },
+    "settings.section.shortcuts": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shortcuts"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷键"
+          }
+        }
+      }
+    },
+    "settings.section.updates": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Updates"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新"
+          }
+        }
+      }
+    },
+    "settings.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro Settings"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 设置"
+          }
+        }
+      }
+    },
+    "⌘%arg": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘%arg"
+          }
+        }
+      }
+    },
+    "日本語": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日语"
+          }
+        }
+      }
+    },
+    "简体中文": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "简体中文"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

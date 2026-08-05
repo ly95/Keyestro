@@ -1,0 +1,21 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+*.dmg
+*.zip
+*.app
+.env
+Config/Local.xcconfig
+__pycache__/
+*.py[cod]
+
+# Local product requirements and internal evidence tracking
+docs/spec.md
+docs/requirements-evidence.md
+Config/requirements-evidence.json
+scripts/audit-requirements.py
+scripts/test-requirements-audit.py

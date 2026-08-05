@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "com.keyestro.example.swift",
+  "name": "Swift Example",
+  "version": "1.0.0",
+  "description": "A minimal Keyestro JSON-RPC extension written in Swift.",
+  "author": "Keyestro Contributors",
+  "license": "Apache-2.0",
+  "executable": "bin/extension",
+  "minimumHostVersion": "0.1.0",
+  "capabilities": [],
+  "searchPolicy": "explicit",
+  "commands": [
+    {
+      "id": "search-symbols",
+      "title": "Search Example Symbols",
+      "mode": "search",
+      "keywords": ["example", "swift", "symbols"]
+    }
+  ],
+  "preferences": []
+}

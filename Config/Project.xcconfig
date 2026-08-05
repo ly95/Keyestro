@@ -1,0 +1,14 @@
+// Non-secret project constants. Override developer-specific values in Local.xcconfig.
+PRODUCT_NAME = Keyestro
+PRODUCT_BUNDLE_IDENTIFIER = com.keyestro.launcher
+MARKETING_VERSION = 0.1.0
+CURRENT_PROJECT_VERSION = 1
+MACOSX_DEPLOYMENT_TARGET = 14.0
+SWIFT_VERSION = 6.0
+SWIFT_STRICT_CONCURRENCY = complete
+CODE_SIGN_STYLE = Automatic
+DEVELOPMENT_TEAM =
+KEYESTRO_APPCAST_URL =
+KEYESTRO_EDDSA_PUBLIC_KEY =
+KEYESTRO_WEBSITE_URL = https://example.invalid/keyestro
+KEYESTRO_PRIVACY_URL = https://example.invalid/keyestro/privacy

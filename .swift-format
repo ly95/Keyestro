@@ -1,0 +1,11 @@
+{
+  "indentation" : { "spaces" : 4 },
+  "lineLength" : 140,
+  "respectsExistingLineBreaks" : true,
+  "rules" : {
+    "AllPublicDeclarationsHaveDocumentation" : false,
+    "ReplaceForEachWithForLoop" : false,
+    "UseLetInEveryBoundCaseVariable" : false
+  },
+  "version" : 1
+}
