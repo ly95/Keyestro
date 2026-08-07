@@ -146,25 +146,36 @@ enum KeyestroApplication {
 }
 
 @MainActor
-private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
-    private let settings = SettingsStore()
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+    let settings: SettingsStore
     private var statusItem: NSStatusItem?
     private var hotKeyService: HotKeyService?
     private var panelController: LauncherPanelController?
+    private var clipboardPanelController: ClipboardPanelController?
     private var settingsController: SettingsWindowController?
     private var onboardingController: OnboardingWindowController?
     private var hotKeyStatusItem: NSMenuItem?
+    private var clipboardHotKeyStatusItem: NSMenuItem?
     private var clipboardMenuItem: NSMenuItem?
     private var clipboardIssueItem: NSMenuItem?
     private var permissionStatusItem: NSMenuItem?
     private var checkUpdatesItem: NSMenuItem?
     private var clipboardMonitor: ClipboardMonitor?
+    private var quickPasteCoordinator: QuickPasteCoordinator?
+    private var quickPasteHUDController: QuickPasteHUDController?
     private var extensionSupervisor: ExtensionSupervisor?
     private var updateService: SparkleUpdateService?
     private var database: LauncherDatabase?
     private var storageConfiguration: ApplicationStorageConfiguration?
     private var terminationPending = false
+    private var isRecordingHotKey = false
+    private var hotKeyRegistrationTask: Task<Void, Never>?
     private var settingsCancellables = Set<AnyCancellable>()
+
+    init(settings: SettingsStore = SettingsStore()) {
+        self.settings = settings
+        super.init()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         settings.applyActivationPolicy()
@@ -211,9 +222,20 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
             quicklinks = InMemoryQuicklinkStore()
             rankingStore = nil
         }
-        let fileActions = MacFileActionService()
-        let pasteboard = MacPasteboardService()
+        let clipboardInternalWriteRegistry = ClipboardInternalWriteRegistry()
+        let pasteboard = InternalWriteTrackingPasteboardService(
+            pasteboard: MacPasteboardService(),
+            internalWriteRegistry: clipboardInternalWriteRegistry
+        )
+        let fileActions = MacFileActionService(pasteboard: pasteboard)
         let clipboardStore = database.map { ClipboardStore(database: $0, keyManager: keyManager) }
+        let clipboardActions = clipboardStore.map {
+            ClipboardActionService(
+                store: $0,
+                pasteboard: pasteboard,
+                autoPaste: MacAutoPasteService()
+            )
+        }
         let scriptStore: any ScriptStoring
         if let database {
             scriptStore = database
@@ -264,11 +286,15 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         let captureCoordinator = CaptureCoordinator(
             captureService: MacScreenCaptureService(),
             ocrService: LocalVisionOCRService(),
-            settings: settings
+            settings: settings,
+            pasteboard: pasteboard
         )
         var providers: [any LauncherProvider] = [
-            ApplicationProvider(rankingStore: rankingStore),
-            CalculatorProvider(),
+            ApplicationProvider(
+                workspace: MacWorkspaceService(pasteboard: pasteboard),
+                rankingStore: rankingStore
+            ),
+            CalculatorProvider(pasteboard: pasteboard),
             FileProvider(actions: fileActions, preferences: settings.fileSearchPreferences),
             QuicklinkProvider(
                 store: quicklinks,
@@ -284,12 +310,11 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
                 authorization: extensionAuthorization
             ),
         ]
-        if let clipboardStore {
+        if let clipboardStore, let clipboardActions {
             providers.append(
                 ClipboardProvider(
                     store: clipboardStore,
-                    pasteboard: pasteboard,
-                    autoPaste: MacAutoPasteService()
+                    actions: clipboardActions
                 )
             )
         }
@@ -304,11 +329,34 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
             rankingLearning: settings.rankingLearningPreferences
         )
         let viewModel = LauncherViewModel(coordinator: coordinator, actionRunner: runner, settings: settings)
-        let panelController = LauncherPanelController(viewModel: viewModel)
+        let focusCoordinator = TransientPanelFocusCoordinator()
+        let presentationCoordinator = TransientPanelCoordinator()
+        let panelController = LauncherPanelController(
+            viewModel: viewModel,
+            focusCoordinator: focusCoordinator,
+            presentationCoordinator: presentationCoordinator
+        )
+        let clipboardViewModel = ClipboardPanelViewModel(
+            store: clipboardStore,
+            actions: clipboardActions,
+            settings: settings
+        )
+        let clipboardPanelController = ClipboardPanelController(
+            viewModel: clipboardViewModel,
+            focusCoordinator: focusCoordinator,
+            presentationCoordinator: presentationCoordinator
+        )
+        let quickPasteCoordinator = QuickPasteCoordinator(
+            store: clipboardStore,
+            actions: clipboardActions,
+            settings: settings
+        )
+        let quickPasteHUDController = QuickPasteHUDController()
         let settingsController = SettingsWindowController(
             settings: settings,
             quicklinks: quicklinks,
             clipboardStore: clipboardStore,
+            pasteboard: pasteboard,
             scripts: scriptStore,
             scriptInstaller: scriptInstaller,
             extensions: extensionStore,
@@ -340,11 +388,8 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
                     return L10n.text("Caches cleared.")
                 }
             },
-            beginHotKeyRecording: { [weak self] in self?.hotKeyService?.suspend() },
-            endHotKeyRecording: { [weak self] in
-                guard let self else { return }
-                self.hotKeyService?.register(self.settings.launcherShortcut)
-            },
+            beginHotKeyRecording: { [weak self] in self?.beginHotKeyRecording() },
+            endHotKeyRecording: { [weak self] in self?.endHotKeyRecording() },
             deleteAllLocalData: { [weak self] in
                 self?.deleteAllLocalData(
                     paths: appPaths,
@@ -360,10 +405,28 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         viewModel.onDismiss = { [weak panelController] in panelController?.dismiss() }
         viewModel.onOpenSettings = { [weak settingsController] in settingsController?.show() }
         viewModel.onOpenPermissions = { [weak settingsController] in settingsController?.show(section: .permissions) }
+        clipboardViewModel.onDismiss = { [weak clipboardPanelController] in clipboardPanelController?.dismiss() }
+        clipboardViewModel.onOpenPrivacy = { [weak settingsController, weak clipboardPanelController] in
+            clipboardPanelController?.dismiss()
+            settingsController?.show(section: .privacy)
+        }
+        clipboardViewModel.onOpenPermissions = { [weak settingsController, weak clipboardPanelController] in
+            clipboardPanelController?.dismiss()
+            settingsController?.show(section: .permissions)
+        }
+        quickPasteCoordinator.onFallbackToHistory = { [weak clipboardPanelController] in
+            clipboardPanelController?.show()
+        }
+        quickPasteCoordinator.onMessage = { [weak quickPasteHUDController] message in
+            quickPasteHUDController?.show(message)
+        }
         captureCoordinator.onWillSelect = { [weak panelController] in panelController?.dismiss() }
         fileActions.onPreviewWillOpen = { [weak panelController] in panelController?.previewWillOpen() }
         fileActions.onPreviewDidClose = { [weak panelController] in panelController?.previewDidClose() }
         self.panelController = panelController
+        self.clipboardPanelController = clipboardPanelController
+        self.quickPasteCoordinator = quickPasteCoordinator
+        self.quickPasteHUDController = quickPasteHUDController
         self.settingsController = settingsController
         self.extensionSupervisor = extensionSupervisor
         self.updateService = updateService
@@ -383,6 +446,21 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         hotKeyStatus.isEnabled = false
         menu.addItem(hotKeyStatus)
         hotKeyStatusItem = hotKeyStatus
+        let openClipboardHistory = menu.addItem(
+            withTitle: L10n.text("menu.clipboardHistory.open"),
+            action: #selector(openClipboardHistory),
+            keyEquivalent: ""
+        )
+        openClipboardHistory.target = self
+        let clipboardHotKeyStatus = NSMenuItem(
+            title: L10n.format("clipboard.shortcut.status", settings.clipboardHistoryShortcut.displayName),
+            action: nil,
+            keyEquivalent: ""
+        )
+        clipboardHotKeyStatus.isEnabled = false
+        menu.addItem(clipboardHotKeyStatus)
+        clipboardHotKeyStatusItem = clipboardHotKeyStatus
+        menu.addItem(.separator())
         let clipboardItem = menu.addItem(
             withTitle: L10n.text("menu.clipboard.off"),
             action: #selector(toggleClipboardMonitoring),
@@ -432,21 +510,38 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         statusItem = item
 
         let hotKeyService = HotKeyService()
-        hotKeyService.onInvocation = { [weak panelController] in panelController?.toggle() }
-        hotKeyService.onStateChange = { [weak self] state in self?.updateHotKeyStatus(state) }
-        hotKeyService.register(settings.launcherShortcut)
+        hotKeyService.onInvocation = {
+            [weak panelController, weak clipboardPanelController, weak quickPasteCoordinator] action in
+            switch action {
+            case .launcher: panelController?.toggle()
+            case .clipboardHistory: clipboardPanelController?.toggle()
+            case .quickPaste: quickPasteCoordinator?.invoke()
+            }
+        }
+        hotKeyService.onStateChange = { [weak self] action, state in
+            self?.updateHotKeyStatus(action: action, state: state)
+        }
         self.hotKeyService = hotKeyService
-        settings.$launcherShortcut
-            .removeDuplicates()
-            .dropFirst()
-            .sink { [weak hotKeyService] shortcut in hotKeyService?.register(shortcut) }
-            .store(in: &settingsCancellables)
+        registerConfiguredHotKeys()
+        Publishers.CombineLatest4(
+            settings.$launcherShortcut,
+            settings.$clipboardHistoryShortcut,
+            settings.$quickPasteShortcut,
+            settings.$quickPasteEnabled
+        )
+        .dropFirst()
+        .sink { [weak self] _, _, _, _ in
+            guard let self, !isRecordingHotKey else { return }
+            scheduleConfiguredHotKeyRegistration()
+        }
+        .store(in: &settingsCancellables)
 
         if let clipboardStore {
             let monitor = ClipboardMonitor(
                 store: clipboardStore,
                 pasteboard: pasteboard,
                 settings: settings,
+                internalWriteRegistry: clipboardInternalWriteRegistry,
                 onCaptureIssue: { [weak self] error in self?.presentClipboardIssue(error) }
             )
             monitor.start()
@@ -474,6 +569,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        hotKeyRegistrationTask?.cancel()
         hotKeyService?.stop()
         clipboardMonitor?.stop()
     }
@@ -482,12 +578,16 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         guard !terminationPending else { return .terminateNow }
         terminationPending = true
         Task {
-            await extensionSupervisor?.shutdownAll()
-            await database?.close()
-            try? storageConfiguration?.removeEphemeralData()
+            await shutdown()
             sender.reply(toApplicationShouldTerminate: true)
         }
         return .terminateLater
+    }
+
+    func shutdown() async {
+        await extensionSupervisor?.shutdownAll()
+        await database?.close()
+        try? storageConfiguration?.removeEphemeralData()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -499,30 +599,37 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         return true
     }
 
-    @objc private func openLauncher() {
+    @objc func openLauncher() {
         panelController?.toggle()
     }
 
-    @objc private func openSettings() {
+    @objc func openClipboardHistory() {
+        clipboardPanelController?.toggle()
+    }
+
+    @objc func openSettings() {
         panelController?.dismiss()
+        clipboardPanelController?.dismiss()
         settingsController?.show()
     }
 
-    @objc private func openPermissions() {
+    @objc func openPermissions() {
         panelController?.dismiss()
+        clipboardPanelController?.dismiss()
         settingsController?.show(section: .permissions)
     }
 
-    @objc private func openPrivacy() {
+    @objc func openPrivacy() {
         panelController?.dismiss()
+        clipboardPanelController?.dismiss()
         settingsController?.show(section: .privacy)
     }
 
-    @objc private func checkForUpdates() {
+    @objc func checkForUpdates() {
         updateService?.checkForUpdates()
     }
 
-    @objc private func toggleClipboardMonitoring() {
+    @objc func toggleClipboardMonitoring() {
         if settings.clipboardEnabled {
             settings.clipboardPaused.toggle()
         } else {
@@ -531,7 +638,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         }
     }
 
-    private func updateClipboardMenu(enabled: Bool, paused: Bool) {
+    func updateClipboardMenu(enabled: Bool, paused: Bool) {
         if !enabled {
             clipboardMenuItem?.title = L10n.text("menu.clipboard.enable")
         } else if paused {
@@ -541,7 +648,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         }
     }
 
-    private func presentClipboardIssue(_ error: ErrorDescriptor) {
+    func presentClipboardIssue(_ error: ErrorDescriptor) {
         let message = L10n.errorMessage(error).limitedToUnicodeScalars(120)
         clipboardIssueItem?.title = L10n.format("Clipboard capture skipped: %@", message)
         clipboardIssueItem?.toolTip = L10n.recoverySuggestion(error)
@@ -553,17 +660,64 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         updatePermissionAndUpdateMenu()
     }
 
-    private func updatePermissionAndUpdateMenu() {
+    func updatePermissionAndUpdateMenu() {
         let accessibility = AXIsProcessTrusted() ? L10n.text("Allowed") : L10n.text("Not Allowed")
         let capture = CGPreflightScreenCaptureAccess() ? L10n.text("Allowed") : L10n.text("Not Allowed")
         permissionStatusItem?.title = L10n.format("menu.permissions.status", accessibility, capture)
         checkUpdatesItem?.isEnabled = updateService?.canCheckForUpdates == true
     }
 
-    private func updateHotKeyStatus(_ state: HotKeyRegistrationState) {
-        let presentation = HotKeyStatusPresentation(state: state, shortcut: settings.launcherShortcut)
-        settings.setHotKeyRegistrationError(presentation.errorMessage)
-        hotKeyStatusItem?.title = presentation.menuTitle
+    func registerConfiguredHotKeys() {
+        guard let hotKeyService else { return }
+        hotKeyService.suspend()
+        hotKeyService.register(settings.launcherShortcut, for: .launcher)
+        hotKeyService.register(settings.clipboardHistoryShortcut, for: .clipboardHistory)
+        if settings.quickPasteEnabled, let shortcut = settings.quickPasteShortcut {
+            hotKeyService.register(shortcut, for: .quickPaste)
+        } else {
+            settings.setHotKeyRegistrationError(nil, for: .quickPaste)
+        }
+    }
+
+    func beginHotKeyRecording() {
+        hotKeyRegistrationTask?.cancel()
+        hotKeyRegistrationTask = nil
+        isRecordingHotKey = true
+        hotKeyService?.suspend()
+    }
+
+    func endHotKeyRecording() {
+        guard isRecordingHotKey else { return }
+        isRecordingHotKey = false
+        registerConfiguredHotKeys()
+    }
+
+    func scheduleConfiguredHotKeyRegistration() {
+        hotKeyRegistrationTask?.cancel()
+        hotKeyRegistrationTask = Task { @MainActor [weak self] in
+            await Task.yield()
+            guard !Task.isCancelled, let self, !isRecordingHotKey else { return }
+            hotKeyRegistrationTask = nil
+            registerConfiguredHotKeys()
+        }
+    }
+
+    func updateHotKeyStatus(action: HotKeyAction, state: HotKeyRegistrationState) {
+        guard let shortcut = settings.shortcut(for: action) else {
+            settings.setHotKeyRegistrationError(nil, for: action)
+            return
+        }
+        let presentation = HotKeyStatusPresentation(
+            action: action,
+            state: state,
+            shortcut: shortcut
+        )
+        settings.setHotKeyRegistrationError(presentation.errorMessage, for: action)
+        switch action {
+        case .launcher: hotKeyStatusItem?.title = presentation.menuTitle
+        case .clipboardHistory: clipboardHotKeyStatusItem?.title = presentation.menuTitle
+        case .quickPaste: break
+        }
     }
 
     private func deleteAllLocalData(
@@ -581,6 +735,7 @@ private final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate
         clipboardMonitor?.stop()
         hotKeyService?.stop()
         panelController?.dismiss()
+        clipboardPanelController?.dismiss()
         settingsController?.window?.orderOut(nil)
         Task {
             await extensionSupervisor.shutdownAll()

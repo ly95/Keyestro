@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import KeyestroDomain
 import Testing
 @testable import KeyestroCore
 
@@ -104,6 +105,51 @@ import Testing
     }
 }
 
+@Test func configurationPreviewAndValidationCoverEveryQuickPasteSetting() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let paths = try AppPaths(
+        bundleIdentifier: "com.keyestro.configuration-quick-paste-tests",
+        applicationSupportRoot: root.appendingPathComponent("Support"),
+        cachesRoot: root.appendingPathComponent("Caches")
+    )
+    let service = ConfigurationService(
+        quicklinks: InMemoryQuicklinkStore(),
+        scripts: InMemoryScriptStore(),
+        extensions: InMemoryExtensionStore(),
+        paths: paths,
+        appVersion: "1.0.0"
+    )
+    let settings: [String: JSONValue] = [
+        "shortcuts.clipboardHistory.keyCode": .integer(9),
+        "shortcuts.clipboardHistory.modifiers": .integer(2_048),
+        "shortcuts.quickPaste.combined": .string("35:2304"),
+        "clipboard.quickPaste.enabled": .bool(true),
+        "clipboard.quickPaste.allowsSensitiveContent": .bool(false),
+    ]
+
+    let data = try await service.export(settings: settings)
+    let validated = try await service.inspectImport(data)
+    #expect(validated.document.payload.settings == settings)
+    #expect(validated.preview.settingsCount == settings.count)
+    #expect(validated.preview.ignoredSettingsCount == 0)
+
+    let invalidSettings: [[String: JSONValue]] = [
+        ["shortcuts.clipboardHistory.keyCode": .integer(-1)],
+        ["shortcuts.clipboardHistory.modifiers": .string("option")],
+        ["shortcuts.quickPaste.combined": .bool(true)],
+        ["shortcuts.quickPaste.combined": .string("35")],
+        ["shortcuts.quickPaste.combined": .string("35:not-a-modifier")],
+        ["clipboard.quickPaste.enabled": .string("true")],
+        ["clipboard.quickPaste.allowsSensitiveContent": .integer(1)],
+    ]
+    for invalid in invalidSettings {
+        await #expect(throws: ConfigurationError.invalidPayload) {
+            try await service.export(settings: invalid)
+        }
+    }
+}
+
 @Test func configurationImportChecksIntegrityAndCreatesBackupBeforeMerge() async throws {
     let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
     let paths = try AppPaths(
@@ -143,7 +189,178 @@ import Testing
     #expect(backups.contains(where: { $0.lastPathComponent.hasPrefix("Configuration-") }))
 }
 
-private func configurationDocumentData(payload: ConfigurationPayload, appVersion: String) throws -> Data {
+@Test func configurationImportRejectsMalformedDocumentsAndDuplicateQuicklinks() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let paths = try AppPaths(
+        bundleIdentifier: "com.keyestro.configuration-coverage-tests",
+        applicationSupportRoot: root.appendingPathComponent("Support"),
+        cachesRoot: root.appendingPathComponent("Caches")
+    )
+    let service = ConfigurationService(
+        quicklinks: InMemoryQuicklinkStore(),
+        scripts: InMemoryScriptStore(),
+        extensions: InMemoryExtensionStore(),
+        paths: paths,
+        appVersion: "1.0.0"
+    )
+
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.inspectImport(Data("not json".utf8))
+    }
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.export(settings: ["shortcuts.launcher.keyCode": .integer(-1)])
+    }
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.export(
+            settings: ["clipboard.excludedApplications": .string(String(repeating: "x", count: 16_385))]
+        )
+    }
+
+    let definition = try QuicklinkDefinition.inferred(
+        id: "duplicate",
+        title: "Duplicate",
+        urlTemplate: "https://example.com"
+    )
+    let duplicate = ExportedQuicklink(definition)
+    let payload = ConfigurationPayload(
+        settings: [:],
+        quicklinks: [duplicate, duplicate],
+        scripts: [],
+        extensions: []
+    )
+    let data = try configurationDocumentData(payload: payload, appVersion: "1.0.0")
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.inspectImport(data)
+    }
+
+    let validScript = try ScriptDefinition(
+        id: "script",
+        title: "Script",
+        executablePath: "/private/script",
+        arguments: [ArgumentDefinition(id: "query", title: "Query", kind: .text, required: true)],
+        contentHash: String(repeating: "a", count: 64)
+    )
+    let exportedScript = ExportedScriptRegistration(validScript)
+    let invalidScript: ExportedScriptRegistration = try mutatedCodable(exportedScript) { object in
+        object["id"] = ""
+    }
+    #expect(throws: ConfigurationError.invalidPayload) { try invalidScript.validate() }
+
+    let invalidScriptArguments: ExportedScriptRegistration = try mutatedCodable(exportedScript) { object in
+        let argument = try #require((object["arguments"] as? [[String: Any]])?.first)
+        object["arguments"] = [argument, argument]
+    }
+    #expect(throws: ConfigurationError.invalidPayload) { try invalidScriptArguments.validate() }
+
+    let manifest = ExtensionManifest(
+        id: "com.keyestro.coverage",
+        name: "Coverage",
+        version: "1.0.0",
+        description: "Coverage fixture",
+        author: "Keyestro",
+        license: "Apache-2.0",
+        executable: "bin/extension",
+        minimumHostVersion: "0.1.0"
+    )
+    let exportedExtension = ExportedExtensionRegistration(
+        ExtensionRegistration(
+            manifest: manifest,
+            installPath: "/private/Coverage.extension",
+            manifestJSON: Data(),
+            contentHash: String(repeating: "b", count: 64),
+            enabled: true
+        )
+    )
+    let invalidExtension: ExportedExtensionRegistration = try mutatedCodable(exportedExtension) { object in
+        object["contentHash"] = "not-a-hash"
+    }
+    #expect(throws: ConfigurationError.invalidPayload) { try invalidExtension.validate() }
+
+    let emptyPayload = ConfigurationPayload(settings: [:], quicklinks: [], scripts: [], extensions: [])
+    await #expect(throws: ConfigurationError.unsupportedSchema) {
+        try await service.inspectImport(
+            try configurationDocumentData(payload: emptyPayload, appVersion: "1.0.0", schemaVersion: 2)
+        )
+    }
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.inspectImport(try configurationDocumentData(payload: emptyPayload, appVersion: ""))
+    }
+    await #expect(throws: ConfigurationError.tooLarge) {
+        try await service.inspectImport(Data(repeating: 0, count: ConfigurationService.maximumDocumentBytes + 1))
+    }
+
+    let oversizedPayload = ConfigurationPayload(
+        settings: [:],
+        quicklinks: Array(repeating: duplicate, count: 1_001),
+        scripts: [],
+        extensions: []
+    )
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.inspectImport(try configurationDocumentData(payload: oversizedPayload, appVersion: "1.0.0"))
+    }
+
+    let invalidSettings: [[String: JSONValue]] = [
+        Dictionary(uniqueKeysWithValues: (0...100).map { ("future.\($0)", .bool(true)) }),
+        ["": .bool(true)],
+        ["general.showDockIcon": .string("yes")],
+        ["appearance.launcher": .string("sepia")],
+        ["clipboard.retentionPreset": .string("forever")],
+        ["capture.ocrLanguagePreset": .string("invalid")],
+        ["future.value": .string(String(repeating: "x", count: 1_025))],
+    ]
+    for settings in invalidSettings {
+        await #expect(throws: ConfigurationError.invalidPayload) {
+            try await service.export(settings: settings)
+        }
+    }
+
+    let validData = try await service.export(settings: [:])
+    let validated = try await service.inspectImport(validData)
+    await #expect(throws: ConfigurationError.invalidPayload) {
+        try await service.merge(validated, transactionID: "not-a-uuid")
+    }
+    #expect(try await service.hasCommittedTransaction("not-a-uuid") == false)
+    #expect(try await service.importJournalURL().lastPathComponent == "ConfigurationImportTransaction.json")
+}
+
+@Test func configurationExportRejectsADocumentBeyondTheHardByteLimit() async throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let repeatedPath = String(repeating: "x", count: 8_000)
+    var definitions: [QuicklinkDefinition] = []
+    definitions.reserveCapacity(1_500)
+    for index in 0..<1_500 {
+        definitions.append(
+            try QuicklinkDefinition.inferred(
+                id: "large-\(index)",
+                title: "Large \(index)",
+                urlTemplate: "https://example.com/\(repeatedPath)/\(index)"
+            )
+        )
+    }
+    let paths = try AppPaths(
+        bundleIdentifier: "com.keyestro.configuration-size-tests",
+        applicationSupportRoot: root.appendingPathComponent("Support"),
+        cachesRoot: root.appendingPathComponent("Caches")
+    )
+    let service = ConfigurationService(
+        quicklinks: InMemoryQuicklinkStore(definitions: definitions),
+        scripts: InMemoryScriptStore(),
+        extensions: InMemoryExtensionStore(),
+        paths: paths,
+        appVersion: "1.0.0"
+    )
+    await #expect(throws: ConfigurationError.tooLarge) {
+        try await service.export(settings: [:])
+    }
+}
+
+private func configurationDocumentData(
+    payload: ConfigurationPayload,
+    appVersion: String,
+    schemaVersion: Int = 1
+) throws -> Data {
     let encoder = JSONEncoder()
     encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
     encoder.dateEncodingStrategy = .millisecondsSince1970
@@ -151,11 +368,21 @@ private func configurationDocumentData(payload: ConfigurationPayload, appVersion
     let checksum = SHA256.hash(data: payloadData).map { String(format: "%02x", $0) }.joined()
     return try encoder.encode(
         ConfigurationDocument(
-            schemaVersion: 1,
+            schemaVersion: schemaVersion,
             appVersion: appVersion,
             createdAt: Date(),
             payloadSHA256: checksum,
             payload: payload
         )
     )
+}
+
+private func mutatedCodable<Value: Codable>(
+    _ value: Value,
+    mutation: (inout [String: Any]) throws -> Void
+) throws -> Value {
+    let data = try JSONEncoder().encode(value)
+    var object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    try mutation(&object)
+    return try JSONDecoder().decode(Value.self, from: JSONSerialization.data(withJSONObject: object))
 }

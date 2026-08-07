@@ -9,14 +9,22 @@ protocol CaptureRegionSelecting: AnyObject, Sendable {
 
 @MainActor
 final class CaptureSelectionController: CaptureRegionSelecting {
+    private let screensOverride: [NSScreen]?
     private var windows: [CaptureOverlayWindow] = []
     private var continuation: CheckedContinuation<(CGRect, [CaptureDisplayDescriptor])?, Never>?
     private var anchor: CGPoint?
     private(set) var selection: CGRect?
 
+    init(screensOverride: [NSScreen]? = nil) {
+        self.screensOverride = screensOverride
+    }
+
+    var isSelecting: Bool { continuation != nil }
+    var overlayWindows: [CaptureOverlayWindow] { windows }
+
     func selectRegion() async -> (CGRect, [CaptureDisplayDescriptor])? {
         guard continuation == nil else { return nil }
-        let screens = NSScreen.screens
+        let screens = screensOverride ?? NSScreen.screens
         guard !screens.isEmpty else { return nil }
         windows = screens.map { screen in
             let window = CaptureOverlayWindow(screen: screen, controller: self)
@@ -106,8 +114,7 @@ final class CaptureOverlayWindow: NSWindow {
             contentRect: screen.frame,
             styleMask: [.borderless],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
         setFrame(screen.frame, display: false)
         level = .screenSaver
@@ -121,7 +128,7 @@ final class CaptureOverlayWindow: NSWindow {
 }
 
 @MainActor
-private final class CaptureSelectionView: NSView {
+final class CaptureSelectionView: NSView {
     private weak var controller: CaptureSelectionController?
 
     init(frame: NSRect, controller: CaptureSelectionController) {

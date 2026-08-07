@@ -40,6 +40,7 @@ final class LauncherViewModel: ObservableObject {
     @Published var parameterForm: ParameterFormState?
     @Published private(set) var queryFocusToken = 0
     @Published private var revealedSensitiveItemIDs = Set<ItemID>()
+    @Published private(set) var launcherAppearance: LauncherAppearancePreference
 
     var onDismiss: (() -> Void)?
     var onOpenSettings: (() -> Void)?
@@ -52,6 +53,7 @@ final class LauncherViewModel: ObservableObject {
     private var executionTask: Task<Void, Never>?
     private var activeExecutionID: UUID?
     private var messageTask: Task<Void, Never>?
+    private var settingsCancellables = Set<AnyCancellable>()
     private var context = QueryContext()
     private var isComposing = false
     private var lastAnnouncedGeneration: UInt64?
@@ -60,6 +62,11 @@ final class LauncherViewModel: ObservableObject {
         self.coordinator = coordinator
         self.actionRunner = actionRunner
         self.settings = settings
+        launcherAppearance = settings.launcherAppearance
+        settings.$launcherAppearance
+            .removeDuplicates()
+            .sink { [weak self] appearance in self?.launcherAppearance = appearance }
+            .store(in: &settingsCancellables)
     }
 
     var selectedItem: LauncherItem? {
@@ -71,6 +78,42 @@ final class LauncherViewModel: ObservableObject {
         selectedItem?.actions ?? []
     }
 
+    var selectedPrimaryAction: ActionDescriptor? {
+        selectedItem.flatMap(Self.primaryAction)
+    }
+
+    var selectedSecondaryAction: ActionDescriptor? {
+        selectedItem.flatMap(Self.secondaryAction)
+    }
+
+    var canExecuteSelectedResult: Bool {
+        selectedItem != nil && !isSearching && !isExecuting
+    }
+
+    var displayOrderedResults: [RankedItem] {
+        var providerOrder: [ProviderID] = []
+        var resultsByProvider: [ProviderID: [RankedItem]] = [:]
+        for result in results {
+            let providerID = result.item.providerID
+            if resultsByProvider[providerID] == nil { providerOrder.append(providerID) }
+            resultsByProvider[providerID, default: []].append(result)
+        }
+        return providerOrder.flatMap { resultsByProvider[$0] ?? [] }
+    }
+
+    var firstProblemStatus: ProviderStatus? {
+        statuses.sorted { $0.key < $1.key }.lazy.compactMap { _, status in
+            switch status {
+            case .permissionDenied, .unavailable, .failed: status
+            default: nil
+            }
+        }.first
+    }
+
+    var requiresExpandedEmptyState: Bool {
+        results.isEmpty && firstProblemStatus != nil
+    }
+
     func invoke(context: QueryContext) {
         self.context = context
         layer = .results
@@ -79,7 +122,7 @@ final class LauncherViewModel: ObservableObject {
         message = nil
         messageDetail = nil
         requestQueryFocus(selectAll: !query.isEmpty)
-        performSearch()
+        performSearch(preservingCurrentResults: true)
     }
 
     func didDismiss() {
@@ -96,7 +139,7 @@ final class LauncherViewModel: ObservableObject {
     func queryDidChange(_ value: String, isComposing: Bool) {
         query = value.limitedToUnicodeScalars(DomainLimits.queryUnicodeScalars)
         self.isComposing = isComposing
-        performSearch()
+        performSearch(preservingCurrentResults: false)
     }
 
     func isSensitivePreviewRevealed(_ itemID: ItemID) -> Bool {
@@ -114,10 +157,11 @@ final class LauncherViewModel: ObservableObject {
             moveActionSelection(delta)
             return
         }
-        guard !results.isEmpty else { return }
-        let currentIndex = selectedItemID.flatMap { id in results.firstIndex(where: { $0.id == id }) } ?? 0
-        let newIndex = min(results.count - 1, max(0, currentIndex + delta))
-        selectedItemID = results[newIndex].id
+        let displayedResults = displayOrderedResults
+        guard !displayedResults.isEmpty else { return }
+        let currentIndex = selectedItemID.flatMap { id in displayedResults.firstIndex(where: { $0.id == id }) } ?? 0
+        let newIndex = min(displayedResults.count - 1, max(0, currentIndex + delta))
+        selectedItemID = displayedResults[newIndex].id
     }
 
     func selectItem(_ id: ItemID) {
@@ -125,7 +169,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func openActions() {
-        guard selectedItem != nil else { return }
+        guard canExecuteSelectedResult else { return }
         layer = .actions
         selectedActionIndex = 0
     }
@@ -156,30 +200,45 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func executeDefault() {
-        guard let item = selectedItem else { return }
+        guard canExecuteSelectedResult, let item = selectedItem else { return }
         execute(itemID: item.id, actionID: item.defaultActionID)
     }
 
     func executeSecondary() {
-        guard let item = selectedItem else { return }
-        let secondary = item.actions.first(where: { $0.id != item.defaultActionID })
-        execute(itemID: item.id, actionID: secondary?.id ?? item.defaultActionID)
+        guard canExecuteSelectedResult, let item = selectedItem else { return }
+        execute(itemID: item.id, actionID: selectedSecondaryAction?.id ?? item.defaultActionID)
+    }
+
+    func executeAction(_ actionID: ActionID) {
+        guard canExecuteSelectedResult,
+            let item = selectedItem,
+            item.actions.contains(where: { $0.id == actionID })
+        else { return }
+        execute(itemID: item.id, actionID: actionID)
     }
 
     func executeVisibleResult(at index: Int) {
-        guard settings.numberShortcutsEnabled, results.indices.contains(index) else { return }
-        let item = results[index].item
+        let displayedResults = displayOrderedResults
+        guard !isSearching,
+            !isExecuting,
+            settings.numberShortcutsEnabled,
+            displayedResults.indices.contains(index)
+        else { return }
+        let item = displayedResults[index].item
         selectedItemID = item.id
         execute(itemID: item.id, actionID: item.defaultActionID)
     }
 
     func executeSelectedAction() {
-        guard let item = selectedItem, item.actions.indices.contains(selectedActionIndex) else { return }
+        guard canExecuteSelectedResult,
+            let item = selectedItem,
+            item.actions.indices.contains(selectedActionIndex)
+        else { return }
         execute(itemID: item.id, actionID: item.actions[selectedActionIndex].id)
     }
 
     func enterParameterForm() {
-        guard let item = selectedItem else { return }
+        guard canExecuteSelectedResult, let item = selectedItem else { return }
         let action: ActionDescriptor?
         if layer == .actions, item.actions.indices.contains(selectedActionIndex) {
             action = item.actions[selectedActionIndex]
@@ -195,7 +254,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func retrySearch() {
-        performSearch()
+        performSearch(preservingCurrentResults: true)
     }
 
     func confirmPendingAction() {
@@ -249,7 +308,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func submitParameters() {
-        guard let form = parameterForm else { return }
+        guard canExecuteSelectedResult, let form = parameterForm else { return }
         var arguments: [String: ArgumentValue] = [:]
         for definition in form.definitions {
             let value = form.values[definition.id]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -270,7 +329,7 @@ final class LauncherViewModel: ObservableObject {
         execute(itemID: form.itemID, actionID: form.actionID, suppliedArguments: arguments)
     }
 
-    private func performSearch() {
+    private func performSearch(preservingCurrentResults: Bool) {
         searchTask?.cancel()
         revealedSensitiveItemIDs.removeAll()
         let rawText = query
@@ -288,20 +347,29 @@ final class LauncherViewModel: ObservableObject {
             )
             for await snapshot in stream {
                 guard !Task.isCancelled else { return }
-                apply(snapshot)
+                apply(snapshot, preservingCurrentResults: preservingCurrentResults)
             }
         }
     }
 
-    private func apply(_ snapshot: QuerySnapshot) {
+    private func apply(_ snapshot: QuerySnapshot, preservingCurrentResults: Bool) {
         guard snapshot.generation >= generation else { return }
         let oldResults = results
         let oldIndex = selectedItemID.flatMap { id in oldResults.firstIndex(where: { $0.id == id }) } ?? 0
 
         generation = snapshot.generation
-        results = snapshot.items
         statuses = snapshot.statuses
         isSearching = !snapshot.isComplete
+
+        if preservingCurrentResults,
+            !snapshot.isComplete,
+            snapshot.items.isEmpty,
+            !results.isEmpty
+        {
+            return
+        }
+
+        results = snapshot.items
 
         if snapshot.isComplete, lastAnnouncedGeneration != snapshot.generation {
             lastAnnouncedGeneration = snapshot.generation
@@ -328,7 +396,7 @@ final class LauncherViewModel: ObservableObject {
         actionID: ActionID,
         suppliedArguments: [String: ArgumentValue]? = nil
     ) {
-        guard !isExecuting else { return }
+        guard !isSearching, !isExecuting else { return }
         guard let item = results.first(where: { $0.id == itemID })?.item,
             let descriptor = item.actions.first(where: { $0.id == actionID })
         else {
@@ -471,5 +539,22 @@ final class LauncherViewModel: ObservableObject {
                 .priority: NSNumber(value: NSAccessibilityPriorityLevel.medium.rawValue),
             ]
         )
+    }
+
+    static func primaryAction(for item: LauncherItem) -> ActionDescriptor? {
+        item.actions.first { $0.id == item.defaultActionID }
+    }
+
+    static func secondaryAction(for item: LauncherItem) -> ActionDescriptor? {
+        let alternateActions = item.actions.filter { $0.id != item.defaultActionID }
+        return alternateActions.first(where: isCommandReturnAction)
+            ?? alternateActions.first { $0.id.rawValue == "reveal" }
+            ?? alternateActions.first
+    }
+
+    private static func isCommandReturnAction(_ action: ActionDescriptor) -> Bool {
+        guard let shortcut = action.shortcut else { return false }
+        return ["return", "enter"].contains(shortcut.key.lowercased())
+            && shortcut.modifiers.contains(.command)
     }
 }

@@ -5,19 +5,15 @@ import KeyestroCore
 import KeyestroDomain
 import SwiftUI
 
-private final class LauncherPanel: NSPanel {
-    override var canBecomeKey: Bool { true }
-    override var canBecomeMain: Bool { false }
-}
-
 @MainActor
 final class LauncherPanelController: NSObject, NSWindowDelegate {
     static let panelWindowIdentifier = NSUserInterfaceItemIdentifier("com.keyestro.launcher.panel")
 
-    private let panel: LauncherPanel
+    private let panel: KeyestroTransientPanel
     private let viewModel: LauncherViewModel
     private let restoresPreviousApplication: Bool
-    private weak var previousApplication: NSRunningApplication?
+    private let focusCoordinator: TransientPanelFocusCoordinator
+    private let presentationCoordinator: TransientPanelCoordinator
     private var isDismissing = false
     private var isPreviewing = false
     private var presentationPending = false
@@ -31,11 +27,23 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     private(set) var lastFirstFrameMainThreadSegment: Duration?
     private(set) var lastPresentationMainThreadSegments: [Duration] = []
 
-    init(viewModel: LauncherViewModel, restoresPreviousApplication: Bool = true) {
+    init(
+        viewModel: LauncherViewModel,
+        restoresPreviousApplication: Bool = true,
+        focusCoordinator: TransientPanelFocusCoordinator = TransientPanelFocusCoordinator(),
+        presentationCoordinator: TransientPanelCoordinator = TransientPanelCoordinator()
+    ) {
         self.viewModel = viewModel
         self.restoresPreviousApplication = restoresPreviousApplication
-        panel = LauncherPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 220),
+        self.focusCoordinator = focusCoordinator
+        self.presentationCoordinator = presentationCoordinator
+        panel = KeyestroTransientPanel(
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: LauncherPanelLayout.windowWidth,
+                height: LauncherPanelLayout.windowHeight
+            ),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -69,6 +77,13 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         viewModel.objectWillChange
             .sink { [weak self] in self?.scheduleContentResize() }
             .store(in: &cancellables)
+        viewModel.$launcherAppearance
+            .removeDuplicates()
+            .sink { [weak self] appearance in self?.panel.appearance = appearance.panelAppearance }
+            .store(in: &cancellables)
+        presentationCoordinator.register(.launcher) { [weak self] restoringFocus in
+            self?.dismiss(restoringFocus: restoringFocus)
+        }
     }
 
     deinit {
@@ -97,11 +112,9 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         lastPresentationMainThreadSegments = []
         PerformanceSignposts.launcherInvoked()
         if restoresPreviousApplication {
-            let frontmost = NSWorkspace.shared.frontmostApplication
-            if frontmost?.processIdentifier != ProcessInfo.processInfo.processIdentifier {
-                previousApplication = frontmost
-            }
+            focusCoordinator.captureFrontmostApplication()
         }
+        presentationCoordinator.willShow(.launcher)
         recordPresentationSegment(startedAt.duration(to: .now))
         DispatchQueue.main.async { [weak self] in
             self?.preparePresentation(generation: generation, invokedAt: startedAt)
@@ -186,9 +199,9 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         }
 
         let context = QueryContext(
-            frontmostBundleIdentifier: previousApplication?.bundleIdentifier,
-            frontmostApplicationName: previousApplication?.localizedName,
-            mouseScreenIdentifier: screen.flatMap(screenIdentifier)
+            frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
+            frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
+            mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
         )
         // Providers begin only after the panel has completed its first frame.
         viewModel.invoke(context: context)
@@ -199,7 +212,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         firstFrameGeneration &+= 1
     }
 
-    func dismiss() {
+    func dismiss(restoringFocus: Bool = true) {
         guard isVisible, !isDismissing else { return }
         isDismissing = true
         resignDismissTask?.cancel()
@@ -208,8 +221,10 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         presentationPending = false
         if panel.isVisible { panel.orderOut(nil) }
         viewModel.didDismiss()
-        previousApplication?.activate()
-        previousApplication = nil
+        presentationCoordinator.didDismiss(.launcher)
+        if restoringFocus, restoresPreviousApplication {
+            focusCoordinator.restorePreviousApplication()
+        }
         isDismissing = false
     }
 
@@ -272,33 +287,34 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         )
     }
 
-    static func frame(in visible: NSRect, preferredHeight: CGFloat = 520) -> NSRect {
-        let size = NSSize(
-            width: min(720, visible.width),
-            height: min(max(1, preferredHeight), min(560, visible.height))
+    static func frame(
+        in visible: NSRect,
+        preferredHeight: CGFloat = LauncherPanelLayout.windowHeight
+    ) -> NSRect {
+        TransientPanelPlacement.frame(
+            in: visible,
+            preferredHeight: preferredHeight,
+            preferredWidth: LauncherPanelLayout.windowWidth,
+            maximumHeight: LauncherPanelLayout.windowHeight
         )
-        let x = visible.midX - size.width / 2
-        let preferredTopOffset = visible.height * 0.18
-        let y = max(visible.minY, visible.maxY - preferredTopOffset - size.height)
-        let frame = NSRect(origin: NSPoint(x: x, y: y), size: size)
-        return frame.intersection(visible)
     }
 
-    static func preferredHeight(resultCount: Int, actionCount: Int = 0, isParameterForm: Bool = false) -> CGFloat {
-        if isParameterForm { return 520 }
-        let visibleRows = min(8, max(0, actionCount > 0 ? actionCount : resultCount))
-        guard visibleRows > 0 else { return 220 }
-        let chrome: CGFloat = 64 + 39 + 16
-        let rows = CGFloat(visibleRows) * 52
-        let spacing = CGFloat(max(0, visibleRows - 1)) * 4
-        return min(560, max(220, chrome + rows + spacing))
+    static func preferredHeight(
+        resultCount: Int,
+        actionCount: Int = 0,
+        isParameterForm: Bool = false,
+        showsRecoveryState: Bool = false
+    ) -> CGFloat {
+        _ = (resultCount, actionCount, isParameterForm, showsRecoveryState)
+        return LauncherPanelLayout.windowHeight
     }
 
     private var preferredHeight: CGFloat {
         Self.preferredHeight(
             resultCount: viewModel.results.count,
             actionCount: viewModel.layer == .actions ? viewModel.visibleActions.count : 0,
-            isParameterForm: viewModel.layer == .parameters
+            isParameterForm: viewModel.layer == .parameters,
+            showsRecoveryState: viewModel.requiresExpandedEmptyState
         )
     }
 
@@ -314,63 +330,30 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     }
 
     private func targetScreen() -> NSScreen? {
-        let mouse = NSEvent.mouseLocation
-        if let screen = NSScreen.screens.first(where: { NSMouseInRect(mouse, $0.frame, false) }) {
-            return screen
-        }
-        if let screen = frontmostWindowScreen() { return screen }
-        return panel.screen ?? NSScreen.main ?? NSScreen.screens.first
-    }
-
-    /// Uses public window metadata only as the specified fallback when the pointer is outside every display.
-    private func frontmostWindowScreen() -> NSScreen? {
-        guard let processIdentifier = previousApplication?.processIdentifier,
-            let windows = CGWindowListCopyWindowInfo(
-                [.optionOnScreenOnly, .excludeDesktopElements],
-                kCGNullWindowID
-            ) as? [[String: Any]]
-        else { return nil }
-        let screens = NSScreen.screens
-        let displayBounds = screens.map { screen -> CGRect in
-            guard let displayID = Self.displayID(for: screen) else { return .null }
-            return CGDisplayBounds(displayID)
-        }
-        for window in windows {
-            guard (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == processIdentifier,
-                (window[kCGWindowLayer as String] as? NSNumber)?.intValue == 0,
-                (window[kCGWindowAlpha as String] as? NSNumber)?.doubleValue ?? 1 > 0,
-                let dictionary = window[kCGWindowBounds as String] as? [String: Any],
-                let bounds = CGRect(dictionaryRepresentation: dictionary as CFDictionary),
-                bounds.width > 1,
-                bounds.height > 1,
-                let index = Self.targetDisplayIndex(windowBounds: bounds, displayBounds: displayBounds)
-            else { continue }
-            return screens[index]
-        }
-        return nil
+        TransientPanelPlacement.targetScreen(
+            for: panel,
+            previousApplication: focusCoordinator.previousApplication
+        )
     }
 
     static func targetDisplayIndex(windowBounds: CGRect, displayBounds: [CGRect]) -> Int? {
-        var bestIndex: Int?
-        var bestArea: CGFloat = 0
-        for (index, display) in displayBounds.enumerated() {
-            let intersection: CGRect = windowBounds.intersection(display)
-            let width = Swift.max(CGFloat.zero, intersection.width)
-            let height = Swift.max(CGFloat.zero, intersection.height)
-            let area = width * height
-            if area > bestArea {
-                bestArea = area
-                bestIndex = index
-            }
-        }
-        return bestIndex
+        TransientPanelPlacement.targetDisplayIndex(windowBounds: windowBounds, displayBounds: displayBounds)
     }
+}
 
-    private static func displayID(for screen: NSScreen) -> CGDirectDisplayID? {
-        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
-    }
+enum LauncherPanelLayout {
+    static let windowWidth: CGFloat = 800
+    static let windowHeight: CGFloat = 620
+    static let headerHeight: CGFloat = 80
+    static let footerHeight: CGFloat = 52
+    static let quickViewWidth: CGFloat = 260
+    static let contentHeight = windowHeight - headerHeight - footerHeight - 2
+    static let compactHeight = windowHeight
+    static let recoveryHeight = windowHeight
+    static let chromeHeight = headerHeight + footerHeight + 2
+    static let emptyStateVerticalMargins: CGFloat = 32
 
-    private func screenIdentifier(_ screen: NSScreen) -> String? {
-        (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.stringValue
+    static func availableContentHeight(panelHeight: CGFloat) -> CGFloat {
+        max(0, panelHeight - chromeHeight)
     }
 }

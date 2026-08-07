@@ -8,7 +8,11 @@ public protocol WorkspaceServicing: Sendable {
 }
 
 public struct MacWorkspaceService: WorkspaceServicing, Sendable {
-    public init() {}
+    private let pasteboard: any PasteboardServicing
+
+    public init(pasteboard: any PasteboardServicing = MacPasteboardService()) {
+        self.pasteboard = pasteboard
+    }
 
     @MainActor
     public func openApplication(at url: URL, bundleIdentifier: String?) async throws {
@@ -31,8 +35,6 @@ public struct MacWorkspaceService: WorkspaceServicing, Sendable {
 
     @MainActor
     public func copyText(_ value: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(value, forType: .string)
+        _ = pasteboard.write(.text(value))
     }
 }

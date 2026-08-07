@@ -85,6 +85,46 @@
         }
       }
     },
+    "%lld actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个操作"
+          }
+        }
+      }
+    },
+    "%lld clipboard types": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 种剪贴板类型"
+          }
+        }
+      }
+    },
+    "%lld items · grouped by date": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 项 · 按日期分组"
+          }
+        }
+      }
+    },
+    "%lld results · grouped by source": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个结果 · 按来源分组"
+          }
+        }
+      }
+    },
     "/Applications": {
       "localizations": {
         "zh-Hans": {
@@ -335,6 +375,16 @@
         }
       }
     },
+    "Accessibility permission is required. Open Keyestro Settings → Permissions, grant access, and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要辅助功能权限。请打开 Keyestro 设置 → 权限，授权后重试。"
+          }
+        }
+      }
+    },
     "Action": {
       "localizations": {
         "zh-Hans": {
@@ -351,6 +401,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "操作提示"
+          }
+        }
+      }
+    },
+    "Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
           }
         }
       }
@@ -411,6 +471,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "请在“系统设置”→“隐私与安全性”→“屏幕与系统录音”中允许 Keyestro。如果 macOS 仍显示未授权，请退出并重新打开 Keyestro。"
+          }
+        }
+      }
+    },
+    "Allow sensitive-looking text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许疑似敏感文本"
           }
         }
       }
@@ -485,6 +555,26 @@
         }
       }
     },
+    "Appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观"
+          }
+        }
+      }
+    },
+    "Application": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用程序"
+          }
+        }
+      }
+    },
     "Application Support data": {
       "localizations": {
         "zh-Hans": {
@@ -531,6 +621,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "应用导入"
+          }
+        }
+      }
+    },
+    "Auto follows the macOS appearance. A Light or Dark override is saved on this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动模式跟随 macOS 外观；浅色或深色手动覆盖会保存在此 Mac 上。"
           }
         }
       }
@@ -635,12 +735,32 @@
         }
       }
     },
+    "Built-in sources stay on this Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置来源始终留在此 Mac"
+          }
+        }
+      }
+    },
     "Bundle identifier copied": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已复制 Bundle ID"
+          }
+        }
+      }
+    },
+    "CLIPBOARD · LOCAL": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板 · 本地"
           }
         }
       }
@@ -845,6 +965,16 @@
         }
       }
     },
+    "Choose": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择"
+          }
+        }
+      }
+    },
     "Choose a local .extension directory to inspect it before installation.": {
       "localizations": {
         "zh-Hans": {
@@ -881,6 +1011,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "请选择可执行文件。脚本未安装。"
+          }
+        }
+      }
+    },
+    "Choose clipboard type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择剪贴板类型"
           }
         }
       }
@@ -931,12 +1071,42 @@
         }
       }
     },
+    "Clear All": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全部清除"
+          }
+        }
+      }
+    },
+    "Clear All Clipboard History…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部剪贴板历史…"
+          }
+        }
+      }
+    },
     "Clear Caches": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "清除缓存"
+          }
+        }
+      }
+    },
+    "Clear Current Type…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除当前类型…"
           }
         }
       }
@@ -981,6 +1151,16 @@
         }
       }
     },
+    "Clear all clipboard history?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除全部剪贴板历史？"
+          }
+        }
+      }
+    },
     "Clear all learned ranking history?": {
       "localizations": {
         "zh-Hans": {
@@ -997,6 +1177,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "按类型清除"
+          }
+        }
+      }
+    },
+    "Clear clipboard history by type?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按类型清除剪贴板历史？"
           }
         }
       }
@@ -1061,12 +1251,52 @@
         }
       }
     },
+    "Clipboard Actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板操作"
+          }
+        }
+      }
+    },
+    "Clipboard Encryption Key Is Missing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板加密密钥缺失"
+          }
+        }
+      }
+    },
     "Clipboard History": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板历史"
+          }
+        }
+      }
+    },
+    "Clipboard History Is Off": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已关闭"
+          }
+        }
+      }
+    },
+    "Clipboard actions are unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板操作不可用。"
           }
         }
       }
@@ -1087,6 +1317,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板捕获已取消。"
+          }
+        }
+      }
+    },
+    "Clipboard content will be pasted into %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板内容将粘贴到 %@。"
           }
         }
       }
@@ -1141,6 +1381,26 @@
         }
       }
     },
+    "Clipboard history is empty. Copy text or a URL, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史为空。请复制文本或 URL 后重试。"
+          }
+        }
+      }
+    },
+    "Clipboard history is encrypted and searched on device.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史会在设备上加密并搜索。"
+          }
+        }
+      }
+    },
     "Clipboard history is loading.": {
       "localizations": {
         "zh-Hans": {
@@ -1181,12 +1441,42 @@
         }
       }
     },
+    "Clipboard history is unavailable. Enable it in Keyestro Settings and copy an item first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史不可用。请在 Keyestro 设置中启用它，并先复制一个项目。"
+          }
+        }
+      }
+    },
+    "Clipboard history is unavailable. Enable it in Keyestro Settings and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史不可用。请在 Keyestro 设置中启用后重试。"
+          }
+        }
+      }
+    },
     "Clipboard history reached its disk quota.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板历史已达到磁盘配额。"
+          }
+        }
+      }
+    },
+    "Clipboard history storage is unavailable.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史存储不可用。"
           }
         }
       }
@@ -1207,6 +1497,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板项目已删除"
+          }
+        }
+      }
+    },
+    "Clipboard monitoring is paused. Existing history remains available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板监控已暂停。现有历史仍可使用。"
           }
         }
       }
@@ -1267,6 +1567,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "代码签名"
+          }
+        }
+      }
+    },
+    "Command": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "命令"
           }
         }
       }
@@ -1377,6 +1687,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已复制"
+          }
+        }
+      }
+    },
+    "Copied items matching the current type will appear here.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "与当前类型匹配的已复制项目将显示在这里。"
           }
         }
       }
@@ -1497,6 +1817,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已恢复默认设置。"
+          }
+        }
+      }
+    },
+    "Delete": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除"
           }
         }
       }
@@ -1631,6 +1961,16 @@
         }
       }
     },
+    "Delete clipboard item?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除剪贴板项目？"
+          }
+        }
+      }
+    },
     "Delete from History": {
       "localizations": {
         "zh-Hans": {
@@ -1731,6 +2071,26 @@
         }
       }
     },
+    "Earlier": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早"
+          }
+        }
+      }
+    },
+    "Enable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用"
+          }
+        }
+      }
+    },
     "Enable /, >, =, and @ query prefixes": {
       "localizations": {
         "zh-Hans": {
@@ -1741,12 +2101,82 @@
         }
       }
     },
+    "Enable Clipboard History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用剪贴板历史"
+          }
+        }
+      }
+    },
+    "Enable Quick Paste and record its shortcut in Keyestro Settings.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请在 Keyestro 设置中启用快速粘贴并录制快捷键。"
+          }
+        }
+      }
+    },
+    "Enable Quick Paste for the latest text or URL": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用快速粘贴最新文本或 URL"
+          }
+        }
+      }
+    },
+    "Enable Quick Paste?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用快速粘贴？"
+          }
+        }
+      }
+    },
+    "Enable clipboard history to save future copied items locally with encryption.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用剪贴板历史后，今后复制的项目将以加密方式保存在本地。"
+          }
+        }
+      }
+    },
     "Enabled": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "已启用"
+          }
+        }
+      }
+    },
+    "Encrypted clipboard metadata is being prepared.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备加密的剪贴板元数据。"
+          }
+        }
+      }
+    },
+    "Encrypted on this Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已在此 Mac 上加密"
           }
         }
       }
@@ -1871,6 +2301,16 @@
         }
       }
     },
+    "Executing action": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在执行操作"
+          }
+        }
+      }
+    },
     "Executing action…": {
       "localizations": {
         "zh-Hans": {
@@ -1971,6 +2411,16 @@
         }
       }
     },
+    "FILE": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
     "File": {
       "localizations": {
         "zh-Hans": {
@@ -2021,6 +2471,26 @@
         }
       }
     },
+    "Files, apps, and clipboard are indexed on device.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件、应用和剪贴板均在设备上建立索引。"
+          }
+        }
+      }
+    },
+    "Files, apps, and clipboard are searched on device.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件、应用和剪贴板均在设备上搜索。"
+          }
+        }
+      }
+    },
     "Files: %arg": {
       "localizations": {
         "zh-Hans": {
@@ -2037,6 +2507,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件…"
+          }
+        }
+      }
+    },
+    "Filter by Type": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按类型筛选"
+          }
+        }
+      }
+    },
+    "Filter clipboard history (Command-P)": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "筛选剪贴板历史（Command-P）"
           }
         }
       }
@@ -2097,6 +2587,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "个人文件夹"
+          }
+        }
+      }
+    },
+    "Image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片"
+          }
+        }
+      }
+    },
+    "Images": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片"
           }
         }
       }
@@ -2271,6 +2781,26 @@
         }
       }
     },
+    "Keep the destination application and field frontmost, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请让目标应用和输入框保持在前台，然后重试。"
+          }
+        }
+      }
+    },
+    "Keep the destination application open and frontmost, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请保持目标应用打开并置于前台，然后重试。"
+          }
+        }
+      }
+    },
     "Keychain could not complete the request.": {
       "localizations": {
         "zh-Hans": {
@@ -2321,6 +2851,16 @@
         }
       }
     },
+    "Keyestro shortcuts must be different.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 的快捷键必须互不相同。"
+          }
+        }
+      }
+    },
     "Keyestro will copy the selected executable only if its SHA-256 matches the exported registration.": {
       "localizations": {
         "zh-Hans": {
@@ -2351,12 +2891,42 @@
         }
       }
     },
+    "LOCAL INDEX · READY": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地索引 · 就绪"
+          }
+        }
+      }
+    },
+    "LOCAL SOURCES · READY": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地来源 · 就绪"
+          }
+        }
+      }
+    },
     "Launch at Login": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "登录时启动"
+          }
+        }
+      }
+    },
+    "Launcher appearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动器外观"
           }
         }
       }
@@ -2381,6 +2951,16 @@
         }
       }
     },
+    "Link": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接"
+          }
+        }
+      }
+    },
     "Link Original File…": {
       "localizations": {
         "zh-Hans": {
@@ -2397,6 +2977,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "不复制并链接此脚本？"
+          }
+        }
+      }
+    },
+    "Links": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接"
+          }
+        }
+      }
+    },
+    "Loading Clipboard History…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载剪贴板历史…"
+          }
+        }
+      }
+    },
+    "Local": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地"
           }
         }
       }
@@ -2481,6 +3091,16 @@
         }
       }
     },
+    "Markdown": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Markdown"
+          }
+        }
+      }
+    },
     "Maximize": {
       "localizations": {
         "zh-Hans": {
@@ -2547,6 +3167,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "原生、开源、本地优先。采用 Apache-2.0 许可证。"
+          }
+        }
+      }
+    },
+    "Never leaves this Mac": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "永不离开此 Mac"
+          }
+        }
+      }
+    },
+    "No Clipboard History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂无剪贴板历史"
+          }
+        }
+      }
+    },
+    "No Matching Clipboard Items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无匹配的剪贴板项目"
           }
         }
       }
@@ -2681,6 +3331,26 @@
         }
       }
     },
+    "Open Clipboard History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开剪贴板历史"
+          }
+        }
+      }
+    },
+    "Open Clipboard History shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开剪贴板历史快捷键"
+          }
+        }
+      }
+    },
     "Open Downloads Folder": {
       "localizations": {
         "zh-Hans": {
@@ -2751,6 +3421,16 @@
         }
       }
     },
+    "Open Privacy Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开隐私设置"
+          }
+        }
+      }
+    },
     "Open Privacy settings and review clipboard history before continuing.": {
       "localizations": {
         "zh-Hans": {
@@ -2807,6 +3487,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开系统设置"
+          }
+        }
+      }
+    },
+    "Open actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开操作"
+          }
+        }
+      }
+    },
+    "Open file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开文件"
           }
         }
       }
@@ -2871,12 +3571,42 @@
         }
       }
     },
+    "Paste": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴"
+          }
+        }
+      }
+    },
     "Paste into Previous App": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "粘贴到先前应用"
+          }
+        }
+      }
+    },
+    "Paste into Previous App?": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴到上一个应用？"
+          }
+        }
+      }
+    },
+    "Paste was cancelled because the frontmost application changed. Return to the destination field and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "由于前台应用发生变化，粘贴已取消。请返回目标输入框后重试。"
           }
         }
       }
@@ -3001,6 +3731,16 @@
         }
       }
     },
+    "Press a shortcut…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请按下快捷键…"
+          }
+        }
+      }
+    },
     "Preview hidden": {
       "localizations": {
         "zh-Hans": {
@@ -3031,12 +3771,32 @@
         }
       }
     },
+    "Private sources stay hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "私密来源保持隐藏"
+          }
+        }
+      }
+    },
     "Put this Mac to sleep": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "让此 Mac 进入睡眠"
+          }
+        }
+      }
+    },
+    "QUICK VIEW": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速预览"
           }
         }
       }
@@ -3077,6 +3837,66 @@
           "stringUnit": {
             "state": "translated",
             "value": "快速查看无法预览此文件。"
+          }
+        }
+      }
+    },
+    "Quick Paste": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴"
+          }
+        }
+      }
+    },
+    "Quick Paste Latest Text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴最新文本"
+          }
+        }
+      }
+    },
+    "Quick Paste latest text shortcut": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴最新文本快捷键"
+          }
+        }
+      }
+    },
+    "Quick Paste requires Accessibility permission to send Command-V to the frontmost app. It may paste sensitive clipboard text unless you turn off “Allow sensitive-looking text.”": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴需要辅助功能权限，才能向前台应用发送 Command-V。除非关闭“允许疑似敏感文本”，否则它可能粘贴敏感剪贴板文本。"
+          }
+        }
+      }
+    },
+    "Quick Paste supports text and URLs. Choose the latest item in Clipboard History instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴仅支持文本和 URL。请改在剪贴板历史中选择最新项目。"
+          }
+        }
+      }
+    },
+    "Quick Paste was cancelled before sending a keystroke.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴已在发送按键前取消。"
           }
         }
       }
@@ -3127,6 +3947,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "就绪"
+          }
+        }
+      }
+    },
+    "Recent Files": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近文件"
           }
         }
       }
@@ -3197,6 +4027,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新连接…"
+          }
+        }
+      }
+    },
+    "Record Shortcut…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "录制快捷键…"
+          }
+        }
+      }
+    },
+    "Record a unique Quick Paste shortcut in Shortcuts before it can run.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先在“快捷键”中录制一个唯一的快速粘贴快捷键。"
           }
         }
       }
@@ -3351,6 +4201,16 @@
         }
       }
     },
+    "Restart Keyestro, then review Privacy settings if the problem continues.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请重新启动 Keyestro；如果问题仍然存在，请检查“隐私”设置。"
+          }
+        }
+      }
+    },
     "Restore Default Settings": {
       "localizations": {
         "zh-Hans": {
@@ -3421,6 +4281,16 @@
         }
       }
     },
+    "Resume Monitoring": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复监控"
+          }
+        }
+      }
+    },
     "Retry": {
       "localizations": {
         "zh-Hans": {
@@ -3437,6 +4307,46 @@
           "stringUnit": {
             "state": "translated",
             "value": "请在“扩展”设置中手动重试。"
+          }
+        }
+      }
+    },
+    "Return to the destination field and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请返回目标输入框后重试。"
+          }
+        }
+      }
+    },
+    "Reveal only after explicit permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在明确授权后显示"
+          }
+        }
+      }
+    },
+    "Reveal only after explicit selection": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在明确选择后显示"
+          }
+        }
+      }
+    },
+    "Review Accessibility Permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查辅助功能权限"
           }
         }
       }
@@ -3801,6 +4711,16 @@
         }
       }
     },
+    "Search Clipboard History": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索剪贴板历史"
+          }
+        }
+      }
+    },
     "Search and act locally": {
       "localizations": {
         "zh-Hans": {
@@ -3871,6 +4791,16 @@
         }
       }
     },
+    "Select a clipboard item to preview it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择剪贴板项目以预览"
+          }
+        }
+      }
+    },
     "Select a region across any display": {
       "localizations": {
         "zh-Hans": {
@@ -3887,6 +4817,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "选择区域并指定保存位置"
+          }
+        }
+      }
+    },
+    "Select a result to preview it": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择结果以预览"
           }
         }
       }
@@ -3911,12 +4851,52 @@
         }
       }
     },
+    "Sensitive content": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感内容"
+          }
+        }
+      }
+    },
+    "Sensitive content, preview hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感内容，预览已隐藏"
+          }
+        }
+      }
+    },
     "Sensitive item": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "敏感项目"
+          }
+        }
+      }
+    },
+    "Sensitive previews stay hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感内容预览保持隐藏"
+          }
+        }
+      }
+    },
+    "Sensitive-looking content was not pasted. Review it in Clipboard History instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "疑似敏感内容未被粘贴。请改在剪贴板历史中检查。"
           }
         }
       }
@@ -4471,6 +5451,16 @@
         }
       }
     },
+    "The destination application is unavailable. Keep it open and frontmost, then try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标应用不可用。请保持其打开并置于前台，然后重试。"
+          }
+        }
+      }
+    },
     "The encrypted clipboard nonce is invalid.": {
       "localizations": {
         "zh-Hans": {
@@ -4937,6 +5927,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "首次睡眠操作始终会说明其影响；你也可以保留每次确认。"
+          }
+        }
+      }
+    },
+    "The frontmost application changed before paste.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴前，前台应用已发生变化。"
           }
         }
       }
@@ -5491,6 +6491,16 @@
         }
       }
     },
+    "The shortcut writes the newest history item to the clipboard and sends Command-V only if the same destination app remains frontmost. Images, files, and blocked sensitive items open Clipboard History instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该快捷键会将最新历史项写入剪贴板，并且仅当同一目标应用仍在前台时发送 Command-V；图片、文件和被阻止的敏感项会改为打开剪贴板历史。"
+          }
+        }
+      }
+    },
     "The source application is inferred best-effort when the clipboard changes; exclusions are a privacy convenience, not a security boundary.": {
       "localizations": {
         "zh-Hans": {
@@ -5517,6 +6527,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "无法打开系统位置。"
+          }
+        }
+      }
+    },
+    "The target application could not be activated.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法激活目标应用。"
+          }
+        }
+      }
+    },
+    "The target application is no longer available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标应用已不可用。"
           }
         }
       }
@@ -5631,12 +6661,42 @@
         }
       }
     },
+    "This permanently deletes all encrypted %@ clipboard items from this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从此 Mac 永久删除所有已加密的 %@ 剪贴板项目。"
+          }
+        }
+      }
+    },
+    "This permanently deletes all encrypted clipboard items from this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从此 Mac 永久删除所有已加密的剪贴板项目。"
+          }
+        }
+      }
+    },
     "This permanently deletes all learned usage events from Keyestro's local database. Manual pins are kept.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "这会从 Keyestro 的本地数据库永久删除全部已学习的使用事件；手动固定项会保留。"
+          }
+        }
+      }
+    },
+    "This permanently deletes encrypted clipboard item ID %@.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会永久删除 ID 为 %@ 的加密剪贴板项目。"
           }
         }
       }
@@ -5687,6 +6747,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "这会移除保存的值，并通知扩展此项偏好设置现已取消设置。"
+          }
+        }
+      }
+    },
+    "This resets all non-secret Keyestro settings, including all shortcuts and privacy choices. Quicklinks, scripts, extensions, and their saved data are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会重置 Keyestro 的全部非敏感设置，包括所有快捷键和隐私选项；快捷链接、脚本、扩展及其保存的数据会保留。"
+          }
+        }
+      }
+    },
+    "This resets all non-secret Keyestro settings, including both shortcuts and privacy choices. Quicklinks, scripts, extensions, and their saved data are kept.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会重置 Keyestro 的全部非敏感设置，包括两个快捷键和隐私选项；快捷链接、脚本、扩展及其保存的数据会保留。"
           }
         }
       }
@@ -5757,6 +6837,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "标题"
+          }
+        }
+      }
+    },
+    "Today": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今天"
           }
         }
       }
@@ -5851,6 +6941,16 @@
         }
       }
     },
+    "Try another search or clipboard type.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尝试其他搜索内容或剪贴板类型。"
+          }
+        }
+      }
+    },
     "Type": {
       "localizations": {
         "zh-Hans": {
@@ -5877,6 +6977,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "URL…"
+          }
+        }
+      }
+    },
+    "Unknown Source": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知来源"
           }
         }
       }
@@ -6051,6 +7161,16 @@
         }
       }
     },
+    "Yesterday": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "昨天"
+          }
+        }
+      }
+    },
     "Your launcher shortcut": {
       "localizations": {
         "zh-Hans": {
@@ -6121,6 +7241,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 个剪贴板项目的加密密钥已丢失。"
+          }
+        }
+      }
+    },
+    "clipboard.shortcut.status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clipboard shortcut: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板快捷键：%@"
+          }
+        }
+      }
+    },
+    "clipboard.shortcut.unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clipboard shortcut unavailable (%d); use the menu bar or record another shortcut."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板快捷键不可用（%d）；请使用菜单栏或录制其他快捷键。"
           }
         }
       }
@@ -6225,6 +7377,16 @@
         }
       }
     },
+    "file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        }
+      }
+    },
     "file.content.match": {
       "localizations": {
         "en": {
@@ -6237,6 +7399,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "内容匹配 · %@"
+          }
+        }
+      }
+    },
+    "image": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "图片"
           }
         }
       }
@@ -6337,6 +7509,16 @@
         }
       }
     },
+    "link": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接"
+          }
+        }
+      }
+    },
     "macOS requires approval in System Settings → General → Login Items.": {
       "localizations": {
         "zh-Hans": {
@@ -6423,6 +7605,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "继续剪贴板历史"
+          }
+        }
+      }
+    },
+    "menu.clipboardHistory.open": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Clipboard History"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开剪贴板历史"
           }
         }
       }
@@ -6545,6 +7743,54 @@
           "stringUnit": {
             "state": "translated",
             "value": "仅在打开此命令后共享查询"
+          }
+        }
+      }
+    },
+    "quickPaste.shortcut.status": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick Paste shortcut: %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴快捷键：%@"
+          }
+        }
+      }
+    },
+    "quickPaste.shortcut.unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Quick Paste shortcut unavailable (%d); record another shortcut in Settings."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快速粘贴快捷键不可用（%d）；请在设置中录制其他快捷键。"
+          }
+        }
+      }
+    },
+    "quickPaste.success": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasted into %@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已粘贴到 %@。"
           }
         }
       }
@@ -6741,12 +7987,62 @@
         }
       }
     },
+    "text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文本"
+          }
+        }
+      }
+    },
+    "↩": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "↩"
+          }
+        }
+      }
+    },
+    "⌘ K": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘ K"
+          }
+        }
+      }
+    },
+    "⌘ P": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘ P"
+          }
+        }
+      }
+    },
     "⌘%arg": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "⌘%arg"
+          }
+        }
+      }
+    },
+    "⌘↩": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘↩"
           }
         }
       }

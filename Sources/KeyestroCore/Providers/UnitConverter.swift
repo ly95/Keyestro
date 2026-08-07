@@ -75,7 +75,6 @@ public struct UnitConverter: Sendable {
     private static func parseValueAndUnit(_ source: String) throws -> (Double, String) {
         let characters = Array(source)
         var index = 0
-        while index < characters.count, characters[index].isWhitespace { index += 1 }
         let numberStart = index
         while index < characters.count, "+-−.0123456789eE".contains(characters[index]) { index += 1 }
         let numberText = String(characters[numberStart..<index]).replacingOccurrences(of: "−", with: "-")

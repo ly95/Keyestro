@@ -112,6 +112,22 @@ import Testing
     #expect(updates.checkCount == 1)
 }
 
+@Test @MainActor func internalPasteboardBoundaryRegistersOnlyGenerationsItWrites() {
+    let systemPasteboard = FakePasteboardService()
+    let registry = ClipboardInternalWriteRegistry()
+    let pasteboard = InternalWriteTrackingPasteboardService(
+        pasteboard: systemPasteboard,
+        internalWriteRegistry: registry
+    )
+
+    #expect(pasteboard.write(.text("internal")))
+    #expect(registry.consume(changeCount: systemPasteboard.changeCount))
+    #expect(!registry.consume(changeCount: systemPasteboard.changeCount))
+
+    #expect(systemPasteboard.write(.text("external")))
+    #expect(!registry.consume(changeCount: systemPasteboard.changeCount))
+}
+
 @Test func requiredAsyncBoundaryFakesAreControllable() async throws {
     let spotlight = FakeSpotlightService()
     #expect(try await spotlight.searchFiles(containing: "x", options: SpotlightSearchOptions(), limit: 10).isEmpty)

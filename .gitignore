@@ -12,6 +12,9 @@ xcuserdata/
 Config/Local.xcconfig
 __pycache__/
 *.py[cod]
+.multica/
+.opencode/
+.agent_context/
 
 # Local product requirements and internal evidence tracking
 docs/spec.md
@@ -19,3 +22,4 @@ docs/requirements-evidence.md
 Config/requirements-evidence.json
 scripts/audit-requirements.py
 scripts/test-requirements-audit.py
+description.md

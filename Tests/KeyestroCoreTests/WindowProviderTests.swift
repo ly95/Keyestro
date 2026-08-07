@@ -38,6 +38,22 @@ import Testing
     #expect(windowItem.actions.count == 13)
     #expect(windowItem.defaultActionID == "focus")
 
+    let unmatched = try await collectedWindowEvents(
+        windowProvider.search(
+            request: QueryRequest(
+                generation: 9,
+                rawText: "zzzz-no-window-matches",
+                normalizedText: "zzzz-no-window-matches",
+                mode: .all
+            )
+        )
+    )
+    #expect(
+        unmatched.contains { event in
+            if case let .items(items, isFinal) = event { return items.isEmpty && isFinal }
+            return false
+        })
+
     let moveRequest = ProviderActionRequest(
         executionID: UUID(),
         itemID: windowItem.id,
@@ -54,6 +70,61 @@ import Testing
     finalSnapshot = try await completedSnapshot(from: await coordinator.search(rawText: "alpha"))
     #expect(finalSnapshot.items.contains(where: { $0.item.title == "Alpha Companion" }))
     #expect(!finalSnapshot.items.contains(where: { $0.item.providerID == windowProvider.descriptor.id }))
+}
+
+@Test func windowProviderCoversEmptyQueriesAndTypedAndUnknownFailures() async throws {
+    let accessibility = FailingAccessibilityService()
+    let provider = WindowProvider(accessibility: accessibility)
+
+    let empty = try await collectedWindowEvents(
+        provider.search(request: QueryRequest(generation: 1, rawText: "", normalizedText: "", mode: .all))
+    )
+    #expect(empty.count == 1)
+    #expect(
+        empty.contains { event in
+            if case let .items(items, isFinal) = event { return items.isEmpty && isFinal }
+            return false
+        })
+
+    await accessibility.setFailure(.accessibility(.windowNotFound))
+    let typed = try await collectedWindowEvents(
+        provider.search(request: QueryRequest(generation: 2, rawText: "window", normalizedText: "window", mode: .all))
+    )
+    #expect(
+        typed.contains { event in
+            if case .status(.failed) = event { return true }
+            return false
+        })
+
+    await accessibility.setFailure(.unknown)
+    let unknown = try await collectedWindowEvents(
+        provider.search(request: QueryRequest(generation: 3, rawText: "window", normalizedText: "window", mode: .all))
+    )
+    #expect(
+        unknown.contains { event in
+            if case .status(.failed) = event { return true }
+            return false
+        })
+
+    let execute = await provider.execute(
+        request: ProviderActionRequest(
+            executionID: UUID(),
+            itemID: ItemID(providerID: provider.descriptor.id, providerStableID: "window"),
+            actionID: ActionID(WindowLayoutAction.focus.rawValue),
+            arguments: [:]
+        )
+    )
+    #expect(execute == .failure(ErrorDescriptor(code: "windows.actionFailed", message: "The window action failed.")))
+
+    let invalid = await provider.execute(
+        request: ProviderActionRequest(
+            executionID: UUID(),
+            itemID: ItemID(providerID: "other", providerStableID: "window"),
+            actionID: "not-an-action",
+            arguments: [:]
+        )
+    )
+    #expect(invalid == .failure(ErrorDescriptor(code: "windows.invalidAction", message: "The window action is invalid.")))
 }
 
 private actor MutableAccessibilityService: AccessibilityServicing {
@@ -81,6 +152,38 @@ private actor MutableAccessibilityService: AccessibilityServicing {
 
     func setTrusted(_ value: Bool) {
         trusted = value
+    }
+}
+
+private actor FailingAccessibilityService: AccessibilityServicing {
+    enum Failure {
+        case accessibility(AccessibilityServiceError)
+        case unknown
+    }
+
+    private var failure: Failure = .unknown
+
+    func isTrusted() -> Bool { true }
+
+    func windows() throws -> [AccessibleWindowRecord] {
+        try fail()
+    }
+
+    func perform(_ action: WindowLayoutAction, windowID: String) throws {
+        _ = action
+        _ = windowID
+        try fail()
+    }
+
+    func setFailure(_ value: Failure) {
+        failure = value
+    }
+
+    private func fail() throws -> Never {
+        switch failure {
+        case let .accessibility(error): throw error
+        case .unknown: throw WindowProviderTestError.forcedFailure
+        }
     }
 }
 
@@ -112,6 +215,7 @@ private struct WindowCompanionProvider: LauncherProvider {
 
 private enum WindowProviderTestError: Error {
     case missingCompletedSnapshot
+    case forcedFailure
 }
 
 private func completedSnapshot(
@@ -121,4 +225,12 @@ private func completedSnapshot(
         return snapshot
     }
     throw WindowProviderTestError.missingCompletedSnapshot
+}
+
+private func collectedWindowEvents(
+    _ stream: AsyncThrowingStream<ProviderEvent, any Error>
+) async throws -> [ProviderEvent] {
+    var events: [ProviderEvent] = []
+    for try await event in stream { events.append(event) }
+    return events
 }

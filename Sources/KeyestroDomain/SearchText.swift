@@ -121,7 +121,6 @@ public enum FuzzyMatcher {
     }
 
     private static func lengthCoverage(query: String, candidate: String) -> Double {
-        guard !candidate.isEmpty else { return 0 }
         return min(1, Double(query.count) / Double(candidate.count))
     }
 

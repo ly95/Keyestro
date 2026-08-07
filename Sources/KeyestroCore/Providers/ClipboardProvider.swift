@@ -21,8 +21,7 @@ public struct ClipboardProvider: LauncherProvider {
         supportsEmptyQuery: false
     )
     private let store: ClipboardStore
-    private let pasteboard: any PasteboardServicing
-    private let autoPaste: any AutoPasteServicing
+    private let actions: ClipboardActionService
     private let pasteTargets = ClipboardPasteTargetCache()
 
     public init(
@@ -31,8 +30,12 @@ public struct ClipboardProvider: LauncherProvider {
         autoPaste: any AutoPasteServicing = MacAutoPasteService()
     ) {
         self.store = store
-        self.pasteboard = pasteboard
-        self.autoPaste = autoPaste
+        actions = ClipboardActionService(store: store, pasteboard: pasteboard, autoPaste: autoPaste)
+    }
+
+    public init(store: ClipboardStore, actions: ClipboardActionService) {
+        self.store = store
+        self.actions = actions
     }
 
     public func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {
@@ -54,7 +57,13 @@ public struct ClipboardProvider: LauncherProvider {
                 )
                 let items = entries.map { entry in
                     let itemID = ItemID(providerID: descriptor.id, providerStableID: entry.id)
-                    let copy = ActionDescriptor(id: "copy", title: "Copy to Clipboard", icon: .systemSymbol("doc.on.clipboard"))
+                    let actions = ClipboardActionCatalog.descriptors(
+                        itemID: entry.id,
+                        pasteConfirmationTarget: ClipboardActionCatalog.pasteConfirmationTarget(
+                            applicationName: request.context.frontmostApplicationName,
+                            bundleIdentifier: request.context.frontmostBundleIdentifier
+                        )
+                    )
                     return LauncherItem(
                         id: itemID,
                         providerID: descriptor.id,
@@ -68,26 +77,8 @@ public struct ClipboardProvider: LauncherProvider {
                             ?? .systemSymbol(Self.symbol(for: entry.contentType)),
                         canonicalResource: .command("clipboard:\(entry.id)"),
                         keywords: [entry.contentType.rawValue, "clipboard", "copied"],
-                        actions: [
-                            copy,
-                            ActionDescriptor(
-                                id: "autoPaste",
-                                title: "Paste into Previous App",
-                                icon: .systemSymbol("arrowshape.turn.up.left"),
-                                behavior: .closeLauncher,
-                                risk: .externalSideEffect,
-                                confirmationTarget: Self.pasteConfirmationTarget(for: request.context)
-                            ),
-                            ActionDescriptor(
-                                id: "delete",
-                                title: "Delete from History",
-                                icon: .systemSymbol("trash"),
-                                behavior: .keepLauncherOpen,
-                                risk: .destructive,
-                                confirmationTarget: "ID \(entry.id)"
-                            ),
-                        ],
-                        defaultActionID: copy.id,
+                        actions: actions,
+                        defaultActionID: ClipboardActionKind.copy.id,
                         scoreFeatures: ScoreFeatures(lastUsedAt: entry.lastCopiedAt, providerPrior: 0.35),
                         privacy: entry.isSensitive ? .sensitive : .normal
                     )
@@ -107,34 +98,18 @@ public struct ClipboardProvider: LauncherProvider {
         guard request.itemID.providerID == descriptor.id else {
             return .failure(ErrorDescriptor(code: "clipboard.invalidItem", message: "The clipboard item is invalid."))
         }
-        switch request.actionID.rawValue {
-        case "copy", "autoPaste":
-            switch await store.content(id: request.itemID.providerStableID) {
-            case let .success(content):
-                guard await pasteboard.write(content) else {
-                    return .failure(
-                        ErrorDescriptor(code: "clipboard.writeFailed", message: "The item could not be written to the clipboard.")
-                    )
-                }
-                guard request.actionID == "autoPaste" else { return .success(message: "Copied") }
-                let target = await pasteTargets.target(for: request.itemID.providerStableID)
-                switch await autoPaste.paste(intoBundleIdentifier: target) {
-                case .success: return .success()
-                case let .failure(error): return .failure(error)
-                }
-            case let .failure(error): return .failure(error)
-            }
-        case "delete":
-            switch await store.delete(id: request.itemID.providerStableID) {
-            case .success: return .success(message: "Clipboard item deleted")
-            case let .failure(error): return .failure(error)
-            }
-        default:
+        guard let action = ClipboardActionKind(rawValue: request.actionID.rawValue) else {
             return .failure(ErrorDescriptor(code: "clipboard.invalidAction", message: "The clipboard action is invalid."))
         }
+        let target = await pasteTargets.target(for: request.itemID.providerStableID)
+        return await actions.execute(
+            action,
+            itemID: request.itemID.providerStableID,
+            targetBundleIdentifier: target
+        )
     }
 
-    private static func symbol(for type: ClipboardContentType) -> String {
+    static func symbol(for type: ClipboardContentType) -> String {
         switch type {
         case .text: "text.alignleft"
         case .url: "link"
@@ -143,16 +118,4 @@ public struct ClipboardProvider: LauncherProvider {
         }
     }
 
-    private static func pasteConfirmationTarget(for context: QueryContext) -> String {
-        switch (context.frontmostApplicationName, context.frontmostBundleIdentifier) {
-        case let (name?, bundleIdentifier?):
-            return "\(name) (\(bundleIdentifier))"
-        case let (name?, nil):
-            return name
-        case let (nil, bundleIdentifier?):
-            return bundleIdentifier
-        case (nil, nil):
-            return "Previous application (currently unavailable)"
-        }
-    }
 }

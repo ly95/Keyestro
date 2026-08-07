@@ -2,6 +2,33 @@ import AppKit
 import Foundation
 import ImageIO
 import KeyestroDomain
+import os
+
+/// Tracks pasteboard generations written by Keyestro so clipboard monitoring can
+/// ignore those writes instead of treating them as newly copied user content.
+public final class ClipboardInternalWriteRegistry: Sendable {
+    private let pendingChangeCounts = OSAllocatedUnfairLock(initialState: [Int]())
+
+    public init() {}
+
+    public func record(changeCount: Int) {
+        pendingChangeCounts.withLock { pending in
+            pending.append(changeCount)
+            if pending.count > 32 {
+                pending.removeFirst(pending.count - 32)
+            }
+        }
+    }
+
+    public func consume(changeCount: Int) -> Bool {
+        pendingChangeCounts.withLock { pending in
+            pending.removeAll { $0 < changeCount }
+            guard let index = pending.firstIndex(of: changeCount) else { return false }
+            pending.remove(at: index)
+            return true
+        }
+    }
+}
 
 public protocol PasteboardServicing: Sendable {
     @MainActor var changeCount: Int { get }
@@ -14,6 +41,46 @@ extension PasteboardServicing {
     @MainActor
     public func readSupportedContentResult() -> Result<ClipboardContent?, ErrorDescriptor> {
         .success(readSupportedContent())
+    }
+}
+
+/// The single pasteboard-writing boundary used by Keyestro features. Keeping
+/// generation tracking here prevents a new caller from having to remember to
+/// coordinate separately with clipboard history monitoring.
+public struct InternalWriteTrackingPasteboardService: PasteboardServicing, Sendable {
+    private let pasteboard: any PasteboardServicing
+    private let internalWriteRegistry: ClipboardInternalWriteRegistry
+
+    public init(
+        pasteboard: any PasteboardServicing,
+        internalWriteRegistry: ClipboardInternalWriteRegistry
+    ) {
+        self.pasteboard = pasteboard
+        self.internalWriteRegistry = internalWriteRegistry
+    }
+
+    @MainActor
+    public var changeCount: Int { pasteboard.changeCount }
+
+    @MainActor
+    public func readSupportedContent() -> ClipboardContent? {
+        pasteboard.readSupportedContent()
+    }
+
+    @MainActor
+    public func readSupportedContentResult() -> Result<ClipboardContent?, ErrorDescriptor> {
+        pasteboard.readSupportedContentResult()
+    }
+
+    @MainActor
+    public func write(_ content: ClipboardContent) -> Bool {
+        let previousChangeCount = pasteboard.changeCount
+        let didWrite = pasteboard.write(content)
+        let currentChangeCount = pasteboard.changeCount
+        if currentChangeCount != previousChangeCount {
+            internalWriteRegistry.record(changeCount: currentChangeCount)
+        }
+        return didWrite
     }
 }
 

@@ -20,7 +20,7 @@ public enum ClipboardContent: Codable, Equatable, Sendable {
     }
 }
 
-public enum ClipboardContentType: String, Codable, Sendable {
+public enum ClipboardContentType: String, CaseIterable, Codable, Hashable, Sendable {
     case text
     case url
     case files
@@ -324,6 +324,8 @@ extension LauncherDatabase {
 }
 
 public actor ClipboardStore {
+    public static let maximumSearchResults = 1_000
+
     private static let thumbnailContentType = "image-thumbnail"
     private static let thumbnailMaximumPixelSize = 128
     private static let thumbnailMaximumBytes = 256 * 1_024
@@ -335,6 +337,7 @@ public actor ClipboardStore {
     private var keys: ClipboardDerivedKeys?
     private var memory: [String: ClipboardMemoryEntry] = [:]
     private var state: ClipboardStoreState = .disabled
+    private var stateContinuations: [UUID: AsyncStream<ClipboardStoreState>.Continuation] = [:]
     private var initializationGeneration: UInt64 = 0
     private var operationInProgress = false
     private var operationWaiters: [CheckedContinuation<Void, Never>] = []
@@ -353,16 +356,27 @@ public actor ClipboardStore {
 
     public func currentState() -> ClipboardStoreState { state }
 
+    public func stateUpdates() -> AsyncStream<ClipboardStoreState> {
+        let identifier = UUID()
+        return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            continuation.yield(state)
+            stateContinuations[identifier] = continuation
+            continuation.onTermination = { [weak self] _ in
+                Task { await self?.removeStateContinuation(identifier) }
+            }
+        }
+    }
+
     public func initialize(enabled: Bool) async {
         initializationGeneration &+= 1
         let generation = initializationGeneration
         guard enabled else {
-            state = .disabled
+            updateState(.disabled)
             memory = [:]
             keys = nil
             return
         }
-        state = .loading
+        updateState(.loading)
         await acquireOperation()
         defer { releaseOperation() }
         guard initializationGeneration == generation else { return }
@@ -396,29 +410,36 @@ public actor ClipboardStore {
             guard initializationGeneration == generation else { return }
             keys = derivedKeys
             memory = index
-            state = .ready(itemCount: records.count)
+            updateState(.ready(itemCount: records.count))
         } catch InstallationKeyError.missingClipboardKey {
             guard initializationGeneration == generation else { return }
             let count = (try? await database.clipboardItemCount()) ?? 0
             guard initializationGeneration == generation else { return }
-            state = .keyMissing(encryptedItemCount: count)
+            updateState(.keyMissing(encryptedItemCount: count))
             memory = [:]
             keys = nil
         } catch is CancellationError {
             guard initializationGeneration == generation else { return }
-            state = .disabled
+            updateState(.disabled)
         } catch let descriptor as ErrorDescriptor {
             guard initializationGeneration == generation else { return }
-            state = .failed(descriptor)
+            updateState(.failed(descriptor))
         } catch let error as ClipboardCryptoError {
             guard initializationGeneration == generation else { return }
-            state = .failed(error.descriptor)
+            updateState(.failed(error.descriptor))
         } catch let error as DatabaseError {
             guard initializationGeneration == generation else { return }
-            state = .failed(error.descriptor)
+            updateState(.failed(error.descriptor))
         } catch {
             guard initializationGeneration == generation else { return }
-            state = .failed(ErrorDescriptor(code: "clipboard.initializeFailed", message: "Clipboard history could not be initialized."))
+            updateState(
+                .failed(
+                    ErrorDescriptor(
+                        code: "clipboard.initializeFailed",
+                        message: "Clipboard history could not be initialized."
+                    )
+                )
+            )
         }
     }
 
@@ -493,7 +514,7 @@ public actor ClipboardStore {
                     thumbnailPNG: thumbnailPNG,
                     searchableText: Self.searchableText(for: content)
                 )
-                state = .ready(itemCount: memory.count)
+                updateState(.ready(itemCount: memory.count))
                 return .success(existing.id)
             }
 
@@ -557,7 +578,7 @@ public actor ClipboardStore {
             } else {
                 memory[id] = nil
             }
-            state = .ready(itemCount: memory.count)
+            updateState(.ready(itemCount: memory.count))
             insertedID = nil
             return .success(id)
         } catch is CancellationError {
@@ -590,17 +611,45 @@ public actor ClipboardStore {
         }
     }
 
-    public func search(_ query: String, limit: Int = 50) -> Result<[ClipboardSearchEntry], ErrorDescriptor> {
+    public func search(
+        _ query: String,
+        contentType: ClipboardContentType? = nil,
+        limit: Int = 50
+    ) -> Result<[ClipboardSearchEntry], ErrorDescriptor> {
         guard case .ready = state else {
             return .failure(Self.error(for: state))
         }
         let normalized = TextNormalizer.normalize(query)
         let matches = memory.values
-            .filter { normalized.isEmpty || TextNormalizer.normalize($0.searchableText).contains(normalized) }
-            .sorted { $0.stored.lastCopiedAt > $1.stored.lastCopiedAt }
-            .prefix(min(max(1, limit), DomainLimits.visibleItems))
+            .filter { entry in
+                (contentType == nil || entry.stored.contentType == contentType)
+                    && (normalized.isEmpty || TextNormalizer.normalize(entry.searchableText).contains(normalized))
+            }
+            .sorted { lhs, rhs in
+                if lhs.stored.lastCopiedAt != rhs.stored.lastCopiedAt {
+                    return lhs.stored.lastCopiedAt > rhs.stored.lastCopiedAt
+                }
+                return lhs.stored.id < rhs.stored.id
+            }
+            .prefix(min(max(1, limit), Self.maximumSearchResults))
             .map(Self.searchEntry)
         return .success(Array(matches))
+    }
+
+    /// Returns the newest item across every supported content type. Quick Paste
+    /// uses this instead of filtering for text so an unsupported newer item can
+    /// fail closed and fall back to the full history panel.
+    public func latestEntry() -> Result<ClipboardSearchEntry?, ErrorDescriptor> {
+        guard case .ready = state else {
+            return .failure(Self.error(for: state))
+        }
+        let latest = memory.values.max { lhs, rhs in
+            if lhs.stored.lastCopiedAt != rhs.stored.lastCopiedAt {
+                return lhs.stored.lastCopiedAt < rhs.stored.lastCopiedAt
+            }
+            return lhs.stored.id > rhs.stored.id
+        }
+        return .success(latest.map(Self.searchEntry))
     }
 
     public func content(id: String) async -> Result<ClipboardContent, ErrorDescriptor> {
@@ -663,7 +712,7 @@ public actor ClipboardStore {
             try await database.deleteClipboardItem(id: id)
             if initializationGeneration == generation {
                 memory[id] = nil
-                if case .ready = state { state = .ready(itemCount: memory.count) }
+                if case .ready = state { updateState(.ready(itemCount: memory.count)) }
             }
             return .success(())
         } catch let error as DatabaseError {
@@ -682,14 +731,14 @@ public actor ClipboardStore {
             try await database.clearClipboardItems()
             guard initializationGeneration == generation else { return .success(()) }
             memory = [:]
-            if keyWasMissing { state = .keyMissing(encryptedItemCount: 0) }
+            if keyWasMissing { updateState(.keyMissing(encryptedItemCount: 0)) }
             let replacementKeys = keyWasMissing ? try await keyManager.clipboardKeys(createIfMissing: true) : nil
             guard initializationGeneration == generation else { return .success(()) }
             if let replacementKeys {
                 keys = replacementKeys
-                state = .ready(itemCount: 0)
+                updateState(.ready(itemCount: 0))
             } else if case .ready = state {
-                state = .ready(itemCount: 0)
+                updateState(.ready(itemCount: 0))
             }
             return .success(())
         } catch let error as DatabaseError {
@@ -710,9 +759,9 @@ public actor ClipboardStore {
             memory = memory.filter { $0.value.stored.contentType != type }
             switch state {
             case .ready:
-                state = .ready(itemCount: memory.count)
+                updateState(.ready(itemCount: memory.count))
             case .keyMissing:
-                state = .keyMissing(encryptedItemCount: remainingCount)
+                updateState(.keyMissing(encryptedItemCount: remainingCount))
             case .disabled, .loading, .failed:
                 break
             }
@@ -736,12 +785,12 @@ public actor ClipboardStore {
             try await database.clearClipboardItems()
             guard initializationGeneration == generation else { return .success(()) }
             memory = [:]
-            state = .keyMissing(encryptedItemCount: 0)
+            updateState(.keyMissing(encryptedItemCount: 0))
             let replacementKeys = try await keyManager.clipboardKeys(createIfMissing: true)
             guard initializationGeneration == generation else { return .success(()) }
             keys = replacementKeys
             memory = [:]
-            state = .ready(itemCount: 0)
+            updateState(.ready(itemCount: 0))
             return .success(())
         } catch {
             return .failure(ErrorDescriptor(code: "clipboard.recoveryFailed", message: "Clipboard history could not be reinitialized."))
@@ -754,6 +803,7 @@ public actor ClipboardStore {
         self.policy = policy
         do {
             _ = try await applyRetention(now: Date())
+            if case .ready = state { updateState(.ready(itemCount: memory.count)) }
             return .success(())
         } catch let error as DatabaseError {
             return .failure(error.descriptor)
@@ -795,11 +845,13 @@ public actor ClipboardStore {
             if case .disabled = state {
                 // Keep the user-selected disabled state while failing closed in memory.
             } else {
-                state = .failed(
-                    ErrorDescriptor(
-                        code: "clipboard.captureRollbackFailed",
-                        message: "An interrupted clipboard capture could not be rolled back.",
-                        recoverySuggestion: "Open Privacy settings and review clipboard history before continuing."
+                updateState(
+                    .failed(
+                        ErrorDescriptor(
+                            code: "clipboard.captureRollbackFailed",
+                            message: "An interrupted clipboard capture could not be rolled back.",
+                            recoverySuggestion: "Open Privacy settings and review clipboard history before continuing."
+                        )
                     )
                 )
             }
@@ -825,6 +877,17 @@ public actor ClipboardStore {
             return
         }
         operationWaiters.removeFirst().resume()
+    }
+
+    private func updateState(_ newState: ClipboardStoreState) {
+        state = newState
+        for continuation in stateContinuations.values {
+            continuation.yield(newState)
+        }
+    }
+
+    private func removeStateContinuation(_ identifier: UUID) {
+        stateContinuations[identifier] = nil
     }
 
     private func decrypt(_ stored: StoredClipboardItem, keys: ClipboardDerivedKeys) throws -> ClipboardContent {

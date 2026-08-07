@@ -192,6 +192,152 @@ import Testing
     #expect(pasteboard.pngWrites == 0)
 }
 
+@Test @MainActor func captureProviderPublishesFiltersAndRoutesEveryCommandSafely() async throws {
+    let (defaults, suiteName) = try captureDefaults()
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let coordinator = CaptureCoordinator(
+        captureService: RecordingCaptureService(permission: .notDeterminedOrDenied),
+        ocrService: StubOCRService(),
+        settings: SettingsStore(defaults: defaults),
+        defaults: defaults,
+        selectionDelay: .zero,
+        makeSelector: { StubCaptureSelector(result: nil) }
+    )
+    let provider = CaptureProvider(coordinator: coordinator)
+
+    let allItems = try await captureProviderItems(provider, query: "")
+    #expect(allItems.count == 3)
+    #expect(Set(allItems.map(\.id.providerStableID)) == Set(CaptureOperation.allCoverageRawValues))
+    #expect(try await captureProviderItems(provider, query: "recognize").map(\.id.providerStableID) == ["recognizeText"])
+    #expect(try await captureProviderItems(provider, query: "no-capture-command").isEmpty)
+
+    let invalid = await provider.execute(
+        request: ProviderActionRequest(
+            executionID: UUID(),
+            itemID: ItemID(providerID: CaptureProvider.providerID, providerStableID: "unknown"),
+            actionID: "wrong",
+            arguments: [:]
+        )
+    )
+    #expect(invalid == .failure(ErrorDescriptor(code: "capture.invalidAction", message: "The capture action is unavailable.")))
+
+    let denied = await provider.execute(
+        request: ProviderActionRequest(
+            executionID: UUID(),
+            itemID: ItemID(providerID: CaptureProvider.providerID, providerStableID: CaptureOperation.copyImage.rawValue),
+            actionID: "run",
+            arguments: [:]
+        )
+    )
+    #expect(denied == .failure(CaptureError.permissionDenied.descriptor))
+}
+
+@Test @MainActor func captureSelectionComponentExercisesPresentationDrawingAndInput() async throws {
+    await ComponentStorySerialization.acquire()
+    defer { ComponentStorySerialization.release() }
+
+    #expect(await CaptureSelectionController(screensOverride: []).selectRegion() == nil)
+    let screen = try #require(NSScreen.main ?? NSScreen.screens.first)
+    let controller = CaptureSelectionController()
+    let selectionTask = Task { await controller.selectRegion() }
+    for _ in 0..<1_000 where !controller.isSelecting { await Task.yield() }
+    #expect(controller.isSelecting)
+    #expect(!controller.overlayWindows.isEmpty)
+    #expect(await controller.selectRegion() == nil)
+
+    let start = CGPoint(x: screen.frame.midX - 20, y: screen.frame.midY - 10)
+    let end = CGPoint(x: start.x + 40, y: start.y + 20)
+    controller.update(to: end)
+    controller.begin(at: start)
+    controller.update(to: end)
+    controller.finishDragging(at: end)
+    controller.confirm()
+    let completed = try #require(await selectionTask.value)
+    #expect(completed.0.width == 40)
+    #expect(completed.0.height == 20)
+    #expect(!controller.isSelecting)
+
+    let cancellationTask = Task { await controller.selectRegion() }
+    for _ in 0..<1_000 where !controller.isSelecting { await Task.yield() }
+    controller.cancelSelection()
+    #expect(await cancellationTask.value == nil)
+    controller.cancel()
+
+    let overlay = CaptureOverlayWindow(screen: screen, controller: controller)
+    #expect(overlay.canBecomeKey)
+    let view = try #require(overlay.contentView as? CaptureSelectionView)
+    view.frame = CGRect(x: 0, y: 0, width: 240, height: 140)
+    #expect(view.acceptsFirstResponder)
+    renderCaptureSelection(view)
+    controller.begin(at: screen.frame.origin)
+    controller.update(to: CGPoint(x: screen.frame.minX + 80, y: screen.frame.minY + 40))
+    renderCaptureSelection(view)
+
+    let mouse = try #require(
+        NSEvent.mouseEvent(
+            with: .leftMouseDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: overlay.windowNumber,
+            context: nil,
+            eventNumber: 1,
+            clickCount: 1,
+            pressure: 1
+        )
+    )
+    view.mouseDown(with: mouse)
+    view.mouseDragged(with: mouse)
+    view.mouseUp(with: mouse)
+
+    controller.begin(at: .zero)
+    controller.update(to: CGPoint(x: 20, y: 20))
+    view.keyDown(with: try captureKeyEvent(keyCode: 36, characters: "\r"))
+    view.keyDown(with: try captureKeyEvent(keyCode: 53, characters: "\u{1b}"))
+    view.keyDown(with: try captureKeyEvent(keyCode: 0, characters: "a"))
+
+    let archive = try NSKeyedArchiver.archivedData(withRootObject: "capture", requiringSecureCoding: false)
+    let coder = try NSKeyedUnarchiver(forReadingFrom: archive)
+    #expect(CaptureSelectionView(coder: coder) == nil)
+    coder.finishDecoding()
+    overlay.orderOut(nil)
+}
+
+@MainActor
+private func renderCaptureSelection(_ view: CaptureSelectionView) {
+    let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds)
+    if let bitmap { view.cacheDisplay(in: view.bounds, to: bitmap) }
+}
+
+private func captureKeyEvent(keyCode: UInt16, characters: String) throws -> NSEvent {
+    try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: characters,
+            charactersIgnoringModifiers: characters,
+            isARepeat: false,
+            keyCode: keyCode
+        )
+    )
+}
+
+private extension CaptureOperation {
+    static let allCoverageRawValues = [copyImage, savePNG, recognizeText].map(\.rawValue)
+}
+
+private func captureProviderItems(_ provider: CaptureProvider, query: String) async throws -> [LauncherItem] {
+    let request = QueryRequest(generation: 1, rawText: query, normalizedText: query, mode: .commands)
+    for try await event in provider.search(request: request) {
+        if case let .items(items, true) = event { return items }
+    }
+    return []
+}
+
 @MainActor
 private final class StubCaptureSelector: CaptureRegionSelecting {
     let result: (CGRect, [CaptureDisplayDescriptor])?

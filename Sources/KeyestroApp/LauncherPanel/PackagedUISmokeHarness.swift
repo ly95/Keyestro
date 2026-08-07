@@ -51,6 +51,12 @@ enum PackagedUISmokeHarness {
             committed.normalizedText == "alpha"
         else { throw PackagedUISmokeError.incorrectQueryMode }
 
+        model.queryDidChange("permission", isComposing: false)
+        try await wait("expanded permission recovery state") {
+            model.requiresExpandedEmptyState
+                && abs(controller.frame.height - LauncherPanelLayout.recoveryHeight) < 0.001
+        }
+
         controller.dismiss()
         guard !controller.isVisible else {
             throw PackagedUISmokeError.conditionTimedOut("panel dismissal")
@@ -72,9 +78,10 @@ enum PackagedUISmokeHarness {
         _ name: String,
         condition: @escaping @MainActor () async -> Bool
     ) async throws {
-        for _ in 0..<10_000 {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < deadline {
             if await condition() { return }
-            await Task.yield()
+            try await Task.sleep(for: .milliseconds(1))
         }
         throw PackagedUISmokeError.conditionTimedOut(name)
     }
@@ -93,7 +100,22 @@ private actor PackagedSmokeProvider: LauncherProvider {
         AsyncThrowingStream { continuation in
             Task {
                 await record(request)
-                continuation.yield(.items([Self.item], isFinal: true))
+                if request.normalizedText == "permission" {
+                    continuation.yield(
+                        .status(
+                            .permissionDenied(
+                                ErrorDescriptor(
+                                    code: "accessibility.permissionDenied",
+                                    message: "Accessibility permission is required for window management.",
+                                    recoverySuggestion: "Open Settings → Permissions to grant access, then refresh."
+                                )
+                            )
+                        )
+                    )
+                    continuation.yield(.items([], isFinal: true))
+                } else {
+                    continuation.yield(.items([Self.item], isFinal: true))
+                }
                 continuation.finish()
             }
         }

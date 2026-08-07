@@ -8,16 +8,39 @@ enum SettingsImportError: Error, Equatable {
     case rollbackFailed
 }
 
+enum LauncherAppearancePreference: String, CaseIterable, Hashable, Identifiable, Sendable {
+    case automatic
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .automatic: "Auto"
+        case .light: "Light"
+        case .dark: "Dark"
+        }
+    }
+}
+
 @MainActor
 final class SettingsStore: ObservableObject {
     private enum Key {
         static let showDockIcon = "general.showDockIcon"
+        static let launcherAppearance = "appearance.launcher"
         static let prefixesEnabled = "search.prefixesEnabled"
         static let rankingLearningEnabled = "ranking.learningEnabled"
         static let numberShortcutsEnabled = "shortcuts.numberShortcutsEnabled"
         static let launcherKeyCode = "shortcuts.launcher.keyCode"
         static let launcherModifiers = "shortcuts.launcher.modifiers"
         static let launcherShortcut = "shortcuts.launcher.combined"
+        static let clipboardHistoryKeyCode = "shortcuts.clipboardHistory.keyCode"
+        static let clipboardHistoryModifiers = "shortcuts.clipboardHistory.modifiers"
+        static let clipboardHistoryShortcut = "shortcuts.clipboardHistory.combined"
+        static let quickPasteShortcut = "shortcuts.quickPaste.combined"
+        static let quickPasteEnabled = "clipboard.quickPaste.enabled"
+        static let quickPasteAllowsSensitiveContent = "clipboard.quickPaste.allowsSensitiveContent"
         static let clipboardEnabled = "clipboard.enabled"
         static let clipboardPaused = "clipboard.paused"
         static let clipboardRetentionPreset = "clipboard.retentionPreset"
@@ -34,6 +57,7 @@ final class SettingsStore: ObservableObject {
 
     private let persistence: any SettingsPersisting
     private var isRollingBackSetting = false
+    private var isApplyingShortcuts = false
     private var fileSearchPreferencesGeneration: UInt64 = 0
     let fileSearchPreferences: FileSearchPreferences
     let rankingLearningPreferences: RankingLearningPreferences
@@ -47,6 +71,15 @@ final class SettingsStore: ObservableObject {
                 return
             }
             applyActivationPolicy()
+        }
+    }
+
+    @Published var launcherAppearance: LauncherAppearancePreference {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            if !persist(launcherAppearance.rawValue, forKey: Key.launcherAppearance) {
+                rollbackSetting { launcherAppearance = oldValue }
+            }
         }
     }
 
@@ -82,14 +115,86 @@ final class SettingsStore: ObservableObject {
     @Published var launcherShortcut: HotKeyShortcut {
         didSet {
             guard !isRollingBackSetting else { return }
+            guard
+                isApplyingShortcuts
+                    || (launcherShortcut != clipboardHistoryShortcut && launcherShortcut != quickPasteShortcut)
+            else {
+                shortcutValidationError = "Keyestro shortcuts must be different."
+                rollbackSetting { launcherShortcut = oldValue }
+                return
+            }
             let value = "\(launcherShortcut.keyCode):\(launcherShortcut.modifiers)"
             if !persist(value, forKey: Key.launcherShortcut) {
                 rollbackSetting { launcherShortcut = oldValue }
+            } else {
+                shortcutValidationError = nil
             }
         }
     }
 
+    @Published var clipboardHistoryShortcut: HotKeyShortcut {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            guard
+                isApplyingShortcuts
+                    || (clipboardHistoryShortcut != launcherShortcut && clipboardHistoryShortcut != quickPasteShortcut)
+            else {
+                shortcutValidationError = "Keyestro shortcuts must be different."
+                rollbackSetting { clipboardHistoryShortcut = oldValue }
+                return
+            }
+            let value = "\(clipboardHistoryShortcut.keyCode):\(clipboardHistoryShortcut.modifiers)"
+            if !persist(value, forKey: Key.clipboardHistoryShortcut) {
+                rollbackSetting { clipboardHistoryShortcut = oldValue }
+            } else {
+                shortcutValidationError = nil
+            }
+        }
+    }
+
+    @Published var quickPasteShortcut: HotKeyShortcut? {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            guard
+                isApplyingShortcuts
+                    || quickPasteShortcut == nil
+                    || (quickPasteShortcut != launcherShortcut && quickPasteShortcut != clipboardHistoryShortcut)
+            else {
+                shortcutValidationError = "Keyestro shortcuts must be different."
+                rollbackSetting { quickPasteShortcut = oldValue }
+                return
+            }
+            let value = quickPasteShortcut.map { "\($0.keyCode):\($0.modifiers)" } ?? ""
+            if !persist(value, forKey: Key.quickPasteShortcut) {
+                rollbackSetting { quickPasteShortcut = oldValue }
+            } else {
+                shortcutValidationError = nil
+            }
+        }
+    }
+
+    @Published private(set) var shortcutValidationError: String?
     @Published private(set) var hotKeyRegistrationError: String?
+    @Published private(set) var clipboardHistoryHotKeyRegistrationError: String?
+    @Published private(set) var quickPasteHotKeyRegistrationError: String?
+
+    @Published var quickPasteEnabled: Bool {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            if !persist(quickPasteEnabled, forKey: Key.quickPasteEnabled) {
+                rollbackSetting { quickPasteEnabled = oldValue }
+            }
+        }
+    }
+
+    @Published var quickPasteAllowsSensitiveContent: Bool {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            if !persist(quickPasteAllowsSensitiveContent, forKey: Key.quickPasteAllowsSensitiveContent) {
+                rollbackSetting { quickPasteAllowsSensitiveContent = oldValue }
+            }
+        }
+    }
 
     @Published var clipboardEnabled: Bool {
         didSet {
@@ -250,12 +355,56 @@ final class SettingsStore: ObservableObject {
         let learningEnabled = persistence.object(forKey: Key.rankingLearningEnabled) as? Bool ?? true
         rankingLearningPreferences = RankingLearningPreferences(enabled: learningEnabled)
         showDockIcon = persistence.object(forKey: Key.showDockIcon) as? Bool ?? false
+        launcherAppearance =
+            LauncherAppearancePreference(
+                rawValue: persistence.string(forKey: Key.launcherAppearance) ?? ""
+            ) ?? .automatic
         prefixesEnabled = persistence.object(forKey: Key.prefixesEnabled) as? Bool ?? true
         rankingLearningEnabled = learningEnabled
         numberShortcutsEnabled = persistence.object(forKey: Key.numberShortcutsEnabled) as? Bool ?? true
-        let storedShortcut = Self.loadShortcut(from: persistence)
-        launcherShortcut = storedShortcut.isValid ? storedShortcut : .optionSpace
+        let storedShortcut = Self.loadShortcut(
+            from: persistence,
+            combinedKey: Key.launcherShortcut,
+            keyCodeKey: Key.launcherKeyCode,
+            modifiersKey: Key.launcherModifiers,
+            defaultShortcut: .optionSpace
+        )
+        launcherShortcut = storedShortcut
+        let storedClipboardShortcut = Self.loadShortcut(
+            from: persistence,
+            combinedKey: Key.clipboardHistoryShortcut,
+            keyCodeKey: Key.clipboardHistoryKeyCode,
+            modifiersKey: Key.clipboardHistoryModifiers,
+            defaultShortcut: .optionShiftV
+        )
+        let resolvedClipboardShortcut: HotKeyShortcut =
+            if storedClipboardShortcut != storedShortcut {
+                storedClipboardShortcut
+            } else if storedShortcut != .optionShiftV {
+                .optionShiftV
+            } else {
+                .optionSpace
+            }
+        clipboardHistoryShortcut = resolvedClipboardShortcut
+        let storedQuickPasteShortcut = Self.loadOptionalShortcut(
+            from: persistence,
+            combinedKey: Key.quickPasteShortcut
+        )
+        quickPasteShortcut =
+            if storedQuickPasteShortcut != storedShortcut
+                && storedQuickPasteShortcut != resolvedClipboardShortcut
+            {
+                storedQuickPasteShortcut
+            } else {
+                nil
+            }
+        shortcutValidationError = nil
         hotKeyRegistrationError = nil
+        clipboardHistoryHotKeyRegistrationError = nil
+        quickPasteHotKeyRegistrationError = nil
+        quickPasteEnabled = persistence.object(forKey: Key.quickPasteEnabled) as? Bool ?? false
+        quickPasteAllowsSensitiveContent =
+            persistence.object(forKey: Key.quickPasteAllowsSensitiveContent) as? Bool ?? true
         clipboardEnabled = persistence.object(forKey: Key.clipboardEnabled) as? Bool ?? false
         clipboardPaused = persistence.object(forKey: Key.clipboardPaused) as? Bool ?? false
         clipboardRetentionPreset = persistence.string(forKey: Key.clipboardRetentionPreset) ?? "30-days"
@@ -289,11 +438,19 @@ final class SettingsStore: ObservableObject {
     func exportedConfiguration() -> [String: JSONValue] {
         [
             Key.showDockIcon: .bool(showDockIcon),
+            Key.launcherAppearance: .string(launcherAppearance.rawValue),
             Key.prefixesEnabled: .bool(prefixesEnabled),
             Key.rankingLearningEnabled: .bool(rankingLearningEnabled),
             Key.numberShortcutsEnabled: .bool(numberShortcutsEnabled),
             Key.launcherKeyCode: .integer(Int64(launcherShortcut.keyCode)),
             Key.launcherModifiers: .integer(Int64(launcherShortcut.modifiers)),
+            Key.clipboardHistoryKeyCode: .integer(Int64(clipboardHistoryShortcut.keyCode)),
+            Key.clipboardHistoryModifiers: .integer(Int64(clipboardHistoryShortcut.modifiers)),
+            Key.quickPasteShortcut: .string(
+                quickPasteShortcut.map { "\($0.keyCode):\($0.modifiers)" } ?? ""
+            ),
+            Key.quickPasteEnabled: .bool(quickPasteEnabled),
+            Key.quickPasteAllowsSensitiveContent: .bool(quickPasteAllowsSensitiveContent),
             Key.clipboardEnabled: .bool(clipboardEnabled),
             Key.clipboardPaused: .bool(clipboardPaused),
             Key.clipboardRetentionPreset: .string(clipboardRetentionPreset),
@@ -324,9 +481,44 @@ final class SettingsStore: ObservableObject {
     }
 
     private func applyImportedValues(_ values: [String: JSONValue]) throws {
+        let importedLauncherShortcut = Self.importedShortcut(
+            from: values,
+            keyCodeKey: Key.launcherKeyCode,
+            modifiersKey: Key.launcherModifiers,
+            fallback: launcherShortcut
+        )
+        let importedClipboardShortcut = Self.importedShortcut(
+            from: values,
+            keyCodeKey: Key.clipboardHistoryKeyCode,
+            modifiersKey: Key.clipboardHistoryModifiers,
+            fallback: clipboardHistoryShortcut
+        )
+        let importedQuickPasteShortcut = Self.importedOptionalShortcut(
+            from: values,
+            combinedKey: Key.quickPasteShortcut,
+            fallback: quickPasteShortcut
+        )
+        guard
+            Self.shortcutsAreUnique(
+                launcher: importedLauncherShortcut,
+                clipboardHistory: importedClipboardShortcut,
+                quickPaste: importedQuickPasteShortcut
+            )
+        else {
+            shortcutValidationError = "Keyestro shortcuts must be different."
+            throw SettingsImportError.persistenceFailed
+        }
+
         if case let .bool(value) = values[Key.showDockIcon], value != showDockIcon {
             showDockIcon = value
             guard showDockIcon == value else { throw SettingsImportError.persistenceFailed }
+        }
+        if case let .string(value) = values[Key.launcherAppearance],
+            let appearance = LauncherAppearancePreference(rawValue: value),
+            appearance != launcherAppearance
+        {
+            launcherAppearance = appearance
+            guard launcherAppearance == appearance else { throw SettingsImportError.persistenceFailed }
         }
         if case let .bool(value) = values[Key.prefixesEnabled], value != prefixesEnabled {
             prefixesEnabled = value
@@ -336,21 +528,24 @@ final class SettingsStore: ObservableObject {
             rankingLearningEnabled = value
             guard rankingLearningEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .integer(keyCode) = values[Key.launcherKeyCode],
-            case let .integer(modifiers) = values[Key.launcherModifiers],
-            keyCode >= 0, modifiers >= 0,
-            let keyCode = UInt32(exactly: keyCode),
-            let modifiers = UInt32(exactly: modifiers)
-        {
-            let shortcut = HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
-            if shortcut.isValid, shortcut != launcherShortcut {
-                launcherShortcut = shortcut
-                guard launcherShortcut == shortcut else { throw SettingsImportError.persistenceFailed }
-            }
-        }
+        try applyShortcuts(
+            launcher: importedLauncherShortcut,
+            clipboardHistory: importedClipboardShortcut,
+            quickPaste: importedQuickPasteShortcut
+        )
         if case let .bool(value) = values[Key.numberShortcutsEnabled], value != numberShortcutsEnabled {
             numberShortcutsEnabled = value
             guard numberShortcutsEnabled == value else { throw SettingsImportError.persistenceFailed }
+        }
+        if case let .bool(value) = values[Key.quickPasteEnabled], value != quickPasteEnabled {
+            quickPasteEnabled = value
+            guard quickPasteEnabled == value else { throw SettingsImportError.persistenceFailed }
+        }
+        if case let .bool(value) = values[Key.quickPasteAllowsSensitiveContent],
+            value != quickPasteAllowsSensitiveContent
+        {
+            quickPasteAllowsSensitiveContent = value
+            guard quickPasteAllowsSensitiveContent == value else { throw SettingsImportError.persistenceFailed }
         }
         if case let .bool(value) = values[Key.clipboardEnabled], value != clipboardEnabled {
             clipboardEnabled = value
@@ -402,8 +597,43 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    func setHotKeyRegistrationError(_ value: String?) {
-        hotKeyRegistrationError = value
+    @discardableResult
+    func setShortcut(_ shortcut: HotKeyShortcut, for action: HotKeyAction) -> Bool {
+        switch action {
+        case .launcher:
+            launcherShortcut = shortcut
+            return launcherShortcut == shortcut
+        case .clipboardHistory:
+            clipboardHistoryShortcut = shortcut
+            return clipboardHistoryShortcut == shortcut
+        case .quickPaste:
+            quickPasteShortcut = shortcut
+            return quickPasteShortcut == shortcut
+        }
+    }
+
+    func shortcut(for action: HotKeyAction) -> HotKeyShortcut? {
+        switch action {
+        case .launcher: launcherShortcut
+        case .clipboardHistory: clipboardHistoryShortcut
+        case .quickPaste: quickPasteShortcut
+        }
+    }
+
+    func hotKeyRegistrationError(for action: HotKeyAction) -> String? {
+        switch action {
+        case .launcher: hotKeyRegistrationError
+        case .clipboardHistory: clipboardHistoryHotKeyRegistrationError
+        case .quickPaste: quickPasteHotKeyRegistrationError
+        }
+    }
+
+    func setHotKeyRegistrationError(_ value: String?, for action: HotKeyAction = .launcher) {
+        switch action {
+        case .launcher: hotKeyRegistrationError = value
+        case .clipboardHistory: clipboardHistoryHotKeyRegistrationError = value
+        case .quickPaste: quickPasteHotKeyRegistrationError = value
+        }
     }
 
     @discardableResult
@@ -453,29 +683,131 @@ final class SettingsStore: ObservableObject {
         operation()
     }
 
-    private static func loadShortcut(from persistence: any SettingsPersisting) -> HotKeyShortcut {
-        if let combined = persistence.string(forKey: Key.launcherShortcut) {
+    private func applyShortcuts(
+        launcher: HotKeyShortcut,
+        clipboardHistory: HotKeyShortcut,
+        quickPaste: HotKeyShortcut?
+    ) throws {
+        guard
+            Self.shortcutsAreUnique(
+                launcher: launcher,
+                clipboardHistory: clipboardHistory,
+                quickPaste: quickPaste
+            )
+        else {
+            shortcutValidationError = "Keyestro shortcuts must be different."
+            throw SettingsImportError.persistenceFailed
+        }
+        isApplyingShortcuts = true
+        defer { isApplyingShortcuts = false }
+        if launcher != launcherShortcut {
+            launcherShortcut = launcher
+            guard launcherShortcut == launcher else { throw SettingsImportError.persistenceFailed }
+        }
+        if clipboardHistory != clipboardHistoryShortcut {
+            clipboardHistoryShortcut = clipboardHistory
+            guard clipboardHistoryShortcut == clipboardHistory else { throw SettingsImportError.persistenceFailed }
+        }
+        if quickPaste != quickPasteShortcut {
+            quickPasteShortcut = quickPaste
+            guard quickPasteShortcut == quickPaste else { throw SettingsImportError.persistenceFailed }
+        }
+        shortcutValidationError = nil
+    }
+
+    private static func shortcutsAreUnique(
+        launcher: HotKeyShortcut,
+        clipboardHistory: HotKeyShortcut,
+        quickPaste: HotKeyShortcut?
+    ) -> Bool {
+        guard launcher != clipboardHistory else { return false }
+        guard let quickPaste else { return true }
+        return quickPaste != launcher && quickPaste != clipboardHistory
+    }
+
+    private static func importedShortcut(
+        from values: [String: JSONValue],
+        keyCodeKey: String,
+        modifiersKey: String,
+        fallback: HotKeyShortcut
+    ) -> HotKeyShortcut {
+        guard case let .integer(keyCode) = values[keyCodeKey],
+            case let .integer(modifiers) = values[modifiersKey],
+            keyCode >= 0,
+            modifiers >= 0,
+            let keyCode = UInt32(exactly: keyCode),
+            let modifiers = UInt32(exactly: modifiers)
+        else { return fallback }
+        let shortcut = HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+        return shortcut.isValid ? shortcut : fallback
+    }
+
+    private static func loadShortcut(
+        from persistence: any SettingsPersisting,
+        combinedKey: String,
+        keyCodeKey: String,
+        modifiersKey: String,
+        defaultShortcut: HotKeyShortcut
+    ) -> HotKeyShortcut {
+        if let combined = persistence.string(forKey: combinedKey) {
             let components = combined.split(separator: ":", omittingEmptySubsequences: false)
             if components.count == 2,
                 let keyCode = UInt32(components[0]),
                 let modifiers = UInt32(components[1])
             {
-                return HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+                let shortcut = HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+                if shortcut.isValid { return shortcut }
             }
         }
-        return HotKeyShortcut(
-            keyCode: UInt32(clamping: persistence.integer(forKey: Key.launcherKeyCode)),
-            modifiers: UInt32(clamping: persistence.integer(forKey: Key.launcherModifiers))
+        let legacy = HotKeyShortcut(
+            keyCode: UInt32(clamping: persistence.integer(forKey: keyCodeKey)),
+            modifiers: UInt32(clamping: persistence.integer(forKey: modifiersKey))
         )
+        return legacy.isValid ? legacy : defaultShortcut
+    }
+
+    private static func importedOptionalShortcut(
+        from values: [String: JSONValue],
+        combinedKey: String,
+        fallback: HotKeyShortcut?
+    ) -> HotKeyShortcut? {
+        guard case let .string(value) = values[combinedKey] else { return fallback }
+        guard !value.isEmpty else { return nil }
+        return parseOptionalShortcut(value) ?? fallback
+    }
+
+    private static func loadOptionalShortcut(
+        from persistence: any SettingsPersisting,
+        combinedKey: String
+    ) -> HotKeyShortcut? {
+        guard let value = persistence.string(forKey: combinedKey) else { return nil }
+        return parseOptionalShortcut(value)
+    }
+
+    private static func parseOptionalShortcut(_ value: String) -> HotKeyShortcut? {
+        guard !value.isEmpty else { return nil }
+        let components = value.split(separator: ":", omittingEmptySubsequences: false)
+        guard components.count == 2,
+            let keyCode = UInt32(components[0]),
+            let modifiers = UInt32(components[1])
+        else { return nil }
+        let shortcut = HotKeyShortcut(keyCode: keyCode, modifiers: modifiers)
+        return shortcut.isValid ? shortcut : nil
     }
 
     private static let defaultConfiguration: [String: JSONValue] = [
         Key.showDockIcon: .bool(false),
+        Key.launcherAppearance: .string(LauncherAppearancePreference.automatic.rawValue),
         Key.prefixesEnabled: .bool(true),
         Key.rankingLearningEnabled: .bool(true),
         Key.numberShortcutsEnabled: .bool(true),
         Key.launcherKeyCode: .integer(Int64(HotKeyShortcut.optionSpace.keyCode)),
         Key.launcherModifiers: .integer(Int64(HotKeyShortcut.optionSpace.modifiers)),
+        Key.clipboardHistoryKeyCode: .integer(Int64(HotKeyShortcut.optionShiftV.keyCode)),
+        Key.clipboardHistoryModifiers: .integer(Int64(HotKeyShortcut.optionShiftV.modifiers)),
+        Key.quickPasteShortcut: .string(""),
+        Key.quickPasteEnabled: .bool(false),
+        Key.quickPasteAllowsSensitiveContent: .bool(true),
         Key.clipboardEnabled: .bool(false),
         Key.clipboardPaused: .bool(false),
         Key.clipboardRetentionPreset: .string("30-days"),

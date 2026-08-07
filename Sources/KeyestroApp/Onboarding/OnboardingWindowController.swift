@@ -82,10 +82,16 @@ private final class OnboardingCompletion {
     }
 }
 
-private struct OnboardingView: View {
+struct OnboardingView: View {
     @ObservedObject var settings: SettingsStore
     let onFinish: () -> Void
     @State private var stepIndex = 0
+
+    init(settings: SettingsStore, onFinish: @escaping () -> Void, initialStepIndex: Int = 0) {
+        self.settings = settings
+        self.onFinish = onFinish
+        _stepIndex = State(initialValue: min(max(0, initialStepIndex), OnboardingStep.allCases.count - 1))
+    }
 
     private var step: OnboardingStep { OnboardingStep.allCases[stepIndex] }
 

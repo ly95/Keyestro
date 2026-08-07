@@ -62,6 +62,20 @@ func calculatorConvertsCommonUnits(expression: String, expected: Double, symbol:
     }
 }
 
+@Test func unitConverterRejectsEveryMalformedBoundaryAndOverflow() {
+    let converter = KeyestroCore.UnitConverter()
+    #expect(KeyestroCore.UnitConverter.looksLikeConversion("1 m → cm"))
+    #expect(KeyestroCore.UnitConverter.looksLikeConversion("1 m in cm"))
+    #expect(!KeyestroCore.UnitConverter.looksLikeConversion("1 m"))
+    #expect(throws: CalculatorError.incomplete) { try converter.convert("1 m") }
+    #expect(throws: CalculatorError.incomplete) { try converter.convert("→m") }
+    #expect(throws: CalculatorError.invalidToken(position: 0)) { try converter.convert("word m to cm") }
+    #expect(throws: CalculatorError.invalidToken(position: 0)) { try converter.convert("1e999 m to cm") }
+    #expect(throws: CalculatorError.invalidToken(position: 0)) { try converter.convert("1 to cm") }
+    #expect(throws: CalculatorError.unsupportedUnit) { try converter.convert("1 mystery to cm") }
+    #expect(throws: CalculatorError.overflow) { try converter.convert("1e308 km to mm") }
+}
+
 @Test func calculatorCoversSeededPropertyCorpusAndUnicodeOperators() throws {
     let engine = CalculatorEngine()
     var random = DeterministicCalculatorRandom(seed: 0x4B_45_59_45_53_54_52_4F)

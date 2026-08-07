@@ -1,0 +1,198 @@
+import AppKit
+import Combine
+import KeyestroDomain
+import SwiftUI
+
+@MainActor
+final class ClipboardPanelController: NSObject, NSWindowDelegate {
+    static let panelWindowIdentifier = NSUserInterfaceItemIdentifier("com.keyestro.clipboard-history.panel")
+
+    private let panel: KeyestroTransientPanel
+    private let viewModel: ClipboardPanelViewModel
+    private let focusCoordinator: TransientPanelFocusCoordinator
+    private let presentationCoordinator: TransientPanelCoordinator
+    private var presentationPending = false
+    private var presentationGeneration: UInt64 = 0
+    private var isDismissing = false
+    private var resizeScheduled = false
+    private var resignDismissTask: Task<Void, Never>?
+    private var cancellables = Set<AnyCancellable>()
+
+    init(
+        viewModel: ClipboardPanelViewModel,
+        focusCoordinator: TransientPanelFocusCoordinator,
+        presentationCoordinator: TransientPanelCoordinator
+    ) {
+        self.viewModel = viewModel
+        self.focusCoordinator = focusCoordinator
+        self.presentationCoordinator = presentationCoordinator
+        panel = KeyestroTransientPanel(
+            contentRect: NSRect(
+                x: 0,
+                y: 0,
+                width: LauncherPanelLayout.windowWidth,
+                height: LauncherPanelLayout.windowHeight
+            ),
+            styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
+            backing: .buffered,
+            defer: false
+        )
+        super.init()
+
+        panel.delegate = self
+        panel.level = .statusBar
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        panel.animationBehavior = .none
+        panel.identifier = Self.panelWindowIdentifier
+        panel.contentView = NSHostingView(rootView: ClipboardPanelView(model: viewModel))
+        panel.contentView?.layoutSubtreeIfNeeded()
+        panel.contentView?.needsDisplay = true
+        panel.contentView?.displayIfNeeded()
+        panel.setFrameAutosaveName("")
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(screenParametersChanged),
+            name: NSApplication.didChangeScreenParametersNotification,
+            object: nil
+        )
+        viewModel.objectWillChange
+            .sink { [weak self] in self?.scheduleContentResize() }
+            .store(in: &cancellables)
+        viewModel.$launcherAppearance
+            .removeDuplicates()
+            .sink { [weak self] appearance in self?.panel.appearance = appearance.panelAppearance }
+            .store(in: &cancellables)
+        presentationCoordinator.register(.clipboardHistory) { [weak self] restoringFocus in
+            self?.dismiss(restoringFocus: restoringFocus)
+        }
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    var isVisible: Bool { presentationPending || panel.isVisible }
+    var frame: NSRect { panel.frame }
+
+    static func clipboardPanelWindowCount() -> Int {
+        NSApplication.shared.windows.count { $0.identifier == panelWindowIdentifier }
+    }
+
+    func toggle() {
+        isVisible ? dismiss() : show()
+    }
+
+    func show() {
+        guard !isVisible else { return }
+        resignDismissTask?.cancel()
+        resignDismissTask = nil
+        focusCoordinator.captureFrontmostApplication()
+        presentationCoordinator.willShow(.clipboardHistory)
+        presentationGeneration &+= 1
+        let generation = presentationGeneration
+        presentationPending = true
+        DispatchQueue.main.async { [weak self] in
+            self?.present(generation: generation)
+        }
+    }
+
+    func dismiss(restoringFocus: Bool = true) {
+        guard isVisible, !isDismissing else { return }
+        isDismissing = true
+        resignDismissTask?.cancel()
+        resignDismissTask = nil
+        presentationGeneration &+= 1
+        presentationPending = false
+        if panel.isVisible { panel.orderOut(nil) }
+        viewModel.didDismiss()
+        presentationCoordinator.didDismiss(.clipboardHistory)
+        if restoringFocus { focusCoordinator.restorePreviousApplication() }
+        isDismissing = false
+    }
+
+    func windowDidResignKey(_ notification: Notification) {
+        guard panel.isVisible else { return }
+        let generation = presentationGeneration
+        resignDismissTask?.cancel()
+        resignDismissTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(for: .milliseconds(50))
+            } catch {
+                return
+            }
+            guard let self,
+                generation == presentationGeneration,
+                panel.isVisible,
+                !panel.isKeyWindow
+            else { return }
+            dismiss()
+        }
+    }
+
+    private func present(generation: UInt64) {
+        guard presentationPending, generation == presentationGeneration else { return }
+        let screen = targetScreen()
+        positionPanel(on: screen)
+        let context = QueryContext(
+            frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
+            frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
+            mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
+        )
+        viewModel.invoke(context: context)
+        panel.orderFrontRegardless()
+        NSApplication.shared.activate()
+        panel.makeKey()
+        panel.displayIfNeeded()
+        presentationPending = false
+    }
+
+    private func positionPanel(on screen: NSScreen?) {
+        guard let screen else {
+            panel.center()
+            return
+        }
+        panel.setFrame(
+            Self.frame(in: screen.visibleFrame),
+            display: false
+        )
+    }
+
+    static func frame(in visible: NSRect) -> NSRect {
+        TransientPanelPlacement.frame(
+            in: visible,
+            preferredHeight: LauncherPanelLayout.windowHeight,
+            preferredWidth: LauncherPanelLayout.windowWidth,
+            maximumHeight: LauncherPanelLayout.windowHeight
+        )
+    }
+
+    private func scheduleContentResize() {
+        guard panel.isVisible, !resizeScheduled else { return }
+        resizeScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            resizeScheduled = false
+            guard panel.isVisible else { return }
+            positionPanel(on: targetScreen())
+        }
+    }
+
+    private func targetScreen() -> NSScreen? {
+        TransientPanelPlacement.targetScreen(
+            for: panel,
+            previousApplication: focusCoordinator.previousApplication
+        )
+    }
+
+    @objc private func screenParametersChanged() {
+        if panel.isVisible { positionPanel(on: targetScreen()) }
+    }
+}

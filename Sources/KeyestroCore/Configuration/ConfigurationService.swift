@@ -176,13 +176,19 @@ public actor ConfigurationService {
     public static let maximumDocumentBytes = 10 * 1_024 * 1_024
     public static let supportedSettingKeys: Set<String> = [
         "general.showDockIcon",
+        "appearance.launcher",
         "search.prefixesEnabled",
         "ranking.learningEnabled",
         "shortcuts.numberShortcutsEnabled",
         "shortcuts.launcher.keyCode",
         "shortcuts.launcher.modifiers",
+        "shortcuts.clipboardHistory.keyCode",
+        "shortcuts.clipboardHistory.modifiers",
+        "shortcuts.quickPaste.combined",
         "clipboard.enabled",
         "clipboard.paused",
+        "clipboard.quickPaste.enabled",
+        "clipboard.quickPaste.allowsSensitiveContent",
         "clipboard.retentionPreset",
         "clipboard.excludedApplications",
         "capture.ocrLanguagePreset",
@@ -328,6 +334,8 @@ public actor ConfigurationService {
             "shortcuts.numberShortcutsEnabled",
             "clipboard.enabled",
             "clipboard.paused",
+            "clipboard.quickPaste.enabled",
+            "clipboard.quickPaste.allowsSensitiveContent",
             "files.contentSearchEnabled",
             "files.hiddenFilesEnabled",
             "files.systemLocationsEnabled",
@@ -338,10 +346,26 @@ public actor ConfigurationService {
             guard case .bool = value else { throw ConfigurationError.invalidPayload }
             return
         }
-        if ["shortcuts.launcher.keyCode", "shortcuts.launcher.modifiers"].contains(key) {
+        let integerShortcutKeys: Set<String> = [
+            "shortcuts.launcher.keyCode",
+            "shortcuts.launcher.modifiers",
+            "shortcuts.clipboardHistory.keyCode",
+            "shortcuts.clipboardHistory.modifiers",
+        ]
+        if integerShortcutKeys.contains(key) {
             guard case let .integer(number) = value, UInt32(exactly: number) != nil else {
                 throw ConfigurationError.invalidPayload
             }
+            return
+        }
+        if key == "shortcuts.quickPaste.combined" {
+            guard case let .string(text) = value else { throw ConfigurationError.invalidPayload }
+            if text.isEmpty { return }
+            let components = text.split(separator: ":", omittingEmptySubsequences: false)
+            guard components.count == 2,
+                UInt32(components[0]) != nil,
+                UInt32(components[1]) != nil
+            else { throw ConfigurationError.invalidPayload }
             return
         }
         if key == "clipboard.retentionPreset" {
@@ -359,6 +383,12 @@ public actor ConfigurationService {
         if key == "capture.ocrLanguagePreset" {
             guard case let .string(text) = value,
                 ["automatic", "en-zh", "en-US", "zh-Hans", "ja-JP"].contains(text)
+            else { throw ConfigurationError.invalidPayload }
+            return
+        }
+        if key == "appearance.launcher" {
+            guard case let .string(text) = value,
+                ["automatic", "light", "dark"].contains(text)
             else { throw ConfigurationError.invalidPayload }
             return
         }

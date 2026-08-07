@@ -175,6 +175,63 @@ import Testing
     #expect((await store.search("example").successValue ?? []).count == 1)
 }
 
+@Test func clipboardSearchFiltersBeforeLimitAndOrdersTheCompleteTimeline() async throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("keyestro-clipboard-filter-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let paths = try AppPaths(
+        bundleIdentifier: "com.keyestro.clipboard-filter-tests",
+        applicationSupportRoot: root.appendingPathComponent("support", isDirectory: true),
+        cachesRoot: root.appendingPathComponent("cache", isDirectory: true)
+    )
+    let database = LauncherDatabase(paths: paths)
+    let store = ClipboardStore(
+        database: database,
+        keyManager: InstallationKeyManager(
+            keychain: InMemoryKeychainService(),
+            service: "com.keyestro.clipboard-filter-tests"
+        )
+    )
+    await store.initialize(enabled: true)
+    let textID = try #require(
+        (await store.capture(.text("synthetic text"), sourceBundleIdentifier: nil, at: Date(timeIntervalSince1970: 100)))
+            .successValue
+    )
+    let imageID = try #require(
+        (await store.capture(.imagePNG(testPNG(width: 4, height: 4)), sourceBundleIdentifier: nil, at: Date(timeIntervalSince1970: 200)))
+            .successValue
+    )
+    let fileID = try #require(
+        (await store.capture(
+            .files([URL(fileURLWithPath: "/tmp/synthetic-needle.txt")]),
+            sourceBundleIdentifier: nil,
+            at: Date(timeIntervalSince1970: 300)
+        )).successValue
+    )
+    let syntheticURL = try #require(URL(string: "https://example.invalid/synthetic-needle"))
+    let urlID = try #require(
+        (await store.capture(
+            .url(syntheticURL),
+            sourceBundleIdentifier: nil,
+            at: Date(timeIntervalSince1970: 400)
+        )).successValue
+    )
+
+    let timeline = try #require(await store.search("", limit: 1_000).successValue)
+    #expect(timeline.map(\.id) == [urlID, fileID, imageID, textID])
+    let latest = try #require((await store.latestEntry()).successValue ?? nil)
+    #expect(latest.id == urlID)
+    #expect(latest.contentType == .url)
+
+    let olderText = try #require(await store.search("", contentType: .text, limit: 1).successValue)
+    #expect(olderText.map(\.id) == [textID])
+
+    let fileIntersection = try #require(
+        await store.search("ＳＹＮＴＨＥＴＩＣ－ＮＥＥＤＬＥ", contentType: .files, limit: 1).successValue
+    )
+    #expect(fileIntersection.map(\.id) == [fileID])
+}
+
 private extension Result {
     var successValue: Success? {
         if case let .success(value) = self { return value }

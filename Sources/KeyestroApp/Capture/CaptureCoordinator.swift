@@ -160,7 +160,7 @@ final class CaptureCoordinator {
     }
 
     private func showOCRResult(_ result: OCRResult) {
-        let controller = OCRResultWindowController(result: result) { [weak self] controller in
+        let controller = OCRResultWindowController(result: result, pasteboard: pasteboard) { [weak self] controller in
             self?.resultWindows.removeAll { $0 === controller }
         }
         resultWindows.append(controller)
@@ -188,10 +188,16 @@ final class CaptureCoordinator {
 @MainActor
 private final class OCRResultWindowController: NSWindowController, NSWindowDelegate {
     private let onClose: (OCRResultWindowController) -> Void
+    private let pasteboard: any PasteboardServicing
     private let textView = NSTextView()
 
-    init(result: OCRResult, onClose: @escaping (OCRResultWindowController) -> Void) {
+    init(
+        result: OCRResult,
+        pasteboard: any PasteboardServicing,
+        onClose: @escaping (OCRResultWindowController) -> Void
+    ) {
         self.onClose = onClose
+        self.pasteboard = pasteboard
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 440),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -233,9 +239,7 @@ private final class OCRResultWindowController: NSWindowController, NSWindowDeleg
     required init?(coder: NSCoder) { nil }
 
     @objc private func copyText() {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(textView.string, forType: .string)
+        _ = pasteboard.write(.text(textView.string))
     }
 
     func windowWillClose(_ notification: Notification) {

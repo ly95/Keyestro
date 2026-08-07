@@ -7,6 +7,7 @@ struct HotKeyShortcut: Equatable, Sendable {
     let modifiers: UInt32
 
     static let optionSpace = Self(keyCode: UInt32(kVK_Space), modifiers: UInt32(optionKey))
+    static let optionShiftV = Self(keyCode: UInt32(kVK_ANSI_V), modifiers: UInt32(optionKey | shiftKey))
 
     init(keyCode: UInt32, modifiers: UInt32) {
         self.keyCode = keyCode
@@ -68,6 +69,12 @@ struct HotKeyShortcut: Equatable, Sendable {
     ]
 }
 
+enum HotKeyAction: UInt32, CaseIterable, Hashable, Sendable {
+    case launcher = 1
+    case clipboardHistory = 2
+    case quickPaste = 3
+}
+
 enum HotKeyRegistrationState: Equatable, Sendable {
     case registered
     case unavailable(status: OSStatus)
@@ -77,13 +84,25 @@ struct HotKeyStatusPresentation: Equatable, Sendable {
     let menuTitle: String
     let errorMessage: String?
 
-    init(state: HotKeyRegistrationState, shortcut: HotKeyShortcut) {
+    init(action: HotKeyAction = .launcher, state: HotKeyRegistrationState, shortcut: HotKeyShortcut) {
+        let statusKey =
+            switch action {
+            case .launcher: "launcher.shortcut.status"
+            case .clipboardHistory: "clipboard.shortcut.status"
+            case .quickPaste: "quickPaste.shortcut.status"
+            }
+        let unavailableKey =
+            switch action {
+            case .launcher: "launcher.shortcut.unavailable"
+            case .clipboardHistory: "clipboard.shortcut.unavailable"
+            case .quickPaste: "quickPaste.shortcut.unavailable"
+            }
         switch state {
         case .registered:
-            menuTitle = L10n.format("launcher.shortcut.status", shortcut.displayName)
+            menuTitle = L10n.format(statusKey, shortcut.displayName)
             errorMessage = nil
         case let .unavailable(status):
-            let message = L10n.format("launcher.shortcut.unavailable", status)
+            let message = L10n.format(unavailableKey, status)
             menuTitle = message
             errorMessage = message
         }
@@ -92,8 +111,8 @@ struct HotKeyStatusPresentation: Equatable, Sendable {
 
 @MainActor
 protocol HotKeyRegistrationBackend: AnyObject {
-    var onInvocation: (() -> Void)? { get set }
-    func register(_ shortcut: HotKeyShortcut) -> OSStatus
+    var onInvocation: ((HotKeyAction) -> Void)? { get set }
+    func register(_ shortcut: HotKeyShortcut, for action: HotKeyAction) -> OSStatus
     func suspend()
     func stop()
 }
@@ -103,27 +122,40 @@ private func keyestroHotKeyCallback(
     _ event: EventRef?,
     _ userData: UnsafeMutableRawPointer?
 ) -> OSStatus {
-    guard let userData else { return OSStatus(eventNotHandledErr) }
+    guard let userData, let event else { return OSStatus(eventNotHandledErr) }
+    var identifier = EventHotKeyID(signature: 0, id: 0)
+    let status = GetEventParameter(
+        event,
+        EventParamName(kEventParamDirectObject),
+        EventParamType(typeEventHotKeyID),
+        nil,
+        MemoryLayout<EventHotKeyID>.size,
+        nil,
+        &identifier
+    )
+    guard status == noErr, let action = HotKeyAction(rawValue: identifier.id) else {
+        return OSStatus(eventNotHandledErr)
+    }
     let address = Int(bitPattern: userData)
     return MainActor.assumeIsolated {
         guard let pointer = UnsafeMutableRawPointer(bitPattern: address) else {
             return OSStatus(eventNotHandledErr)
         }
         let backend = Unmanaged<CarbonHotKeyRegistrationBackend>.fromOpaque(pointer).takeUnretainedValue()
-        backend.handleInvocation()
+        backend.handleInvocation(action)
         return noErr
     }
 }
 
 @MainActor
 private final class CarbonHotKeyRegistrationBackend: HotKeyRegistrationBackend {
-    var onInvocation: (() -> Void)?
+    var onInvocation: ((HotKeyAction) -> Void)?
 
     private var eventHandler: EventHandlerRef?
-    private var hotKey: EventHotKeyRef?
+    private var hotKeys: [HotKeyAction: EventHotKeyRef] = [:]
 
-    func register(_ shortcut: HotKeyShortcut) -> OSStatus {
-        unregisterHotKeyOnly()
+    func register(_ shortcut: HotKeyShortcut, for action: HotKeyAction) -> OSStatus {
+        unregister(action)
 
         if eventHandler == nil {
             var eventType = EventTypeSpec(
@@ -143,7 +175,8 @@ private final class CarbonHotKeyRegistrationBackend: HotKeyRegistrationBackend {
             }
         }
 
-        let identifier = EventHotKeyID(signature: OSType(0x4B_45_59_53), id: 1)  // KEYS
+        let identifier = EventHotKeyID(signature: OSType(0x4B_45_59_53), id: action.rawValue)  // KEYS
+        var hotKey: EventHotKeyRef?
         let status = RegisterEventHotKey(
             shortcut.keyCode,
             shortcut.modifiers,
@@ -152,11 +185,14 @@ private final class CarbonHotKeyRegistrationBackend: HotKeyRegistrationBackend {
             0,
             &hotKey
         )
+        if status == noErr, let hotKey {
+            hotKeys[action] = hotKey
+        }
         return status
     }
 
     func stop() {
-        unregisterHotKeyOnly()
+        unregisterAll()
         if let eventHandler {
             RemoveEventHandler(eventHandler)
             self.eventHandler = nil
@@ -164,36 +200,40 @@ private final class CarbonHotKeyRegistrationBackend: HotKeyRegistrationBackend {
     }
 
     func suspend() {
-        unregisterHotKeyOnly()
+        unregisterAll()
     }
 
-    fileprivate func handleInvocation() {
-        onInvocation?()
+    fileprivate func handleInvocation(_ action: HotKeyAction) {
+        guard hotKeys[action] != nil else { return }
+        onInvocation?(action)
     }
 
-    private func unregisterHotKeyOnly() {
-        if let hotKey {
+    private func unregister(_ action: HotKeyAction) {
+        if let hotKey = hotKeys.removeValue(forKey: action) {
             UnregisterEventHotKey(hotKey)
-            self.hotKey = nil
         }
+    }
+
+    private func unregisterAll() {
+        for action in HotKeyAction.allCases { unregister(action) }
     }
 }
 
 @MainActor
 final class HotKeyService {
-    var onInvocation: (() -> Void)?
-    var onStateChange: ((HotKeyRegistrationState) -> Void)?
+    var onInvocation: ((HotKeyAction) -> Void)?
+    var onStateChange: ((HotKeyAction, HotKeyRegistrationState) -> Void)?
 
     private let backend: any HotKeyRegistrationBackend
 
     init(backend: any HotKeyRegistrationBackend = CarbonHotKeyRegistrationBackend()) {
         self.backend = backend
-        backend.onInvocation = { [weak self] in self?.onInvocation?() }
+        backend.onInvocation = { [weak self] action in self?.onInvocation?(action) }
     }
 
-    func register(_ shortcut: HotKeyShortcut) {
-        let status = backend.register(shortcut)
-        onStateChange?(status == noErr ? .registered : .unavailable(status: status))
+    func register(_ shortcut: HotKeyShortcut, for action: HotKeyAction) {
+        let status = backend.register(shortcut, for: action)
+        onStateChange?(action, status == noErr ? .registered : .unavailable(status: status))
     }
 
     func stop() {

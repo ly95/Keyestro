@@ -169,6 +169,55 @@ func clipboardMonitorSurfacesRejectedContentWithoutStoppingLaterCapture() async 
     try await waitUntil { await fixture.contains("capture continues after rejection") }
 }
 
+@Test @MainActor
+func clipboardMonitorIgnoresUnifiedInternalWritesWithoutTouchingItemRecencyOrSource() async throws {
+    let fixture = try ClipboardMonitorFixture()
+    defer { fixture.remove() }
+    let clock = MonitorClock()
+    let registry = ClipboardInternalWriteRegistry()
+    let systemPasteboard = MonitorPasteboard()
+    let pasteboard = InternalWriteTrackingPasteboardService(
+        pasteboard: systemPasteboard,
+        internalWriteRegistry: registry
+    )
+    let source = MonitorSourceBundleIdentifier("com.example.source")
+    let monitor = ClipboardMonitor(
+        store: fixture.store,
+        pasteboard: pasteboard,
+        settings: fixture.settings,
+        clock: clock,
+        internalWriteRegistry: registry,
+        frontmostBundleIdentifier: { source.value }
+    )
+    fixture.settings.clipboardEnabled = true
+    monitor.start()
+    defer { monitor.stop() }
+
+    try await waitUntil { await fixture.store.currentState() == .ready(itemCount: 0) }
+    try await clock.waitForSleepRequest(count: 1)
+    systemPasteboard.content = .text("do not retouch me")
+    systemPasteboard.changeCount += 1
+    await clock.advance(by: .milliseconds(500))
+    try await waitUntil { await fixture.contains("do not retouch me") }
+    let before = try #require((await fixture.store.search("", limit: 1)).successValue?.first)
+
+    source.value = "com.example.destination"
+    #expect(pasteboard.write(.text("do not retouch me")))
+    try await clock.waitForSleepRequest(count: 2)
+    await clock.advance(by: .milliseconds(500))
+    try await clock.waitForSleepRequest(count: 3)
+
+    let after = try #require((await fixture.store.search("", limit: 1)).successValue?.first)
+    #expect(after.id == before.id)
+    #expect(after.lastCopiedAt == before.lastCopiedAt)
+    #expect(after.sourceBundleIdentifier == "com.example.source")
+
+    systemPasteboard.content = .text("external copy after internal write")
+    systemPasteboard.changeCount += 1
+    await clock.advance(by: .milliseconds(500))
+    try await waitUntil { await fixture.contains("external copy after internal write") }
+}
+
 @MainActor
 private final class MonitorPasteboard: PasteboardServicing {
     var changeCount = 0
@@ -179,6 +228,15 @@ private final class MonitorPasteboard: PasteboardServicing {
         self.content = content
         changeCount += 1
         return true
+    }
+}
+
+@MainActor
+private final class MonitorSourceBundleIdentifier: @unchecked Sendable {
+    var value: String?
+
+    init(_ value: String?) {
+        self.value = value
     }
 }
 
@@ -295,6 +353,13 @@ private enum ClipboardMonitorTestError: Error {
     case pauseStateTimedOut
     case pauseRestartPollTimedOut
     case pauseResumedCaptureTimedOut
+}
+
+private extension Result {
+    var successValue: Success? {
+        if case let .success(value) = self { return value }
+        return nil
+    }
 }
 
 @MainActor

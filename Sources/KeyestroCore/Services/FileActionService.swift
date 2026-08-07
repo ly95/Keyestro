@@ -16,8 +16,10 @@ public final class MacFileActionService: NSObject, FileActionServicing,
     public var onPreviewWillOpen: (() -> Void)?
     public var onPreviewDidClose: (() -> Void)?
     private var previewItems: [PreviewItem] = []
+    private let pasteboard: any PasteboardServicing
 
-    public override init() {
+    public init(pasteboard: any PasteboardServicing = MacPasteboardService()) {
+        self.pasteboard = pasteboard
         super.init()
     }
 
@@ -30,9 +32,7 @@ public final class MacFileActionService: NSObject, FileActionServicing,
     }
 
     public func copy(_ value: String) {
-        let pasteboard = NSPasteboard.general
-        pasteboard.clearContents()
-        pasteboard.setString(value, forType: .string)
+        _ = pasteboard.write(.text(value))
     }
 
     public func preview(_ url: URL) -> Bool {

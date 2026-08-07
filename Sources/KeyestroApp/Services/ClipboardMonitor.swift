@@ -10,6 +10,7 @@ final class ClipboardMonitor {
     private let pasteboard: any PasteboardServicing
     private let settings: SettingsStore
     private let clock: any ClockServicing
+    private let internalWriteRegistry: ClipboardInternalWriteRegistry
     private let frontmostBundleIdentifier: @MainActor @Sendable () -> String?
     private let onCaptureIssue: @MainActor @Sendable (ErrorDescriptor) -> Void
     private var pollTask: Task<Void, Never>?
@@ -24,6 +25,7 @@ final class ClipboardMonitor {
         pasteboard: any PasteboardServicing,
         settings: SettingsStore,
         clock: any ClockServicing = SystemClockService(),
+        internalWriteRegistry: ClipboardInternalWriteRegistry = ClipboardInternalWriteRegistry(),
         frontmostBundleIdentifier: @escaping @MainActor @Sendable () -> String? = {
             NSWorkspace.shared.frontmostApplication?.bundleIdentifier
         },
@@ -33,6 +35,7 @@ final class ClipboardMonitor {
         self.pasteboard = pasteboard
         self.settings = settings
         self.clock = clock
+        self.internalWriteRegistry = internalWriteRegistry
         self.frontmostBundleIdentifier = frontmostBundleIdentifier
         self.onCaptureIssue = onCaptureIssue
     }
@@ -164,23 +167,25 @@ final class ClipboardMonitor {
                 if current != lastChangeCount {
                     lastChangeCount = current
                     unchangedTicks = 0
-                    switch pasteboard.readSupportedContentResult() {
-                    case let .success(content?):
-                        let source = frontmostBundleIdentifier()
-                        if source == nil || !excludedBundleIdentifiers.contains(source ?? "") {
-                            let result = await store.capture(
-                                content,
-                                sourceBundleIdentifier: source
-                            )
-                            guard settingsGeneration == generation, !Task.isCancelled else { return }
-                            if case let .failure(error) = result {
-                                onCaptureIssue(error)
+                    if !internalWriteRegistry.consume(changeCount: current) {
+                        switch pasteboard.readSupportedContentResult() {
+                        case let .success(content?):
+                            let source = frontmostBundleIdentifier()
+                            if source == nil || !excludedBundleIdentifiers.contains(source ?? "") {
+                                let result = await store.capture(
+                                    content,
+                                    sourceBundleIdentifier: source
+                                )
+                                guard settingsGeneration == generation, !Task.isCancelled else { return }
+                                if case let .failure(error) = result {
+                                    onCaptureIssue(error)
+                                }
                             }
+                        case .success(nil):
+                            break
+                        case let .failure(error):
+                            onCaptureIssue(error)
                         }
-                    case .success(nil):
-                        break
-                    case let .failure(error):
-                        onCaptureIssue(error)
                     }
                 } else {
                     unchangedTicks += 1

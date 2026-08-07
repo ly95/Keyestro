@@ -15,6 +15,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
         settings: SettingsStore,
         quicklinks: any QuicklinkStoring,
         clipboardStore: ClipboardStore?,
+        pasteboard: any PasteboardServicing = MacPasteboardService(),
         scripts: any ScriptStoring,
         scriptInstaller: ManagedScriptInstaller?,
         extensions: any ExtensionStoring,
@@ -38,6 +39,7 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             settings: settings,
             quicklinks: quicklinks,
             clipboardStore: clipboardStore,
+            pasteboard: pasteboard,
             scripts: scripts,
             scriptInstaller: scriptInstaller,
             extensions: extensions,
@@ -178,7 +180,7 @@ private struct SettingsView: View {
             case .clearRankingHistory:
                 "This permanently deletes all learned usage events from Keyestro's local database. Manual pins are kept."
             case .restoreDefaults:
-                "This resets all non-secret Keyestro settings, including the launcher shortcut and privacy choices. Quicklinks, scripts, extensions, and their saved data are kept."
+                "This resets all non-secret Keyestro settings, including all shortcuts and privacy choices. Quicklinks, scripts, extensions, and their saved data are kept."
             }
         }
     }
@@ -187,6 +189,7 @@ private struct SettingsView: View {
     @ObservedObject var settings: SettingsStore
     let quicklinks: any QuicklinkStoring
     let clipboardStore: ClipboardStore?
+    let pasteboard: any PasteboardServicing
     let scripts: any ScriptStoring
     let scriptInstaller: ManagedScriptInstaller?
     let extensions: any ExtensionStoring
@@ -269,6 +272,20 @@ private struct SettingsView: View {
     private func detail(for section: SettingsSection) -> some View {
         switch section {
         case .general:
+            GroupBox("Appearance") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("Launcher appearance", selection: $settings.launcherAppearance) {
+                        ForEach(LauncherAppearancePreference.allCases) { appearance in
+                            Text(L10n.text(appearance.title)).tag(appearance)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Auto follows the macOS appearance. A Light or Dark override is saved on this Mac.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
             Toggle("Show Keyestro in the Dock", isOn: $settings.showDockIcon)
             Text("Keyestro remains available from the menu bar when the Dock icon is hidden.")
                 .foregroundStyle(.secondary)
@@ -305,6 +322,10 @@ private struct SettingsView: View {
                 .disabled(!settings.clipboardEnabled)
             Text("Clipboard history is off by default and will be encrypted before persistence.")
                 .foregroundStyle(.secondary)
+            QuickPasteSettingsView(
+                settings: settings,
+                openPermissions: { navigation.selection = .permissions }
+            )
             Picker("Clipboard retention", selection: $settings.clipboardRetentionPreset) {
                 Text("1 day").tag("1-day")
                 Text("7 days").tag("7-days")
@@ -397,7 +418,7 @@ private struct SettingsView: View {
                 Text(L10n.text(error)).font(.caption).foregroundStyle(.secondary)
             }
         case .advanced:
-            PerformanceSettingsView()
+            PerformanceSettingsView(pasteboard: pasteboard)
             DiagnosticsSettingsView(service: diagnosticsService, settings: settings)
             ConfigurationSettingsView(
                 service: configurationService,
@@ -465,33 +486,56 @@ private struct ShortcutRecorder: View {
     @ObservedObject var settings: SettingsStore
     let beginRecording: () -> Void
     let endRecording: () -> Void
-    @State private var isRecording = false
+    @State private var recordingAction: HotKeyAction?
     @State private var eventMonitor: Any?
     @State private var validationMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            LabeledContent("Open Keyestro") {
-                Button(isRecording ? "Press a shortcut…" : settings.launcherShortcut.displayName) {
-                    isRecording ? stopRecording() : startRecording()
-                }
-                .font(.body.monospaced())
-                .accessibilityLabel("Open Keyestro shortcut")
-            }
+            shortcutRow(for: .launcher)
+            shortcutRow(for: .clipboardHistory)
+            shortcutRow(for: .quickPaste)
             Text("Use Command, Option, or Control with another key. Conflicts remain visible and the menu bar stays available.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            if let message = validationMessage ?? settings.hotKeyRegistrationError {
+            if let message = validationMessage ?? settings.shortcutValidationError ?? settings.persistenceError {
+                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+            }
+            if let message = settings.hotKeyRegistrationError(for: .launcher) {
+                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+            }
+            if let message = settings.hotKeyRegistrationError(for: .clipboardHistory) {
+                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+            }
+            if let message = settings.hotKeyRegistrationError(for: .quickPaste) {
                 Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
             }
         }
         .onDisappear { stopRecording() }
     }
 
-    private func startRecording() {
-        guard !isRecording else { return }
+    private func shortcutRow(for action: HotKeyAction) -> some View {
+        LabeledContent(L10n.text(label(for: action))) {
+            Button(
+                recordingAction == action
+                    ? L10n.text("Press a shortcut…")
+                    : settings.shortcut(for: action)?.displayName ?? L10n.text("Record Shortcut…")
+            ) {
+                if recordingAction == action {
+                    stopRecording()
+                } else {
+                    startRecording(action)
+                }
+            }
+            .font(.body.monospaced())
+            .accessibilityLabel(L10n.text(accessibilityLabel(for: action)))
+        }
+    }
+
+    private func startRecording(_ action: HotKeyAction) {
+        stopRecording()
         validationMessage = nil
-        isRecording = true
+        recordingAction = action
         beginRecording()
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
             if event.keyCode == UInt16(kVK_Escape) {
@@ -502,8 +546,11 @@ private struct ShortcutRecorder: View {
                 validationMessage = "Include Command, Option, or Control; Escape and Tab are reserved."
                 return nil
             }
-            settings.launcherShortcut = shortcut
-            stopRecording()
+            if settings.setShortcut(shortcut, for: action) {
+                stopRecording()
+            } else {
+                validationMessage = settings.shortcutValidationError ?? settings.persistenceError
+            }
             return nil
         }
     }
@@ -511,9 +558,80 @@ private struct ShortcutRecorder: View {
     private func stopRecording() {
         if let eventMonitor { NSEvent.removeMonitor(eventMonitor) }
         eventMonitor = nil
-        guard isRecording else { return }
-        isRecording = false
+        guard recordingAction != nil else { return }
+        recordingAction = nil
         endRecording()
+    }
+
+    private func label(for action: HotKeyAction) -> String {
+        switch action {
+        case .launcher: "Open Keyestro"
+        case .clipboardHistory: "Open Clipboard History"
+        case .quickPaste: "Quick Paste Latest Text"
+        }
+    }
+
+    private func accessibilityLabel(for action: HotKeyAction) -> String {
+        switch action {
+        case .launcher: "Open Keyestro shortcut"
+        case .clipboardHistory: "Open Clipboard History shortcut"
+        case .quickPaste: "Quick Paste latest text shortcut"
+        }
+    }
+}
+
+private struct QuickPasteSettingsView: View {
+    @ObservedObject var settings: SettingsStore
+    let openPermissions: () -> Void
+    @State private var confirmsEnable = false
+
+    var body: some View {
+        GroupBox("Quick Paste") {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(
+                    "Enable Quick Paste for the latest text or URL",
+                    isOn: Binding(
+                        get: { settings.quickPasteEnabled },
+                        set: { value in
+                            if value {
+                                confirmsEnable = true
+                            } else {
+                                settings.quickPasteEnabled = false
+                            }
+                        }
+                    )
+                )
+                Toggle(
+                    "Allow sensitive-looking text",
+                    isOn: $settings.quickPasteAllowsSensitiveContent
+                )
+                .disabled(!settings.quickPasteEnabled)
+                if settings.quickPasteShortcut == nil {
+                    Label(
+                        "Record a unique Quick Paste shortcut in Shortcuts before it can run.",
+                        systemImage: "keyboard.badge.ellipsis"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(settings.quickPasteEnabled ? .orange : .secondary)
+                }
+                Text(
+                    "The shortcut writes the newest history item to the clipboard and sends Command-V only if the same destination app remains frontmost. Images, files, and blocked sensitive items open Clipboard History instead."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Button("Review Accessibility Permission", action: openPermissions)
+                    .buttonStyle(.link)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .alert("Enable Quick Paste?", isPresented: $confirmsEnable) {
+            Button("Enable") { settings.quickPasteEnabled = true }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(
+                "Quick Paste requires Accessibility permission to send Command-V to the frontmost app. It may paste sensitive clipboard text unless you turn off “Allow sensitive-looking text.”"
+            )
+        }
     }
 }
 
@@ -551,7 +669,7 @@ private struct LoginItemSettingsView: View {
 }
 
 @MainActor
-private final class ExtensionSettingsModel: ObservableObject {
+final class ExtensionSettingsModel: ObservableObject {
     @Published var registrations: [ExtensionRegistration] = []
     @Published var pendingImports: [ExportedExtensionRegistration] = []
     @Published var globalSearchEnabled: [String: Bool] = [:]
@@ -1085,13 +1203,11 @@ private struct ExtensionSettingsView: View {
                 case .password:
                     SecureField("Enter a new secret", text: preferenceTextBinding(declaration, registration: registration))
                 case .choice:
-                    Picker(
-                        declaration.title,
+                    ViewportConstrainedChoicePicker(
+                        title: declaration.title,
+                        options: declaration.choices,
                         selection: preferenceChoiceBinding(declaration, registration: registration)
-                    ) {
-                        ForEach(declaration.choices, id: \.self) { Text($0).tag($0) }
-                    }
-                    .labelsHidden()
+                    )
                 case .file, .directory:
                     TextField("Absolute path", text: preferenceTextBinding(declaration, registration: registration))
                     Button("Choose…") { model.choosePath(declaration, registration: registration) }
@@ -1156,10 +1272,15 @@ private struct ExtensionSettingsView: View {
 }
 
 @MainActor
-private final class PerformanceSettingsModel: ObservableObject {
+final class PerformanceSettingsModel: ObservableObject {
     @Published var report: PerformanceReport?
     @Published var message: String?
     @Published var isWorking = false
+    private let pasteboard: any PasteboardServicing
+
+    init(pasteboard: any PasteboardServicing = MacPasteboardService()) {
+        self.pasteboard = pasteboard
+    }
 
     func run() {
         guard !isWorking else { return }
@@ -1180,8 +1301,7 @@ private final class PerformanceSettingsModel: ObservableObject {
             let data = try? JSONEncoder.performanceReportEncoder.encode(report),
             let text = String(data: data, encoding: .utf8)
         else { return }
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        _ = pasteboard.write(.text(text))
         message = "Performance report copied without query or result content."
     }
 
@@ -1204,7 +1324,11 @@ private extension JSONEncoder {
 }
 
 private struct PerformanceSettingsView: View {
-    @StateObject private var model = PerformanceSettingsModel()
+    @StateObject private var model: PerformanceSettingsModel
+
+    init(pasteboard: any PasteboardServicing) {
+        _model = StateObject(wrappedValue: PerformanceSettingsModel(pasteboard: pasteboard))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -1244,7 +1368,7 @@ private struct PerformanceSettingsView: View {
 }
 
 @MainActor
-private final class DiagnosticsSettingsModel: ObservableObject {
+final class DiagnosticsSettingsModel: ObservableObject {
     @Published var preview: DiagnosticsPreview?
     @Published var message: String?
     @Published var isWorking = false
@@ -1330,7 +1454,7 @@ private struct DiagnosticsSettingsView: View {
 }
 
 @MainActor
-private final class ConfigurationSettingsModel: ObservableObject {
+final class ConfigurationSettingsModel: ObservableObject {
     @Published var pendingImport: ValidatedConfigurationImport?
     @Published var pendingScriptCount = 0
     @Published var pendingExtensionCount = 0
@@ -1524,7 +1648,7 @@ private struct ConfigurationSettingsView: View {
 }
 
 @MainActor
-private final class ScriptSettingsModel: ObservableObject {
+final class ScriptSettingsModel: ObservableObject {
     struct ReconnectCandidate {
         let registration: ExportedScriptRegistration
         let source: URL
@@ -1930,19 +2054,35 @@ private struct ScriptSettingsView: View {
 }
 
 @MainActor
-private final class ClipboardSettingsModel: ObservableObject {
+final class ClipboardSettingsModel: ObservableObject {
     @Published var state: ClipboardStoreState = .disabled
     @Published var message: String?
     let store: ClipboardStore?
+    private var stateTask: Task<Void, Never>?
 
     init(store: ClipboardStore?) {
         self.store = store
-        refresh()
+        observeState()
+    }
+
+    deinit {
+        stateTask?.cancel()
     }
 
     func refresh() {
         guard let store else { return }
         Task { state = await store.currentState() }
+    }
+
+    private func observeState() {
+        guard let store else { return }
+        stateTask = Task { [weak self] in
+            let updates = await store.stateUpdates()
+            for await state in updates {
+                guard !Task.isCancelled else { return }
+                self?.state = state
+            }
+        }
     }
 
     func clear() {
@@ -2069,7 +2209,7 @@ private struct ClipboardPrivacyView: View {
     }
 }
 
-private enum QuicklinkArgumentType: String, CaseIterable, Identifiable {
+enum QuicklinkArgumentType: String, CaseIterable, Identifiable {
     case text
     case password
     case choice
@@ -2088,7 +2228,7 @@ private enum QuicklinkArgumentType: String, CaseIterable, Identifiable {
     }
 }
 
-private struct QuicklinkArgumentDraft: Identifiable, Equatable {
+struct QuicklinkArgumentDraft: Identifiable, Equatable {
     let id = UUID()
     var name: String
     var title: String
@@ -2159,7 +2299,7 @@ private struct QuicklinkArgumentDraft: Identifiable, Equatable {
 }
 
 @MainActor
-private final class QuicklinkSettingsModel: ObservableObject {
+final class QuicklinkSettingsModel: ObservableObject {
     @Published var links: [QuicklinkDefinition] = []
     @Published var title = ""
     @Published var template = "https://example.com/search?q={query}"
