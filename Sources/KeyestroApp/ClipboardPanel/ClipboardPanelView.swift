@@ -78,11 +78,14 @@ struct ClipboardPanelView: View {
                     onCommand: handle
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                if model.isSearching {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel(L10n.text("Searching"))
+                ZStack {
+                    if model.isSearching {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityLabel(L10n.text("Searching"))
+                    }
                 }
+                .frame(width: 16, height: 16)
                 Text("⌘ P")
                     .font(.system(size: 11, weight: .semibold, design: .monospaced))
                     .foregroundStyle(palette.textSecondary)

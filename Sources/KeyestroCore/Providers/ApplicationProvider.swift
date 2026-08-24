@@ -33,7 +33,8 @@ public actor ApplicationCatalog {
     private var indexedRecordsByPath: [String: ApplicationRecord] = [:]
     private var loadedAt: Date?
     private var observationTask: Task<Void, Never>?
-    private var refreshGeneration: UInt64 = 0
+    private var refreshInProgress = false
+    private var refreshWaiters: [CheckedContinuation<[ApplicationRecord], Never>] = []
     private var indexedUpdateRevision: UInt64 = 0
     private let cacheLifetime: TimeInterval
     private let roots: [URL]
@@ -72,11 +73,14 @@ public actor ApplicationCatalog {
             return cachedRecords
         }
 
-        refreshGeneration &+= 1
-        let generation = refreshGeneration
+        if refreshInProgress {
+            return await withCheckedContinuation { continuation in
+                refreshWaiters.append(continuation)
+            }
+        }
+        refreshInProgress = true
         let updateRevision = indexedUpdateRevision
         let indexedURLs = (try? await discovery.discoverApplicationURLs(limit: 2_000)) ?? []
-        guard generation == refreshGeneration else { return cachedRecords }
         var merged = scanRoots()
         if updateRevision == indexedUpdateRevision {
             indexedRecordsByPath = Self.indexedRecords(for: indexedURLs)
@@ -85,7 +89,12 @@ public actor ApplicationCatalog {
         recordsByID = merged
         rebuildCachedRecords()
         loadedAt = now
-        return cachedRecords
+        refreshInProgress = false
+        let refreshedRecords = cachedRecords
+        let waiters = refreshWaiters
+        refreshWaiters.removeAll(keepingCapacity: true)
+        for waiter in waiters { waiter.resume(returning: refreshedRecords) }
+        return refreshedRecords
     }
 
     public func record(stableID: String) -> ApplicationRecord? {
@@ -295,7 +304,7 @@ public actor ApplicationCatalog {
     }
 }
 
-public struct ApplicationProvider: LauncherProvider {
+public struct ApplicationProvider: LauncherProvider, LauncherProviderPrewarming {
     public let descriptor = ProviderDescriptor(
         id: "applications",
         displayName: "Applications",
@@ -406,6 +415,10 @@ public struct ApplicationProvider: LauncherProvider {
         }
         continuation.onTermination = { @Sendable _ in task.cancel() }
         return stream
+    }
+
+    public func prewarm() async {
+        _ = await catalog.records()
     }
 
     public func execute(request: ProviderActionRequest) async -> ActionResult {

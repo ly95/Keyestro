@@ -323,6 +323,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             rankingStore: rankingStore,
             rankingLearning: settings.rankingLearningPreferences
         )
+        Task.detached(priority: .utility) {
+            await coordinator.prewarm()
+        }
         let runner = ActionRunner(
             providers: providers,
             rankingStore: rankingStore,
@@ -368,6 +371,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             configurationService: configurationService,
             diagnosticsService: diagnosticsService,
             clearCaches: {
+                await coordinator.clearCachedResults()
                 guard let appPaths else { return L10n.text("The application cache path is unavailable.") }
                 let error = await Task.detached(priority: .utility) { () -> ErrorDescriptor? in
                     do {

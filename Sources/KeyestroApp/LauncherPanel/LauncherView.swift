@@ -101,11 +101,14 @@ struct LauncherView: View {
                     onCommand: handle
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                if model.isSearching {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel(L10n.text("Searching"))
+                ZStack {
+                    if model.isSearching {
+                        ProgressView()
+                            .controlSize(.small)
+                            .accessibilityLabel(L10n.text("Searching"))
+                    }
                 }
+                .frame(width: 16, height: 16)
             }
             .padding(.leading, 13)
             .padding(.trailing, 16)
@@ -352,22 +355,13 @@ struct LauncherView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(resultGroups) { group in
-                            Text(L10n.text(group.title).uppercased())
-                                .font(.system(size: 11, weight: .semibold))
-                                .tracking(1)
-                                .foregroundStyle(palette.textSecondary)
-                                .padding(.horizontal, 8)
-                                .padding(.top, group.id == resultGroups.first?.id ? 20 : 18)
-                                .padding(.bottom, 11)
-                                .accessibilityAddTraits(.isHeader)
-                            ForEach(group.rows) { row in
-                                resultRow(row.ranked.item, index: row.index)
-                                    .id(row.id)
-                            }
+                        ForEach(Array(model.displayOrderedResults.enumerated()), id: \.element.id) { index, ranked in
+                            resultRow(ranked.item, index: index)
+                                .id(ranked.id)
                         }
                     }
                     .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel(L10n.text("Results"))
                 }
@@ -784,26 +778,7 @@ struct LauncherView: View {
         case .parameters:
             return L10n.text("Enter parameters")
         case .results:
-            return L10n.format("%lld results · grouped by source", Int64(model.results.count))
-        }
-    }
-
-    private var resultGroups: [LauncherResultGroup] {
-        var order: [ProviderID] = []
-        var rowsByProvider: [ProviderID: [LauncherResultRow]] = [:]
-        for (index, ranked) in model.displayOrderedResults.enumerated() {
-            let providerID = ranked.item.providerID
-            if rowsByProvider[providerID] == nil { order.append(providerID) }
-            rowsByProvider[providerID, default: []].append(
-                LauncherResultRow(index: index, ranked: ranked)
-            )
-        }
-        return order.map { providerID in
-            LauncherResultGroup(
-                id: providerID,
-                title: providerTitle(providerID),
-                rows: rowsByProvider[providerID] ?? []
-            )
+            return L10n.format("%lld results", Int64(model.results.count))
         }
     }
 
@@ -1010,19 +985,6 @@ struct LauncherView: View {
         case .secret: true
         }
     }
-}
-
-private struct LauncherResultRow: Identifiable, Equatable {
-    let index: Int
-    let ranked: RankedItem
-
-    var id: ItemID { ranked.id }
-}
-
-private struct LauncherResultGroup: Identifiable, Equatable {
-    let id: ProviderID
-    let title: String
-    let rows: [LauncherResultRow]
 }
 
 struct LauncherEmptyStateView: View {

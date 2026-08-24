@@ -91,14 +91,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     var displayOrderedResults: [RankedItem] {
-        var providerOrder: [ProviderID] = []
-        var resultsByProvider: [ProviderID: [RankedItem]] = [:]
-        for result in results {
-            let providerID = result.item.providerID
-            if resultsByProvider[providerID] == nil { providerOrder.append(providerID) }
-            resultsByProvider[providerID, default: []].append(result)
-        }
-        return providerOrder.flatMap { resultsByProvider[$0] ?? [] }
+        results
     }
 
     var firstProblemStatus: ProviderStatus? {
@@ -354,22 +347,19 @@ final class LauncherViewModel: ObservableObject {
 
     private func apply(_ snapshot: QuerySnapshot, preservingCurrentResults: Bool) {
         guard snapshot.generation >= generation else { return }
-        let oldResults = results
+        let startsNewGeneration = snapshot.generation > generation
+        let oldResults = startsNewGeneration && !preservingCurrentResults ? [] : results
         let oldIndex = selectedItemID.flatMap { id in oldResults.firstIndex(where: { $0.id == id }) } ?? 0
 
         generation = snapshot.generation
         statuses = snapshot.statuses
         isSearching = !snapshot.isComplete
 
-        if preservingCurrentResults,
-            !snapshot.isComplete,
-            snapshot.items.isEmpty,
-            !results.isEmpty
-        {
-            return
-        }
-
-        results = snapshot.items
+        results = Self.appendingNewResults(
+            to: oldResults,
+            from: snapshot.items,
+            removeMissing: snapshot.isComplete
+        )
 
         if snapshot.isComplete, lastAnnouncedGeneration != snapshot.generation {
             lastAnnouncedGeneration = snapshot.generation
@@ -384,6 +374,42 @@ final class LauncherViewModel: ObservableObject {
             return
         }
         selectedItemID = results[min(oldIndex, results.count - 1)].id
+    }
+
+    static func appendingNewResults(
+        to current: [RankedItem],
+        from incoming: [RankedItem],
+        removeMissing: Bool
+    ) -> [RankedItem] {
+        let incomingByID = Dictionary(uniqueKeysWithValues: incoming.map { ($0.id, $0) })
+        let incomingByResource = Dictionary(
+            incoming.compactMap { result in
+                result.item.canonicalResource.map { ($0, result) }
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var consumed = Set<ItemID>()
+        var merged: [RankedItem] = []
+
+        for existing in current {
+            if let updated = incomingByID[existing.id] {
+                merged.append(updated)
+                consumed.insert(updated.id)
+            } else if let resource = existing.item.canonicalResource,
+                let replacement = incomingByResource[resource],
+                !consumed.contains(replacement.id)
+            {
+                merged.append(replacement)
+                consumed.insert(replacement.id)
+            } else if !removeMissing {
+                merged.append(existing)
+            }
+        }
+
+        for result in incoming where consumed.insert(result.id).inserted {
+            merged.append(result)
+        }
+        return merged
     }
 
     private func moveActionSelection(_ delta: Int) {
@@ -535,7 +561,7 @@ final class LauncherViewModel: ObservableObject {
             element: NSApplication.shared,
             notification: .announcementRequested,
             userInfo: [
-                .announcement: L10n.format("accessibility.results.count", Int64(count)),
+                .announcement: L10n.format("%lld results", Int64(count)),
                 .priority: NSNumber(value: NSAccessibilityPriorityLevel.medium.rawValue),
             ]
         )

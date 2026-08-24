@@ -17,7 +17,6 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     private var isDismissing = false
     private var isPreviewing = false
     private var presentationPending = false
-    private var resizeScheduled = false
     private var resignDismissTask: Task<Void, Never>?
     private var presentationGeneration: UInt64 = 0
     private var cancellables = Set<AnyCancellable>()
@@ -74,9 +73,6 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
-        viewModel.objectWillChange
-            .sink { [weak self] in self?.scheduleContentResize() }
-            .store(in: &cancellables)
         viewModel.$launcherAppearance
             .removeDuplicates()
             .sink { [weak self] appearance in self?.panel.appearance = appearance.panelAppearance }
@@ -129,64 +125,35 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         let segmentStartedAt = ContinuousClock.now
         let screen = targetScreen()
         positionPanel(on: screen)
-        recordPresentationSegment(segmentStartedAt.duration(to: .now))
-        DispatchQueue.main.async { [weak self] in
-            self?.orderPresentation(generation: generation, invokedAt: invokedAt, screen: screen)
-        }
-    }
 
-    private func orderPresentation(
-        generation: UInt64,
-        invokedAt: ContinuousClock.Instant,
-        screen: NSScreen?
-    ) {
-        guard presentationIsCurrent(generation) else { return }
-        let segmentStartedAt = ContinuousClock.now
+        let context = QueryContext(
+            frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
+            frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
+            mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
+        )
+        // Prepare the refresh state while the window is still invisible. Provider
+        // updates only change content; they never drive window placement.
+        viewModel.invoke(context: context)
+
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
-        recordPresentationSegment(segmentStartedAt.duration(to: .now))
-        DispatchQueue.main.async { [weak self] in
-            self?.activatePresentation(generation: generation, invokedAt: invokedAt, screen: screen)
-        }
-    }
-
-    private func activatePresentation(
-        generation: UInt64,
-        invokedAt: ContinuousClock.Instant,
-        screen: NSScreen?
-    ) {
-        guard presentationIsCurrent(generation), panel.isVisible else { return }
-        let segmentStartedAt = ContinuousClock.now
         NSApplication.shared.activate()
-        recordPresentationSegment(segmentStartedAt.duration(to: .now))
-        DispatchQueue.main.async { [weak self] in
-            self?.focusPresentation(generation: generation, invokedAt: invokedAt, screen: screen)
-        }
-    }
-
-    private func focusPresentation(
-        generation: UInt64,
-        invokedAt: ContinuousClock.Instant,
-        screen: NSScreen?
-    ) {
-        guard presentationIsCurrent(generation), panel.isVisible else { return }
-        let segmentStartedAt = ContinuousClock.now
         panel.makeKey()
-        resignDismissTask?.cancel()
-        resignDismissTask = nil
         recordPresentationSegment(segmentStartedAt.duration(to: .now))
         DispatchQueue.main.async { [weak self] in
-            self?.displayPresentation(generation: generation, invokedAt: invokedAt, screen: screen)
+            self?.displayPresentation(generation: generation, invokedAt: invokedAt)
         }
     }
 
     private func displayPresentation(
         generation: UInt64,
-        invokedAt: ContinuousClock.Instant,
-        screen: NSScreen?
+        invokedAt: ContinuousClock.Instant
     ) {
         guard presentationIsCurrent(generation), panel.isVisible else { return }
         let segmentStartedAt = ContinuousClock.now
         panel.displayIfNeeded()
+        panel.alphaValue = 1
+
         let firstFrameAt = ContinuousClock.now
         let invokeDuration = invokedAt.duration(to: firstFrameAt)
         lastInvokeToFirstFrameDuration = invokeDuration
@@ -198,13 +165,6 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
             )
         }
 
-        let context = QueryContext(
-            frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
-            frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
-            mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
-        )
-        // Providers begin only after the panel has completed its first frame.
-        viewModel.invoke(context: context)
         let displaySegment = segmentStartedAt.duration(to: .now)
         lastFirstFrameMainThreadSegment = displaySegment
         recordPresentationSegment(displaySegment)
@@ -282,7 +242,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
             return
         }
         panel.setFrame(
-            Self.frame(in: screen.visibleFrame, preferredHeight: preferredHeight),
+            Self.frame(in: screen.visibleFrame),
             display: false
         )
     }
@@ -307,26 +267,6 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     ) -> CGFloat {
         _ = (resultCount, actionCount, isParameterForm, showsRecoveryState)
         return LauncherPanelLayout.windowHeight
-    }
-
-    private var preferredHeight: CGFloat {
-        Self.preferredHeight(
-            resultCount: viewModel.results.count,
-            actionCount: viewModel.layer == .actions ? viewModel.visibleActions.count : 0,
-            isParameterForm: viewModel.layer == .parameters,
-            showsRecoveryState: viewModel.requiresExpandedEmptyState
-        )
-    }
-
-    private func scheduleContentResize() {
-        guard panel.isVisible, !resizeScheduled else { return }
-        resizeScheduled = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            resizeScheduled = false
-            guard panel.isVisible else { return }
-            positionPanel(on: targetScreen())
-        }
     }
 
     private func targetScreen() -> NSScreen? {

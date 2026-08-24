@@ -6,6 +6,38 @@ private enum ProviderEnvelope: Sendable {
     case failed(providerID: ProviderID, ErrorDescriptor)
     case deadline(providerID: ProviderID)
     case finished(providerID: ProviderID)
+    case flushInitialBatch
+}
+
+private struct QueryCacheKey: Hashable, Sendable {
+    let rawText: String
+    let normalizedText: String
+    let mode: QueryMode
+    let limit: Int
+    let localeIdentifier: String
+    let frontmostBundleIdentifier: String?
+    let frontmostApplicationName: String?
+    let frontmostWindowTitle: String?
+    let mouseScreenIdentifier: String?
+    let currentDirectoryPath: String?
+
+    init(request: QueryRequest, locale: Locale) {
+        rawText = request.rawText
+        normalizedText = request.normalizedText
+        mode = request.mode
+        limit = request.limit
+        localeIdentifier = locale.identifier
+        frontmostBundleIdentifier = request.context.frontmostBundleIdentifier
+        frontmostApplicationName = request.context.frontmostApplicationName
+        frontmostWindowTitle = request.context.frontmostWindowTitle
+        mouseScreenIdentifier = request.context.mouseScreenIdentifier
+        currentDirectoryPath = request.context.currentDirectoryURL?.standardizedFileURL.path
+    }
+}
+
+private struct CachedQuerySnapshot: Sendable {
+    let items: [RankedItem]
+    let storedAt: ContinuousClock.Instant
 }
 
 /// Owns query generations, provider tasks, aggregation, deduplication, and the current resolvable result set.
@@ -20,11 +52,13 @@ public actor QueryCoordinator {
     private let performance: any PerformanceRecording
     private let clock: any ClockServicing
     private let providerInitialDeadline: Duration
+    private let queryCacheLifetime: Duration
     private var generation: UInt64 = 0
     private var currentTask: Task<Void, Never>?
     private var currentRequest: QueryRequest?
     private var providerItems: [ProviderID: [ItemID: LauncherItem]] = [:]
     private var visibleItems: [ItemID: LauncherItem] = [:]
+    private var queryCache: LRUCache<QueryCacheKey, CachedQuerySnapshot>
 
     public init(
         providers: [any LauncherProvider],
@@ -33,7 +67,9 @@ public actor QueryCoordinator {
         rankingLearning: any RankingLearningServicing = RankingLearningPreferences(),
         performance: any PerformanceRecording = PerformanceRecorder.shared,
         clock: any ClockServicing = SystemClockService(),
-        providerInitialDeadline: Duration = .seconds(2)
+        providerInitialDeadline: Duration = .seconds(2),
+        queryCacheCapacity: Int = 20,
+        queryCacheLifetime: Duration = .seconds(300)
     ) {
         self.providers = Dictionary(uniqueKeysWithValues: providers.map { ($0.descriptor.id, $0) })
         self.ranker = ranker
@@ -45,6 +81,8 @@ public actor QueryCoordinator {
             max(providerInitialDeadline, .milliseconds(1)),
             Self.maximumProviderInitialDeadline
         )
+        self.queryCacheLifetime = min(max(queryCacheLifetime, .seconds(1)), .seconds(600))
+        queryCache = LRUCache(capacity: queryCacheCapacity)
     }
 
     deinit {
@@ -73,9 +111,11 @@ public actor QueryCoordinator {
             context: context,
             startedAt: startedAt
         )
+        let cacheKey = QueryCacheKey(request: request, locale: locale)
+        let cachedItems = cachedItems(for: cacheKey, now: startedAt)
         currentRequest = request
         providerItems = [:]
-        visibleItems = [:]
+        visibleItems = Dictionary(uniqueKeysWithValues: cachedItems.map { ($0.id, $0.item) })
 
         let eligibleProviders = providers.values
             .filter { provider in
@@ -98,12 +138,28 @@ public actor QueryCoordinator {
                 providers: eligibleProviders,
                 locale: locale,
                 startedAt: startedAt,
+                cachedItems: cachedItems,
+                cacheKey: cacheKey,
                 continuation: continuation
             )
         }
         currentTask = task
         continuation.onTermination = { @Sendable _ in task.cancel() }
         return stream
+    }
+
+    /// Warms provider-owned indexes and catalogs independently of window presentation.
+    public func prewarm() async {
+        let prewarmers = providers.values.compactMap { $0 as? any LauncherProviderPrewarming }
+        await withTaskGroup(of: Void.self) { group in
+            for provider in prewarmers {
+                group.addTask { await provider.prewarm() }
+            }
+        }
+    }
+
+    public func clearCachedResults() {
+        queryCache.removeAll()
     }
 
     public func cancelCurrentSearch() {
@@ -190,6 +246,8 @@ public actor QueryCoordinator {
         providers eligibleProviders: [any LauncherProvider],
         locale: Locale,
         startedAt: ContinuousClock.Instant,
+        cachedItems: [RankedItem],
+        cacheKey: QueryCacheKey,
         continuation: AsyncStream<QuerySnapshot>.Continuation
     ) async {
         var statuses = Dictionary(
@@ -198,11 +256,15 @@ public actor QueryCoordinator {
         let initialSnapshot = QuerySnapshot(
             requestID: request.id,
             generation: request.generation,
-            items: [],
+            items: cachedItems,
             statuses: statuses,
             isComplete: eligibleProviders.isEmpty
         )
         continuation.yield(initialSnapshot)
+        if !cachedItems.isEmpty {
+            await performance.record(.queryToFirstResult, duration: startedAt.duration(to: await clock.now()))
+            PerformanceSignposts.firstResult()
+        }
 
         guard !eligibleProviders.isEmpty else {
             await performance.record(.queryComplete, duration: startedAt.duration(to: await clock.now()))
@@ -214,6 +276,14 @@ public actor QueryCoordinator {
         let (events, eventsContinuation) = AsyncStream<ProviderEnvelope>.makeStream(
             bufferingPolicy: .bufferingNewest(256)
         )
+        let initialBatchTask = Task {
+            do {
+                try await clock.sleep(for: Self.snapshotMergeInterval)
+                eventsContinuation.yield(.flushInitialBatch)
+            } catch {
+                // The search completed or a newer generation superseded this batch.
+            }
+        }
         let providerDeadline = providerInitialDeadline
         var deadlineTasks: [ProviderID: Task<Void, Never>] = [:]
         for provider in eligibleProviders {
@@ -266,7 +336,7 @@ public actor QueryCoordinator {
 
         var completed = Set<ProviderID>()
         var timedOut = Set<ProviderID>()
-        var recordedFirstResult = false
+        var recordedFirstResult = !cachedItems.isEmpty
         var recordedCompletion = false
         var lastEmittedSnapshot: QuerySnapshot? = initialSnapshot
         var lastSnapshotYieldAt: ContinuousClock.Instant? = startedAt
@@ -331,6 +401,8 @@ public actor QueryCoordinator {
                     statuses[providerID] = (providerItems[providerID]?.isEmpty == false) ? .ready : .empty
                     completed.insert(providerID)
                 }
+            case .flushInitialBatch:
+                break
             }
 
             let snapshot = await makeSnapshot(
@@ -346,11 +418,10 @@ public actor QueryCoordinator {
             } else {
                 mergeIntervalElapsed = true
             }
-            let exposesFirstResult = lastEmittedSnapshot?.items.isEmpty == true && !snapshot.items.isEmpty
             let exposesProblem =
                 snapshot.statuses != lastEmittedSnapshot?.statuses
                 && snapshot.statuses.values.contains(where: Self.isProblemStatus)
-            let shouldYield = snapshot.isComplete || exposesFirstResult || exposesProblem || mergeIntervalElapsed
+            let shouldYield = snapshot.isComplete || exposesProblem || mergeIntervalElapsed
             guard shouldYield, snapshot != lastEmittedSnapshot else { continue }
             if !recordedFirstResult, !snapshot.items.isEmpty {
                 recordedFirstResult = true
@@ -361,6 +432,7 @@ public actor QueryCoordinator {
                 recordedCompletion = true
                 await performance.record(.queryComplete, duration: startedAt.duration(to: snapshotTime))
                 PerformanceSignposts.queryCompleted()
+                cache(snapshot.items, for: cacheKey, now: snapshotTime)
             }
             lastEmittedSnapshot = snapshot
             lastSnapshotYieldAt = snapshotTime
@@ -368,9 +440,26 @@ public actor QueryCoordinator {
         }
 
         producer.cancel()
+        initialBatchTask.cancel()
         providerTaskValues.forEach { $0.cancel() }
         deadlineTasks.values.forEach { $0.cancel() }
         continuation.finish()
+    }
+
+    private func cachedItems(for key: QueryCacheKey, now: ContinuousClock.Instant) -> [RankedItem] {
+        guard let cached = queryCache.value(forKey: key) else { return [] }
+        let age = cached.storedAt.duration(to: now)
+        guard age >= .zero, age <= queryCacheLifetime else {
+            queryCache.removeValue(forKey: key)
+            return []
+        }
+        return cached.items
+    }
+
+    private func cache(_ items: [RankedItem], for key: QueryCacheKey, now: ContinuousClock.Instant) {
+        // Sensitive clipboard content is intentionally excluded from cross-query retention.
+        let cacheableItems = items.filter { $0.item.privacy == .normal }
+        queryCache.insert(CachedQuerySnapshot(items: cacheableItems, storedAt: now), forKey: key)
     }
 
     private func makeSnapshot(

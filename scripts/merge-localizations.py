@@ -23,7 +23,6 @@ CATALOG_PATH = PROJECT_ROOT / "Sources/KeyestroApp/Resources/Localizable.xcstrin
 # Symbolic keys need an explicit English value. English sentence keys fall back to
 # their key, so they only need a Chinese translation below.
 ENGLISH = {
-    "accessibility.results.count": "%lld results",
     "about.version.format": "Keyestro %@ (%@)",
     "clipboard.keyMissing.format": "The encryption key for %lld clipboard items is missing.",
     "clipboard.shortcut.status": "Clipboard shortcut: %@",
@@ -256,7 +255,7 @@ ZH_HANS = {
     "Type": "类型",
     "Save": "保存",
     "Timeout: %arg seconds": "超时：%arg 秒",
-    "accessibility.results.count": "%lld 个结果",
+    "%lld results": "%lld 个结果",
     "error.deletion.paths": "无法解析应用数据路径",
     "error.deletion.partial": "部分本地数据未能删除",
     "file.content.match": "内容匹配 · %@",
@@ -734,7 +733,6 @@ ZH_HANS = {
     "%lld actions": "%lld 个操作",
     "%lld clipboard types": "%lld 种剪贴板类型",
     "%lld items · grouped by date": "%lld 项 · 按日期分组",
-    "%lld results · grouped by source": "%lld 个结果 · 按来源分组",
     "Application": "应用程序",
     "Appearance": "外观",
     "Auto follows the macOS appearance. A Light or Dark override is saved on this Mac.": "自动模式跟随 macOS 外观；浅色或深色手动覆盖会保存在此 Mac 上。",

@@ -115,16 +115,6 @@
         }
       }
     },
-    "%lld results · grouped by source": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个结果 · 按来源分组"
-          }
-        }
-      }
-    },
     "/Applications": {
       "localizations": {
         "zh-Hans": {
@@ -7197,7 +7187,7 @@
         }
       }
     },
-    "accessibility.results.count": {
+    "%lld results": {
       "localizations": {
         "en": {
           "stringUnit": {

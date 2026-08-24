@@ -3,6 +3,58 @@ import KeyestroDomain
 import Testing
 @testable import KeyestroCore
 
+@Test func queryCoordinatorReplaysAnLRUCachedSnapshotBeforeRefreshingProviders() async throws {
+    let state = QueryCacheProviderState()
+    let coordinator = QueryCoordinator(providers: [QueryCacheProvider(state: state)])
+
+    let firstStream = await coordinator.search(rawText: "report")
+    var firstFinal: QuerySnapshot?
+    for await snapshot in firstStream where snapshot.isComplete { firstFinal = snapshot }
+    #expect(firstFinal?.items.map(\.item.title) == ["Cached report"])
+
+    let secondStream = await coordinator.search(rawText: "report")
+    var iterator = secondStream.makeAsyncIterator()
+    let immediate = try #require(await iterator.next())
+    #expect(immediate.isComplete == false)
+    #expect(immediate.items.map(\.item.title) == ["Cached report"])
+
+    await state.releaseRefresh()
+    var refreshed: QuerySnapshot?
+    while let snapshot = await iterator.next() {
+        if snapshot.isComplete { refreshed = snapshot }
+    }
+    #expect(refreshed?.items.map(\.item.title) == ["Fresh report"])
+    #expect(await state.callCount == 2)
+}
+
+@Test func queryCoordinatorPrewarmsProviderIndexesWithoutRunningAQuery() async {
+    let state = PrewarmProviderState()
+    let coordinator = QueryCoordinator(providers: [PrewarmProvider(state: state)])
+
+    await coordinator.prewarm()
+
+    #expect(await state.prewarmCount == 1)
+    #expect(await state.searchCount == 0)
+}
+
+@Test func queryCoordinatorClearsCachedResultsOnRequest() async throws {
+    let state = QueryCacheProviderState()
+    let coordinator = QueryCoordinator(providers: [QueryCacheProvider(state: state)])
+
+    let firstStream = await coordinator.search(rawText: "report")
+    for await _ in firstStream {}
+    await coordinator.clearCachedResults()
+
+    let secondStream = await coordinator.search(rawText: "report")
+    var iterator = secondStream.makeAsyncIterator()
+    let immediate = try #require(await iterator.next())
+    #expect(immediate.items.isEmpty)
+
+    await state.releaseRefresh()
+    while await iterator.next() != nil {}
+    #expect(await state.callCount == 2)
+}
+
 @Test func queryCoordinatorReplacementRemovesStaleLiveResults() async {
     let coordinator = QueryCoordinator(providers: [ReplacementProvider()])
     let stream = await coordinator.search(rawText: "report")
@@ -70,6 +122,8 @@ import Testing
         for await snapshot in stream { await recorder.append(snapshot) }
     }
 
+    await waitForSleepRequests(clock, atLeast: 3)
+    await clock.advance(by: QueryCoordinator.snapshotMergeInterval)
     for _ in 0..<10_000 {
         if await recorder.hasItem(named: "Immediate report") { break }
         await Task.yield()
@@ -212,6 +266,96 @@ private struct ReplacementProvider: LauncherProvider {
             defaultActionID: action.id
         )
     }
+}
+
+private actor QueryCacheProviderState {
+    private(set) var callCount = 0
+    private var refreshReleased = false
+    private var refreshWaiter: CheckedContinuation<Void, Never>?
+
+    func beginSearch() -> Int {
+        callCount += 1
+        return callCount
+    }
+
+    func waitForRefresh() async {
+        guard !refreshReleased else { return }
+        await withCheckedContinuation { continuation in
+            refreshWaiter = continuation
+        }
+    }
+
+    func releaseRefresh() {
+        refreshReleased = true
+        refreshWaiter?.resume()
+        refreshWaiter = nil
+    }
+}
+
+private struct QueryCacheProvider: LauncherProvider {
+    let descriptor = ProviderDescriptor(
+        id: "query-cache",
+        displayName: "Query Cache",
+        supportedModes: [.all],
+        supportsEmptyQuery: false
+    )
+    let state: QueryCacheProviderState
+
+    func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                let call = await state.beginSearch()
+                if call > 1 { await state.waitForRefresh() }
+                let action = ActionDescriptor(id: "open", title: "Open")
+                let item = LauncherItem(
+                    id: ItemID(providerID: descriptor.id, providerStableID: "report"),
+                    providerID: descriptor.id,
+                    title: call == 1 ? "Cached report" : "Fresh report",
+                    actions: [action],
+                    defaultActionID: action.id
+                )
+                continuation.yield(.replacement([item], isFinal: true))
+                continuation.finish()
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    func execute(request: ProviderActionRequest) async -> ActionResult { .success() }
+}
+
+private actor PrewarmProviderState {
+    private(set) var prewarmCount = 0
+    private(set) var searchCount = 0
+
+    func recordPrewarm() { prewarmCount += 1 }
+    func recordSearch() { searchCount += 1 }
+}
+
+private struct PrewarmProvider: LauncherProvider, LauncherProviderPrewarming {
+    let descriptor = ProviderDescriptor(
+        id: "prewarm",
+        displayName: "Prewarm",
+        supportedModes: [.all],
+        supportsEmptyQuery: true
+    )
+    let state: PrewarmProviderState
+
+    func prewarm() async {
+        await state.recordPrewarm()
+    }
+
+    func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                await state.recordSearch()
+                continuation.yield(.items([], isFinal: true))
+                continuation.finish()
+            }
+        }
+    }
+
+    func execute(request: ProviderActionRequest) async -> ActionResult { .success() }
 }
 
 private struct NeverFinalProvider: LauncherProvider {

@@ -26,6 +26,12 @@ public protocol LauncherProvider: SearchProvider {
     func execute(request: ProviderActionRequest) async -> ActionResult
 }
 
+/// Optional provider lifecycle hook for work that should happen when the app starts,
+/// rather than on the first visible launcher query.
+public protocol LauncherProviderPrewarming: Sendable {
+    func prewarm() async
+}
+
 public struct ResolvedAction: Sendable, Equatable {
     public let providerID: ProviderID
     public let itemID: ItemID

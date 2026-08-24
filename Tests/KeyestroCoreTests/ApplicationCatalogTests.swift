@@ -114,25 +114,23 @@ private struct ApplicationDiscoveryFake: ApplicationDiscovering {
     #expect(await catalog.record(stableID: "com.example.substitute")?.url == application)
 }
 
-@Test func anOlderApplicationDiscoveryCannotOverwriteANewerCompletedRefresh() async throws {
+@Test func concurrentApplicationCatalogRefreshesShareOneDiscovery() async throws {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent("keyestro-app-refresh-order-\(UUID().uuidString)", isDirectory: true)
     defer { try? FileManager.default.removeItem(at: root) }
-    let older = root.appendingPathComponent("Older.app", isDirectory: true)
     let newer = root.appendingPathComponent("Newer.app", isDirectory: true)
-    try makeApplicationBundle(older, identifier: "com.example.older", backgroundOnly: false)
     try makeApplicationBundle(newer, identifier: "com.example.newer", backgroundOnly: false)
-    let discovery = OutOfOrderApplicationDiscoveryFake()
+    let discovery = ControlledApplicationDiscoveryFake()
     let catalog = ApplicationCatalog(roots: [], cacheLifetime: 3_600, discovery: discovery)
 
     let first = Task { await catalog.records(forceRefresh: true) }
     await discovery.waitForRequest(1)
     let second = Task { await catalog.records(forceRefresh: true) }
-    await discovery.waitForRequest(2)
+    for _ in 0..<100 { await Task.yield() }
 
-    await discovery.completeRequest(2, with: [newer])
+    #expect(await discovery.requestsStarted() == 1)
+    await discovery.completeRequest(1, with: [newer])
     #expect(await second.value.map(\.stableID) == ["com.example.newer"])
-    await discovery.completeRequest(1, with: [older])
     #expect(await first.value.map(\.stableID) == ["com.example.newer"])
     #expect(await catalog.records().map(\.stableID) == ["com.example.newer"])
 }
@@ -168,7 +166,7 @@ private actor LiveApplicationDiscoveryFake: ApplicationDiscovering {
     }
 }
 
-private actor OutOfOrderApplicationDiscoveryFake: ApplicationDiscovering {
+private actor ControlledApplicationDiscoveryFake: ApplicationDiscovering {
     private var requestCount = 0
     private var continuations: [Int: CheckedContinuation<[URL], any Error>] = [:]
 
@@ -181,6 +179,8 @@ private actor OutOfOrderApplicationDiscoveryFake: ApplicationDiscovering {
     func waitForRequest(_ request: Int) async {
         while continuations[request] == nil { await Task.yield() }
     }
+
+    func requestsStarted() -> Int { requestCount }
 
     func completeRequest(_ request: Int, with urls: [URL]) {
         continuations.removeValue(forKey: request)?.resume(returning: urls)

@@ -14,7 +14,6 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
     private var presentationPending = false
     private var presentationGeneration: UInt64 = 0
     private var isDismissing = false
-    private var resizeScheduled = false
     private var resignDismissTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
 
@@ -63,9 +62,6 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             name: NSApplication.didChangeScreenParametersNotification,
             object: nil
         )
-        viewModel.objectWillChange
-            .sink { [weak self] in self?.scheduleContentResize() }
-            .store(in: &cancellables)
         viewModel.$launcherAppearance
             .removeDuplicates()
             .sink { [weak self] appearance in self?.panel.appearance = appearance.panelAppearance }
@@ -147,10 +143,12 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
         )
         viewModel.invoke(context: context)
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSApplication.shared.activate()
         panel.makeKey()
         panel.displayIfNeeded()
+        panel.alphaValue = 1
         presentationPending = false
     }
 
@@ -172,17 +170,6 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             preferredWidth: LauncherPanelLayout.windowWidth,
             maximumHeight: LauncherPanelLayout.windowHeight
         )
-    }
-
-    private func scheduleContentResize() {
-        guard panel.isVisible, !resizeScheduled else { return }
-        resizeScheduled = true
-        DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            resizeScheduled = false
-            guard panel.isVisible else { return }
-            positionPanel(on: targetScreen())
-        }
     }
 
     private func targetScreen() -> NSScreen? {

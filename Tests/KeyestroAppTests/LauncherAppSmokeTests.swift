@@ -560,6 +560,32 @@ import Testing
     #expect(await provider.lastParameterizedArguments["value"] == .text("refresh-complete"))
 }
 
+@Test @MainActor func launcherRefreshAppendsPartialResultsWithoutReorderingVisibleItems() async throws {
+    let defaults = try isolatedDefaults()
+    defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+    let provider = RetainedResultRefreshTestProvider()
+    let model = LauncherViewModel(
+        coordinator: QueryCoordinator(providers: [provider]),
+        actionRunner: ActionRunner(providers: [provider]),
+        settings: SettingsStore(defaults: defaults)
+    )
+
+    model.invoke(context: QueryContext())
+    try await waitUntil { model.results.count == 1 && !model.isSearching }
+    let retainedItemID = try #require(model.selectedItemID)
+
+    try await startHeldRefresh(model: model, provider: provider, retainedItemID: retainedItemID)
+    await provider.publishIntermediateRefresh()
+    for _ in 0..<100 { await Task.yield() }
+
+    #expect(model.results.map(\.id).first == retainedItemID)
+    #expect(model.results.map(\.item.title) == ["Retained Result", "Intermediate Result"])
+
+    await provider.finishRefresh()
+    try await waitUntil { !model.isSearching }
+    #expect(model.results.map(\.id) == [retainedItemID])
+}
+
 @Test @MainActor func tabEntersTheSelectedActionsParameterFormWithoutExecuting() async throws {
     let defaults = try isolatedDefaults()
     defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
@@ -1237,7 +1263,10 @@ func launcherRendersTheLocalLensReferenceStateWithoutThemeLayoutShift() async th
     model.invoke(context: QueryContext(frontmostApplicationName: "Figma"))
     model.queryDidChange("design spec", isComposing: false)
     try await waitUntil { model.results.count == 4 && !model.isSearching }
-    model.selectItem(try #require(model.displayOrderedResults.first?.id))
+    let selectedFileID = try #require(
+        model.displayOrderedResults.first { $0.item.title == "Product design brief.md" }?.id
+    )
+    model.selectItem(selectedFileID)
 
     let outputDirectory = ProcessInfo.processInfo.environment["KEYESTRO_LAUNCHER_QA_OUTPUT_DIR"]
         .map { URL(fileURLWithPath: $0, isDirectory: true) }
@@ -1249,14 +1278,19 @@ func launcherRendersTheLocalLensReferenceStateWithoutThemeLayoutShift() async th
     }
 
     #expect(model.query == "design spec")
+    let displayedTitles = model.displayOrderedResults.map(\.item.title)
     #expect(
-        model.displayOrderedResults.map(\.item.title) == [
-            "Product design brief.md",
-            "Keyestro roadmap.pdf",
-            "Figma",
-            "“Local-first command launcher…”",
-        ]
+        Set(displayedTitles)
+            == Set([
+                "Figma",
+                "Product design brief.md",
+                "Keyestro roadmap.pdf",
+                "“Local-first command launcher…”",
+            ])
     )
+    let briefIndex = try #require(displayedTitles.firstIndex(of: "Product design brief.md"))
+    let roadmapIndex = try #require(displayedTitles.firstIndex(of: "Keyestro roadmap.pdf"))
+    #expect(briefIndex < roadmapIndex)
     #expect(model.selectedItem?.title == "Product design brief.md")
 
     #expect(model.selectedPrimaryAction?.id == "open")
@@ -1398,11 +1432,9 @@ private func startHeldRefresh(
     provider: RetainedResultRefreshTestProvider,
     retainedItemID: ItemID
 ) async throws {
-    let previousGeneration = model.generation
     model.retrySearch()
     for _ in 0..<1_000 {
-        if model.generation > previousGeneration,
-            model.isSearching,
+        if model.isSearching,
             await provider.refreshIsPending()
         {
             #expect(model.results.map(\.id) == [retainedItemID])
@@ -1641,9 +1673,13 @@ private actor RetainedResultRefreshTestProvider: LauncherProvider {
     }
 
     func finishRefresh() {
-        refreshContinuation?.yield(.items([Self.item()], isFinal: true))
+        refreshContinuation?.yield(.replacement([Self.item()], isFinal: true))
         refreshContinuation?.finish()
         refreshContinuation = nil
+    }
+
+    func publishIntermediateRefresh() {
+        refreshContinuation?.yield(.items([Self.intermediateItem()], isFinal: false))
     }
 
     private func start(_ continuation: AsyncThrowingStream<ProviderEvent, any Error>.Continuation) {
@@ -1684,6 +1720,17 @@ private actor RetainedResultRefreshTestProvider: LauncherProvider {
             title: "Retained Result",
             actions: [primary, secondary, parameterized],
             defaultActionID: primary.id
+        )
+    }
+
+    nonisolated private static func intermediateItem() -> LauncherItem {
+        let action = ActionDescriptor(id: "open", title: "Open", behavior: .keepLauncherOpen)
+        return LauncherItem(
+            id: ItemID(providerID: "retained-result-refresh-test", providerStableID: "intermediate"),
+            providerID: "retained-result-refresh-test",
+            title: "Intermediate Result",
+            actions: [action],
+            defaultActionID: action.id
         )
     }
 }
