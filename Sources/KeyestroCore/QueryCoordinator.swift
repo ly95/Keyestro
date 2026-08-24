@@ -56,8 +56,9 @@ public actor QueryCoordinator {
     private var generation: UInt64 = 0
     private var currentTask: Task<Void, Never>?
     private var currentRequest: QueryRequest?
-    private var providerItems: [ProviderID: [ItemID: LauncherItem]] = [:]
-    private var visibleItems: [ItemID: LauncherItem] = [:]
+    private var resolvableProviderItems: [ProviderID: [ItemID: LauncherItem]] = [:]
+    private var resolvableVisibleItems: [ItemID: LauncherItem] = [:]
+    private var resolvableGeneration: UInt64?
     private var queryCache: LRUCache<QueryCacheKey, CachedQuerySnapshot>
 
     public init(
@@ -99,12 +100,16 @@ public actor QueryCoordinator {
     ) async -> AsyncStream<QuerySnapshot> {
         currentTask?.cancel()
         generation &+= 1
+        let requestGeneration = generation
         let startedAt = await clock.now()
+        guard !Task.isCancelled, generation == requestGeneration else {
+            return AsyncStream { $0.finish() }
+        }
 
         let boundedRawText = rawText.limitedToUnicodeScalars(DomainLimits.queryUnicodeScalars)
         let parsed = QueryParser.parse(boundedRawText, isComposing: isComposing, prefixesEnabled: prefixesEnabled)
         let request = QueryRequest(
-            generation: generation,
+            generation: requestGeneration,
             rawText: boundedRawText,
             normalizedText: TextNormalizer.normalize(parsed.searchText, locale: locale),
             mode: parsed.mode,
@@ -114,8 +119,9 @@ public actor QueryCoordinator {
         let cacheKey = QueryCacheKey(request: request, locale: locale)
         let cachedItems = cachedItems(for: cacheKey, now: startedAt)
         currentRequest = request
-        providerItems = [:]
-        visibleItems = Dictionary(uniqueKeysWithValues: cachedItems.map { ($0.id, $0.item) })
+        resolvableProviderItems = [:]
+        resolvableVisibleItems = [:]
+        resolvableGeneration = nil
 
         let eligibleProviders = providers.values
             .filter { provider in
@@ -151,9 +157,16 @@ public actor QueryCoordinator {
     /// Warms provider-owned indexes and catalogs independently of window presentation.
     public func prewarm() async {
         let prewarmers = providers.values.compactMap { $0 as? any LauncherProviderPrewarming }
+        let rankingStore = rankingStore
+        let includeLearning = rankingLearning.isEnabled()
         await withTaskGroup(of: Void.self) { group in
             for provider in prewarmers {
                 group.addTask { await provider.prewarm() }
+            }
+            if let rankingStore {
+                group.addTask {
+                    _ = try? await rankingStore.enrich([], includeLearning: includeLearning)
+                }
             }
         }
     }
@@ -178,7 +191,16 @@ public actor QueryCoordinator {
                 )
             )
         }
-        guard let visibleItem = visibleItems[request.itemID],
+        guard resolvableGeneration == request.generation else {
+            return .failure(
+                ErrorDescriptor(
+                    code: "action.resultsRefreshing",
+                    message: "The search results are still refreshing.",
+                    recoverySuggestion: "Wait for the current search to finish and try again."
+                )
+            )
+        }
+        guard let visibleItem = resolvableVisibleItems[request.itemID],
             let displayedAction = visibleItem.actions.first(where: { $0.id == request.actionID })
         else {
             return .failure(
@@ -204,7 +226,7 @@ public actor QueryCoordinator {
         }
 
         if let route = displayedAction.route {
-            guard let routedItem = providerItems[route.providerID]?[route.itemID],
+            guard let routedItem = resolvableProviderItems[route.providerID]?[route.itemID],
                 routedItem.actions.contains(where: { $0.id == route.actionID })
             else {
                 return .failure(
@@ -250,6 +272,7 @@ public actor QueryCoordinator {
         cacheKey: QueryCacheKey,
         continuation: AsyncStream<QuerySnapshot>.Continuation
     ) async {
+        var sessionProviderItems: [ProviderID: [ItemID: LauncherItem]] = [:]
         var statuses = Dictionary(
             uniqueKeysWithValues: eligibleProviders.map { ($0.descriptor.id, ProviderStatus.loading) }
         )
@@ -262,12 +285,33 @@ public actor QueryCoordinator {
         )
         continuation.yield(initialSnapshot)
         if !cachedItems.isEmpty {
-            await performance.record(.queryToFirstResult, duration: startedAt.duration(to: await clock.now()))
+            let firstResultAt = await clock.now()
+            guard !Task.isCancelled, generation == request.generation else {
+                continuation.finish()
+                return
+            }
+            await performance.record(.queryToFirstResult, duration: startedAt.duration(to: firstResultAt))
+            guard !Task.isCancelled, generation == request.generation else {
+                continuation.finish()
+                return
+            }
             PerformanceSignposts.firstResult()
         }
 
         guard !eligibleProviders.isEmpty else {
-            await performance.record(.queryComplete, duration: startedAt.duration(to: await clock.now()))
+            let completedAt = await clock.now()
+            guard !Task.isCancelled, generation == request.generation else {
+                continuation.finish()
+                return
+            }
+            resolvableProviderItems = [:]
+            resolvableVisibleItems = Dictionary(uniqueKeysWithValues: cachedItems.map { ($0.id, $0.item) })
+            resolvableGeneration = request.generation
+            await performance.record(.queryComplete, duration: startedAt.duration(to: completedAt))
+            guard !Task.isCancelled, generation == request.generation else {
+                continuation.finish()
+                return
+            }
             PerformanceSignposts.queryCompleted()
             continuation.finish()
             return
@@ -347,14 +391,14 @@ public actor QueryCoordinator {
             case let .event(providerID, event):
                 guard !timedOut.contains(providerID) else { continue }
                 switch event {
-                case let .items(batch, isFinal):
+                case let .items(batch, completesInitialLoad):
                     let items = Self.accumulate(
                         batch,
                         providerID: providerID,
-                        existing: providerItems[providerID] ?? [:]
+                        existing: sessionProviderItems[providerID] ?? [:]
                     )
-                    providerItems[providerID] = items
-                    if isFinal {
+                    sessionProviderItems[providerID] = items
+                    if completesInitialLoad {
                         deadlineTasks[providerID]?.cancel()
                         deadlineTasks[providerID] = nil
                         if !Self.isProblemStatus(statuses[providerID]) {
@@ -362,10 +406,10 @@ public actor QueryCoordinator {
                         }
                         completed.insert(providerID)
                     }
-                case let .replacement(batch, isFinal):
+                case let .replacement(batch, completesInitialLoad):
                     let items = Self.accumulate(batch, providerID: providerID, existing: [:])
-                    providerItems[providerID] = items
-                    if isFinal {
+                    sessionProviderItems[providerID] = items
+                    if completesInitialLoad {
                         deadlineTasks[providerID]?.cancel()
                         deadlineTasks[providerID] = nil
                         if !Self.isProblemStatus(statuses[providerID]) {
@@ -398,7 +442,7 @@ public actor QueryCoordinator {
                 deadlineTasks[providerID]?.cancel()
                 deadlineTasks[providerID] = nil
                 if !completed.contains(providerID) {
-                    statuses[providerID] = (providerItems[providerID]?.isEmpty == false) ? .ready : .empty
+                    statuses[providerID] = (sessionProviderItems[providerID]?.isEmpty == false) ? .ready : .empty
                     completed.insert(providerID)
                 }
             case .flushInitialBatch:
@@ -407,11 +451,14 @@ public actor QueryCoordinator {
 
             let snapshot = await makeSnapshot(
                 request: request,
+                providerItems: sessionProviderItems,
                 statuses: statuses,
                 isComplete: completed.count == eligibleProviders.count,
                 locale: locale
             )
+            guard !Task.isCancelled, generation == request.generation else { break }
             let snapshotTime = await clock.now()
+            guard !Task.isCancelled, generation == request.generation else { break }
             let mergeIntervalElapsed: Bool
             if let lastSnapshotYieldAt {
                 mergeIntervalElapsed = lastSnapshotYieldAt.duration(to: snapshotTime) >= Self.snapshotMergeInterval
@@ -423,6 +470,17 @@ public actor QueryCoordinator {
                 && snapshot.statuses.values.contains(where: Self.isProblemStatus)
             let shouldYield = snapshot.isComplete || exposesProblem || mergeIntervalElapsed
             guard shouldYield, snapshot != lastEmittedSnapshot else { continue }
+            if snapshot.isComplete {
+                resolvableProviderItems = sessionProviderItems
+                resolvableVisibleItems = Dictionary(
+                    uniqueKeysWithValues: snapshot.items.map { ($0.id, $0.item) }
+                )
+                resolvableGeneration = request.generation
+                cache(snapshot.items, for: cacheKey, now: snapshotTime)
+            }
+            lastEmittedSnapshot = snapshot
+            lastSnapshotYieldAt = snapshotTime
+            continuation.yield(snapshot)
             if !recordedFirstResult, !snapshot.items.isEmpty {
                 recordedFirstResult = true
                 await performance.record(.queryToFirstResult, duration: startedAt.duration(to: snapshotTime))
@@ -432,11 +490,7 @@ public actor QueryCoordinator {
                 recordedCompletion = true
                 await performance.record(.queryComplete, duration: startedAt.duration(to: snapshotTime))
                 PerformanceSignposts.queryCompleted()
-                cache(snapshot.items, for: cacheKey, now: snapshotTime)
             }
-            lastEmittedSnapshot = snapshot
-            lastSnapshotYieldAt = snapshotTime
-            continuation.yield(snapshot)
         }
 
         producer.cancel()
@@ -464,6 +518,7 @@ public actor QueryCoordinator {
 
     private func makeSnapshot(
         request: QueryRequest,
+        providerItems: [ProviderID: [ItemID: LauncherItem]],
         statuses: [ProviderID: ProviderStatus],
         isComplete: Bool,
         locale: Locale
@@ -486,7 +541,6 @@ public actor QueryCoordinator {
         }
         let ranked = ranker.rank(allItems, for: request, now: await clock.wallTime(), locale: locale)
         let deduplicated = Array(ItemDeduplicator.deduplicate(ranked).prefix(request.limit))
-        visibleItems = Dictionary(uniqueKeysWithValues: deduplicated.map { ($0.id, $0.item) })
         return QuerySnapshot(
             requestID: request.id,
             generation: request.generation,

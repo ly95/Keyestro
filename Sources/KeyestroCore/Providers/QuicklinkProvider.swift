@@ -479,7 +479,7 @@ public actor UserDefaultsURLSchemeAuthorization: URLSchemeAuthorizing {
     }
 }
 
-public struct QuicklinkProvider: LauncherProvider {
+public struct QuicklinkProvider: LauncherProvider, LauncherProviderPrewarming {
     public let descriptor = ProviderDescriptor(
         id: "quicklinks",
         displayName: "Quick Links",
@@ -498,6 +498,10 @@ public struct QuicklinkProvider: LauncherProvider {
         self.store = store
         self.urlOpener = urlOpener
         self.schemeAuthorization = schemeAuthorization
+    }
+
+    public func prewarm() async {
+        _ = try? await store.allQuicklinks()
     }
 
     public func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {

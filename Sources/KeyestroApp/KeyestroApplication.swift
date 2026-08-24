@@ -170,6 +170,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var terminationPending = false
     private var isRecordingHotKey = false
     private var hotKeyRegistrationTask: Task<Void, Never>?
+    private var bootstrapTask: Task<Void, Never>?
     private var settingsCancellables = Set<AnyCancellable>()
 
     init(settings: SettingsStore = SettingsStore()) {
@@ -198,24 +199,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             database = createdDatabase
             quicklinks = createdDatabase
             rankingStore = RankingStore(database: createdDatabase, keys: keyManager)
-            Task { [weak self] in
-                do {
-                    try await createdDatabase.prepare()
-                    if let report = await createdDatabase.latestRecoveryReport() {
-                        self?.presentDatabaseRecovery(report)
-                    }
-                } catch let error as DatabaseError {
-                    self?.presentDatabaseFailure(error.descriptor)
-                } catch {
-                    self?.presentDatabaseFailure(
-                        ErrorDescriptor(
-                            code: "database.prepareFailed",
-                            message: "The local database could not be prepared.",
-                            recoverySuggestion: "Review the Backups folder and export diagnostics before changing local data."
-                        )
-                    )
-                }
-            }
         } else {
             appPaths = nil
             database = nil
@@ -323,8 +306,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             rankingStore: rankingStore,
             rankingLearning: settings.rankingLearningPreferences
         )
-        Task.detached(priority: .utility) {
-            await coordinator.prewarm()
+        bootstrapTask = Task { [weak self] in
+            async let providerWarmup: Void = coordinator.prewarm()
+            if let database {
+                do {
+                    try await database.prepare()
+                    if let report = await database.latestRecoveryReport() {
+                        self?.presentDatabaseRecovery(report)
+                    }
+                } catch let error as DatabaseError {
+                    self?.presentDatabaseFailure(error.descriptor)
+                } catch {
+                    self?.presentDatabaseFailure(
+                        ErrorDescriptor(
+                            code: "database.prepareFailed",
+                            message: "The local database could not be prepared.",
+                            recoverySuggestion: "Review the Backups folder and export diagnostics before changing local data."
+                        )
+                    )
+                }
+            }
+            await providerWarmup
         }
         let runner = ActionRunner(
             providers: providers,
@@ -573,6 +575,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        bootstrapTask?.cancel()
         hotKeyRegistrationTask?.cancel()
         hotKeyService?.stop()
         clipboardMonitor?.stop()
@@ -589,6 +592,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func shutdown() async {
+        bootstrapTask?.cancel()
+        await bootstrapTask?.value
+        bootstrapTask = nil
         await extensionSupervisor?.shutdownAll()
         await database?.close()
         try? storageConfiguration?.removeEphemeralData()

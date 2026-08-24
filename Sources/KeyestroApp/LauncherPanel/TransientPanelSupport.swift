@@ -6,6 +6,39 @@ final class KeyestroTransientPanel: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
+@MainActor
+enum TransientPanelPresentation {
+    static func configure(_ panel: KeyestroTransientPanel, identifier: NSUserInterfaceItemIdentifier) {
+        panel.level = .statusBar
+        panel.isFloatingPanel = true
+        panel.hidesOnDeactivate = false
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.titleVisibility = .hidden
+        panel.titlebarAppearsTransparent = true
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        panel.animationBehavior = .none
+        panel.identifier = identifier
+        panel.setFrameAutosaveName("")
+    }
+
+    static func orderHidden(_ panel: KeyestroTransientPanel) {
+        panel.alphaValue = 0
+        panel.orderFrontRegardless()
+        NSApplication.shared.activate()
+        panel.makeKey()
+    }
+
+    @discardableResult
+    static func reveal(_ panel: KeyestroTransientPanel) -> Bool {
+        guard panel.isVisible else { return false }
+        panel.displayIfNeeded()
+        panel.alphaValue = 1
+        return true
+    }
+}
+
 enum TransientPanelKind: Hashable {
     case launcher
     case clipboardHistory

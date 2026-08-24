@@ -39,7 +39,7 @@ public actor UserDefaultsExtensionSearchAuthorization: ExtensionSearchAuthorizin
     }
 }
 
-public struct ExtensionProvider: LauncherProvider {
+public struct ExtensionProvider: LauncherProvider, LauncherProviderPrewarming {
     public static let providerID = ProviderID("builtin.extensions")
     public let descriptor = ProviderDescriptor(
         id: providerID,
@@ -60,6 +60,10 @@ public struct ExtensionProvider: LauncherProvider {
         self.store = store
         self.supervisor = supervisor
         self.authorization = authorization
+    }
+
+    public func prewarm() async {
+        _ = try? await store.allExtensions()
     }
 
     public func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {

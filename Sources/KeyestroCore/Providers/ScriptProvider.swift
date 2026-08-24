@@ -470,7 +470,7 @@ public actor ManagedScriptInstaller {
     }
 }
 
-public struct ScriptProvider: LauncherProvider {
+public struct ScriptProvider: LauncherProvider, LauncherProviderPrewarming {
     public let descriptor = ProviderDescriptor(
         id: "scripts",
         displayName: "Scripts",
@@ -489,6 +489,10 @@ public struct ScriptProvider: LauncherProvider {
         self.store = store
         self.processService = processService
         self.fileSystem = fileSystem
+    }
+
+    public func prewarm() async {
+        _ = try? await store.allScripts()
     }
 
     public func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {

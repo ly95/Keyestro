@@ -36,8 +36,9 @@ public enum ProviderStatus: Equatable, Sendable {
 
 /// A bounded streaming update emitted by a search provider.
 public enum ProviderEvent: Sendable {
+    /// `isFinal` marks completion of the provider's initial load, not the end of a live stream.
     case items([LauncherItem], isFinal: Bool)
-    /// Replaces the provider's entire current result set, including removal of stale live results.
+    /// Replaces the provider's current result set. `isFinal` has the same initial-load meaning as `items`.
     case replacement([LauncherItem], isFinal: Bool)
     case status(ProviderStatus)
 }

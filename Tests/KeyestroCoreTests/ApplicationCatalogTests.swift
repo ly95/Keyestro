@@ -135,6 +135,27 @@ private struct ApplicationDiscoveryFake: ApplicationDiscovering {
     #expect(await catalog.records().map(\.stableID) == ["com.example.newer"])
 }
 
+@Test func cancellingAColdApplicationCatalogWaiterReturnsWithoutCancellingSharedRefresh() async throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("keyestro-app-cancelled-refresh-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let application = root.appendingPathComponent("Later.app", isDirectory: true)
+    try makeApplicationBundle(application, identifier: "com.example.later", backgroundOnly: false)
+    let discovery = ControlledApplicationDiscoveryFake()
+    let catalog = ApplicationCatalog(roots: [], cacheLifetime: 3_600, discovery: discovery)
+
+    let cancelled = Task { await catalog.records(forceRefresh: true) }
+    await discovery.waitForRequest(1)
+    cancelled.cancel()
+    #expect((await cancelled.value).isEmpty)
+
+    let surviving = Task { await catalog.records(forceRefresh: true) }
+    for _ in 0..<100 { await Task.yield() }
+    #expect(await discovery.requestsStarted() == 1)
+    await discovery.completeRequest(1, with: [application])
+    #expect(await surviving.value.map(\.stableID) == ["com.example.later"])
+}
+
 private actor LiveApplicationDiscoveryFake: ApplicationDiscovering {
     private let initial: [URL]
     private var continuation: AsyncThrowingStream<[URL], any Error>.Continuation?

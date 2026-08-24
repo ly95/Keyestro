@@ -17,6 +17,19 @@ import Testing
     let immediate = try #require(await iterator.next())
     #expect(immediate.isComplete == false)
     #expect(immediate.items.map(\.item.title) == ["Cached report"])
+    let cachedItem = try #require(immediate.items.first?.item)
+    let cachedResolution = await coordinator.resolve(
+        ActionExecutionRequest(
+            generation: immediate.generation,
+            itemID: cachedItem.id,
+            actionID: cachedItem.defaultActionID
+        )
+    )
+    guard case let .failure(cachedError) = cachedResolution else {
+        Issue.record("Expected a cached preview to remain non-executable until refresh completes")
+        return
+    }
+    #expect(cachedError.code == "action.resultsRefreshing")
 
     await state.releaseRefresh()
     var refreshed: QuerySnapshot?
@@ -215,6 +228,38 @@ import Testing
     #expect(await provider.cancelledGenerations.contains(1))
     #expect(final?.generation == 2)
     #expect(final?.items.map(\.item.title) == ["Current Result"])
+}
+
+@Test func supersededRankingWorkCannotOverwriteTheCurrentResolvableGeneration() async throws {
+    let rankingStore = ControlledRankingService()
+    let coordinator = QueryCoordinator(
+        providers: [EchoQueryProvider()],
+        rankingStore: rankingStore
+    )
+    let firstStream = await coordinator.search(rawText: "old")
+    let firstConsumer = Task { for await _ in firstStream {} }
+    await rankingStore.waitForFirstEnrichment()
+
+    let secondStream = await coordinator.search(rawText: "current")
+    var currentSnapshot: QuerySnapshot?
+    for await snapshot in secondStream where snapshot.isComplete { currentSnapshot = snapshot }
+    let currentItem = try #require(currentSnapshot?.items.first?.item)
+
+    await rankingStore.releaseFirstEnrichment()
+    await firstConsumer.value
+
+    let resolution = await coordinator.resolve(
+        ActionExecutionRequest(
+            generation: try #require(currentSnapshot?.generation),
+            itemID: currentItem.id,
+            actionID: currentItem.defaultActionID
+        )
+    )
+    guard case let .success(action) = resolution else {
+        Issue.record("Expected only the newest generation to remain resolvable")
+        return
+    }
+    #expect(action.displayedTitle == "current")
 }
 
 @Test func sensitiveRiskyActionWithoutANonSecretConfirmationTargetIsRejected() async throws {
@@ -520,6 +565,58 @@ private actor GenerationCancellationProvider: LauncherProvider {
 
     private func markFirstStarted() { firstStarted = true }
     private func markCancelled(_ generation: UInt64) { cancelledGenerations.insert(generation) }
+}
+
+private struct EchoQueryProvider: LauncherProvider {
+    let descriptor = ProviderDescriptor(
+        id: "echo-query",
+        displayName: "Echo Query",
+        supportedModes: [.all],
+        supportsEmptyQuery: false
+    )
+
+    func search(request: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {
+        let action = ActionDescriptor(id: "open", title: "Open")
+        let item = LauncherItem(
+            id: ItemID(providerID: descriptor.id, providerStableID: "result"),
+            providerID: descriptor.id,
+            title: request.normalizedText,
+            actions: [action],
+            defaultActionID: action.id
+        )
+        return AsyncThrowingStream { continuation in
+            continuation.yield(.replacement([item], isFinal: true))
+            continuation.finish()
+        }
+    }
+
+    func execute(request: ProviderActionRequest) async -> ActionResult { .success() }
+}
+
+private actor ControlledRankingService: RankingServicing {
+    private var enrichmentCount = 0
+    private var firstEnrichmentContinuation: CheckedContinuation<Void, Never>?
+
+    func enrich(_ items: [LauncherItem], includeLearning: Bool) async throws -> [LauncherItem] {
+        enrichmentCount += 1
+        if enrichmentCount == 1 {
+            await withCheckedContinuation { firstEnrichmentContinuation = $0 }
+        }
+        return items
+    }
+
+    func waitForFirstEnrichment() async {
+        while firstEnrichmentContinuation == nil { await Task.yield() }
+    }
+
+    func releaseFirstEnrichment() {
+        firstEnrichmentContinuation?.resume()
+        firstEnrichmentContinuation = nil
+    }
+
+    func record(itemID: ItemID, actionID: ActionID, at date: Date) async throws {}
+    func togglePin(itemID: ItemID, providerID: ProviderID, at date: Date) async throws -> Bool { false }
+    func clearLearning() async throws {}
 }
 
 private struct UnsafeSensitiveActionProvider: LauncherProvider {

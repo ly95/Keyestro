@@ -28,13 +28,21 @@ public struct ApplicationRecord: Equatable, Sendable {
 }
 
 public actor ApplicationCatalog {
+    private struct RefreshPayload: Sendable {
+        let rootRecords: [String: ApplicationRecord]
+        let indexedURLs: [URL]
+        let indexedUpdateRevision: UInt64
+        let loadedAt: Date
+    }
+
     private var cachedRecords: [ApplicationRecord] = []
     private var recordsByID: [String: ApplicationRecord] = [:]
     private var indexedRecordsByPath: [String: ApplicationRecord] = [:]
     private var loadedAt: Date?
     private var observationTask: Task<Void, Never>?
-    private var refreshInProgress = false
-    private var refreshWaiters: [CheckedContinuation<[ApplicationRecord], Never>] = []
+    private var refreshTask: Task<Void, Never>?
+    private var refreshID: UUID?
+    private var refreshWaiters: [UUID: CheckedContinuation<[ApplicationRecord], Never>] = [:]
     private var indexedUpdateRevision: UInt64 = 0
     private let cacheLifetime: TimeInterval
     private let roots: [URL]
@@ -52,6 +60,8 @@ public actor ApplicationCatalog {
 
     deinit {
         observationTask?.cancel()
+        refreshTask?.cancel()
+        for waiter in refreshWaiters.values { waiter.resume(returning: cachedRecords) }
     }
 
     public static var defaultRoots: [URL] {
@@ -73,28 +83,73 @@ public actor ApplicationCatalog {
             return cachedRecords
         }
 
-        if refreshInProgress {
-            return await withCheckedContinuation { continuation in
-                refreshWaiters.append(continuation)
-            }
+        startRefreshIfNeeded(loadedAt: now)
+        if !forceRefresh, !cachedRecords.isEmpty {
+            return cachedRecords
         }
-        refreshInProgress = true
+        return await waitForRefresh()
+    }
+
+    private func startRefreshIfNeeded(loadedAt: Date) {
+        guard refreshTask == nil else { return }
+        let id = UUID()
+        let roots = roots
+        let discovery = discovery
         let updateRevision = indexedUpdateRevision
-        let indexedURLs = (try? await discovery.discoverApplicationURLs(limit: 2_000)) ?? []
-        var merged = scanRoots()
-        if updateRevision == indexedUpdateRevision {
-            indexedRecordsByPath = Self.indexedRecords(for: indexedURLs)
+        refreshID = id
+        refreshTask = Task.detached(priority: .utility) { [weak self] in
+            let indexedURLs = (try? await discovery.discoverApplicationURLs(limit: 2_000)) ?? []
+            guard !Task.isCancelled else { return }
+            let rootRecords = Self.scanRoots(roots)
+            guard !Task.isCancelled else { return }
+            await self?.finishRefresh(
+                id: id,
+                payload: RefreshPayload(
+                    rootRecords: rootRecords,
+                    indexedURLs: indexedURLs,
+                    indexedUpdateRevision: updateRevision,
+                    loadedAt: loadedAt
+                )
+            )
+        }
+    }
+
+    private func finishRefresh(id: UUID, payload: RefreshPayload) {
+        guard refreshID == id else { return }
+        var merged = payload.rootRecords
+        if payload.indexedUpdateRevision == indexedUpdateRevision {
+            indexedRecordsByPath = Self.indexedRecords(for: payload.indexedURLs)
         }
         for record in indexedRecordsByPath.values { Self.merge(record, into: &merged) }
         recordsByID = merged
         rebuildCachedRecords()
-        loadedAt = now
-        refreshInProgress = false
+        loadedAt = payload.loadedAt
+        refreshTask = nil
+        refreshID = nil
         let refreshedRecords = cachedRecords
-        let waiters = refreshWaiters
+        let waiters = Array(refreshWaiters.values)
         refreshWaiters.removeAll(keepingCapacity: true)
         for waiter in waiters { waiter.resume(returning: refreshedRecords) }
-        return refreshedRecords
+    }
+
+    private func waitForRefresh() async -> [ApplicationRecord] {
+        guard refreshTask != nil else { return cachedRecords }
+        let waiterID = UUID()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if Task.isCancelled {
+                    continuation.resume(returning: cachedRecords)
+                } else {
+                    refreshWaiters[waiterID] = continuation
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelRefreshWaiter(waiterID) }
+        }
+    }
+
+    private func cancelRefreshWaiter(_ waiterID: UUID) {
+        refreshWaiters.removeValue(forKey: waiterID)?.resume(returning: cachedRecords)
     }
 
     public func record(stableID: String) -> ApplicationRecord? {
@@ -128,7 +183,7 @@ public actor ApplicationCatalog {
         loadedAt = nil
     }
 
-    private func scanRoots() -> [String: ApplicationRecord] {
+    private static func scanRoots(_ roots: [URL]) -> [String: ApplicationRecord] {
         let manager = FileManager.default
         let keys: [URLResourceKey] = [.isDirectoryKey, .isPackageKey, .isExecutableKey]
         var discovered: [String: ApplicationRecord] = [:]

@@ -39,22 +39,11 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
         super.init()
 
         panel.delegate = self
-        panel.level = .statusBar
-        panel.isFloatingPanel = true
-        panel.hidesOnDeactivate = false
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        panel.animationBehavior = .none
-        panel.identifier = Self.panelWindowIdentifier
+        TransientPanelPresentation.configure(panel, identifier: Self.panelWindowIdentifier)
         panel.contentView = NSHostingView(rootView: ClipboardPanelView(model: viewModel))
         panel.contentView?.layoutSubtreeIfNeeded()
         panel.contentView?.needsDisplay = true
         panel.contentView?.displayIfNeeded()
-        panel.setFrameAutosaveName("")
 
         NotificationCenter.default.addObserver(
             self,
@@ -143,12 +132,17 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
         )
         viewModel.invoke(context: context)
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        NSApplication.shared.activate()
-        panel.makeKey()
-        panel.displayIfNeeded()
-        panel.alphaValue = 1
+        TransientPanelPresentation.orderHidden(panel)
+        DispatchQueue.main.async { [weak self] in
+            self?.reveal(generation: generation)
+        }
+    }
+
+    private func reveal(generation: UInt64) {
+        guard presentationPending,
+            generation == presentationGeneration,
+            TransientPanelPresentation.reveal(panel)
+        else { return }
         presentationPending = false
     }
 

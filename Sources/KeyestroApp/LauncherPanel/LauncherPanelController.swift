@@ -50,22 +50,11 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         super.init()
 
         panel.delegate = self
-        panel.level = .statusBar
-        panel.isFloatingPanel = true
-        panel.hidesOnDeactivate = false
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
-        panel.animationBehavior = .none
-        panel.identifier = Self.panelWindowIdentifier
+        TransientPanelPresentation.configure(panel, identifier: Self.panelWindowIdentifier)
         panel.contentView = NSHostingView(rootView: LauncherView(model: viewModel))
         panel.contentView?.layoutSubtreeIfNeeded()
         panel.contentView?.needsDisplay = true
         panel.contentView?.displayIfNeeded()
-        panel.setFrameAutosaveName("")
 
         NotificationCenter.default.addObserver(
             self,
@@ -135,10 +124,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         // updates only change content; they never drive window placement.
         viewModel.invoke(context: context)
 
-        panel.alphaValue = 0
-        panel.orderFrontRegardless()
-        NSApplication.shared.activate()
-        panel.makeKey()
+        TransientPanelPresentation.orderHidden(panel)
         recordPresentationSegment(segmentStartedAt.duration(to: .now))
         DispatchQueue.main.async { [weak self] in
             self?.displayPresentation(generation: generation, invokedAt: invokedAt)
@@ -151,8 +137,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     ) {
         guard presentationIsCurrent(generation), panel.isVisible else { return }
         let segmentStartedAt = ContinuousClock.now
-        panel.displayIfNeeded()
-        panel.alphaValue = 1
+        guard TransientPanelPresentation.reveal(panel) else { return }
 
         let firstFrameAt = ContinuousClock.now
         let invokeDuration = invokedAt.duration(to: firstFrameAt)
