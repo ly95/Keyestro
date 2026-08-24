@@ -1,59 +1,65 @@
-**Comparison Target**
+# Launcher Liquid Glass design QA
 
-- Source visual truth: `/tmp/keyestro-final-qa-v11/reference-dark-layout.png`
-- Source material behavior: [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)
-- Implementation screenshot: `/tmp/keyestro-final-qa-v11/implementation-light.png`
-- Combined layout comparison: `/tmp/keyestro-final-qa-v11/reference-vs-implementation.png`
-- Material regression comparison: `/tmp/keyestro-final-qa-v11/acrylic-vs-native-glass.png`
-- Viewport: 664 × 414 pt at 2× density
-- Source pixels: 1328 × 828
-- Implementation pixels: 1328 × 828
-- Density normalization: none; source and implementation have identical pixel dimensions
-- State: query `cal`, Calculator selected, five results visible
+## Comparison target
 
-**Full-view Comparison Evidence**
+- Dark source visual truth: `/Users/linyang/.codex/generated_images/01a03264-0a6d-7fa2-a51c-48a7737b32ba/exec-d79dd23d-f914-411b-ad68-ba6e70cfe8c8.png`
+- Light source visual truth: `/Users/linyang/.codex/generated_images/01a03264-0a6d-7fa2-a51c-48a7737b32ba/exec-f8fbffde-da2d-4fcf-9c35-7b3fd5ca431a.png`
+- Native material behavior: [Apple — Applying Liquid Glass to custom views](https://developer.apple.com/documentation/SwiftUI/Applying-Liquid-Glass-to-custom-views)
+- Dark live-material implementation: `/tmp/keyestro-design-qa-final/implementation-dark-live.png`
+- Light live-material implementation: `/tmp/keyestro-design-qa-final/implementation-light-live.png`
+- Dark combined comparison: `/tmp/keyestro-design-qa-final/compare-dark-live.png`
+- Light combined comparison: `/tmp/keyestro-design-qa-final/compare-light-live.png`
+- Viewport: 664 × 414 pt
+- State: query `cal`, Calculator selected, five results visible, search field focused
 
-The source and implementation were placed in one equal-size comparison image. Window proportions, 78 pt header, 64 pt row rhythm, icon and label alignment, five-result structure, 28 pt continuous outer radius, search placement, and selected-result content all remain aligned. The source is Dark and the implementation is Light, so palette and material are intentionally different. The latest user-directed change also intentionally replaces the source's edge-to-edge selection with a 12 pt inset selection surface.
+The Dark source establishes the shared geometry because it is the approved structural direction and has the exact 1.60 launcher aspect ratio. The Light source establishes Light material, color, and depth; its generated shell was normalized from 1292 × 826 px to the same 664 × 414 comparison viewport. This follows the explicit requirement that Light and Dark use one layout rather than two different designs.
 
-**Focused Region Comparison Evidence**
+## Full-view comparison evidence
 
-- Outer material: the rejected Light capture on the left of `acrylic-vs-native-glass.png` is an almost uniform white slab. The native-glass probe on the right visibly blurs the 28 pt high-contrast tiles into broad color waves and produces optical color pickup and edge refraction. This confirms background sampling rather than a white-opacity simulation.
-- Selected result: the final implementation leaves 12 pt on both sides, preserves the original icon/text coordinates by reducing internal padding from 26 pt to 14 pt, and uses an 8 pt radius. The selection indicator moves with the glass surface instead of touching the window edge.
-- Corners: the final 1328 × 828 capture has transparent extreme corner pixels. The AppKit Dark backing retains its continuous alpha mask, while the macOS 26 Light surface uses the same 28 pt native glass corner radius.
+The live implementation was rendered through the production `LauncherPanelVisualHost` over the user's real desktop image, not through an opaque screenshot substitute. The reference and implementation were then placed side by side at the same 664 × 414 size.
 
-**Required Fidelity Surfaces**
+- The 28 pt shell radius, 78 pt header, 54 pt search field, 64 pt row rhythm, five-result stack, icon scale, text baseline, and bottom clearance align with the Dark reference.
+- Light and Dark now share identical structure. Only material style, tint, foreground colors, and the Light action pill vary.
+- Light visibly samples and refracts the image behind the shell. Recognizable background features are blurred and optically displaced at the shell, search, selection, and lower edge; there is no milk-white AppKit backing.
+- Dark uses the same native macOS 26 glass host with a deep navy tint. It preserves faint background sampling while matching the source's darker value range instead of reverting to a flat gray HUD material.
 
-- Fonts and typography: native macOS system type remains unchanged; query, result labels, and action text preserve size, weight, wrapping, antialiasing, and hierarchy.
-- Spacing and layout rhythm: 664 × 414 pt frame, header/row heights, icon placement, and vertical rhythm match. The 12 pt selection inset and 8 pt radius are intentional refinements requested during the final review.
-- Colors and visual tokens: Light no longer has an opaque or low-alpha white AppKit backing. It uses macOS 26 `NSGlassEffectView.Style.regular`; search and selection use native SwiftUI glass variants. Dark retains its approved HUD material and dark tint/wash values.
-- Image quality and asset fidelity: Calculator, Calendar, folder, and System Settings icons are native source assets with unchanged scale and sharpness. No visible asset is approximated.
-- Copy and content: `cal`, Calculator, Calendar, Calendar / Reminders, Open Applications Folder, Calibration Assistant, Open, and the return indicator remain unchanged.
+## Focused region evidence
 
-**Findings**
+- Outer corners: the actual wallpaper remains visible outside all four continuous corners. No rectangular backing color leaks through.
+- Search: 12 pt shell inset, 54 pt height, 22 pt continuous radius, native clear interactive glass, and the source-aligned query/icon positions.
+- Selected result: the glass spans edge to edge, content remains at a 26 pt inset, the 14 pt continuous radius is clipped by the shell where appropriate, and the cyan/blue indicator runs the full row height.
+- Light action: a compact 30 pt clear-glass pill matches the Light source. Dark keeps the plain `Open ↩` treatment from the approved Dark source.
+- Separators: 14 pt inset and stronger Dark contrast preserve the source rhythm without introducing extra chrome.
+- Assets: Calculator, Calendar, folder, and Calibration Assistant use native macOS source icons rather than approximations.
 
-No actionable P0, P1, or P2 differences remain in the launcher state reviewed here.
+## Interaction and accessibility evidence
 
-**Comparison History**
+- A real `KeyestroTransientPanel`, `CommandTextField`, and `CommandFieldEditor` received a synthetic Command-A key event before the Desktop 2 preview was revealed.
+- The selected range was verified as the entire UTF-16 query, then returned to a normal caret state for visual comparison.
+- Accessibility exposes one focused search field, one Results list, five buttons, and the Calculator row as selected.
+- The live preview window was verified exclusively on Space 83 (Desktop 2), never Space 3 (Desktop 1).
 
-- Earlier [P1] Light read as milk-white acrylic: `.underWindowBackground` produced a uniform opaque-looking slab. Fix: removed the Light material backing and placed the content inside macOS 26 `NSGlassEffectView(.regular)`. Post-fix evidence: the high-contrast probe shows background blur, color sampling, wave deformation, and edge refraction.
-- Earlier [P1] transparent outer window exposed mismatched rectangular corner color. Fix: the Dark AppKit backing uses a stretchable continuous-corner alpha mask; Light uses the native glass view's 28 pt corner radius, and the host clips all descendants continuously.
-- Earlier [P2] selection glass touched both outer edges and its 13 pt radius competed with the shell. Fix: inset it 12 pt per side, reduce its radius to 8 pt, and compensate internal padding so the content does not shift. Post-fix evidence: `/tmp/keyestro-final-qa-v11/implementation-light.png`.
+## Findings and fixes
 
-**Open Questions**
+- Earlier P1: previous QA incorrectly used an implementation screenshot as source truth. Fixed by locking the two generated design images above and rebuilding the comparison from them.
+- Earlier P1: Light read as white acrylic. Fixed by using `NSGlassEffectView.Style.clear` for the shell and native SwiftUI clear/regular glass for nested surfaces, with the content installed inside the glass host.
+- Earlier P1: Dark read as a flat gray slab over a bright background. Fixed by replacing the HUD fallback on macOS 26 with native regular glass and calibrating the deep navy tint while retaining background sampling.
+- Earlier P1: selected glass had a 12 pt outer inset. Fixed by making the selection surface edge to edge while keeping its content at the reference-aligned 26 pt inset.
+- Earlier P1: corner colors leaked from a rectangular backing. Fixed with one continuous 28 pt clipped native host and a transparent borderless panel.
+- Earlier P2: the Light action pill was wider than the source. Fixed by reducing its horizontal glass padding while keeping its content and right alignment intact.
+- Earlier P1: Command-A did not reliably select the full search query. The custom field-editor path remains intact and passes both the focused test and the live-window check.
 
-None for this state.
+No actionable P0, P1, or P2 differences remain in the reviewed launcher state.
 
-**Implementation Checklist**
+## Verification checklist
 
-- [x] Replace the Light acrylic backing with native macOS 26 Liquid Glass.
-- [x] Keep the approved Dark rendering path intact.
-- [x] Preserve continuous transparent outer corners.
-- [x] Inset the selected-result glass without moving its content.
-- [x] Keep the live preview on Desktop 2 only.
-- [x] Verify Light/Dark host switching, layout, tests, release signing, and packaged smoke tests.
-
-**Follow-up Polish**
-
-No blocking polish remains for the reviewed state.
+- [x] Actual Dark and Light design images used as source truth
+- [x] Same-size combined visual comparisons reviewed
+- [x] Native material checked over a real image backdrop
+- [x] Shared Light/Dark geometry verified
+- [x] Full-width selection and transparent corners verified
+- [x] Command-A verified in the real panel field editor
+- [x] Preview verified exclusively on Desktop 2
+- [x] Focused tests, release build, signing, and packaged smoke checks completed
 
 final result: passed

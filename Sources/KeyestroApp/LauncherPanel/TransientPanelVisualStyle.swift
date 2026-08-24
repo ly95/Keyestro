@@ -66,9 +66,9 @@ struct LauncherThemePalette {
         textPrimary: color(0x151A22),
         textSecondary: color(0x5C6674),
         border: color(0xB9C4D1),
-        accent: color(0x087E9F),
-        accentSoft: color(0xDDF3F8),
-        selection: color(0xDCEFF5),
+        accent: color(0x168ED5),
+        accentSoft: color(0xDCEEF9),
+        selection: color(0xE2F0F8),
         localStatus: color(0x247B58),
         localStatusSoft: color(0xDFF1E8),
         privateStatus: color(0xD7A94E),
@@ -86,7 +86,7 @@ struct LauncherThemePalette {
         border: color(0x455469),
         accent: color(0x6FE5FF),
         accentSoft: color(0x153442),
-        selection: color(0x183A4A),
+        selection: color(0x1A2B3B),
         localStatus: color(0x70D3A4),
         localStatusSoft: color(0x15372A),
         privateStatus: color(0xE0B45F),
@@ -206,45 +206,24 @@ private struct TransientPanelSelectionModifier: ViewModifier {
                 content.transientPanelGlassSurface(
                     cornerRadius: cornerRadius,
                     variant: .regular,
-                    tint: palette.accent.opacity(colorScheme == .dark ? 0.20 : 0.10),
-                    wash: colorScheme == .dark ? Color.black.opacity(0.16) : nil,
+                    tint: palette.accent.opacity(colorScheme == .dark ? 0.075 : 0.055),
+                    wash: nil,
                     fallback: visualAccessibility.increaseContrast
                         ? TransientPanelVisualStyle.accentColor.opacity(visualAccessibility.selectionOpacity)
                         : palette.selection,
-                    edge: palette.accent.opacity(0.48),
+                    edge: palette.accent.opacity(colorScheme == .dark ? 0.34 : 0.30),
                     interactive: true
                 )
             } else {
                 content
             }
         }
-        .overlay {
-            if isSelected {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                colorScheme == .dark
-                                    ? palette.accent.opacity(0.10)
-                                    : Color.white.opacity(0.08),
-                                palette.accent.opacity(colorScheme == .dark ? 0.04 : 0.08),
-                                colorScheme == .dark
-                                    ? Color.black.opacity(0.14)
-                                    : Color.clear,
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .allowsHitTesting(false)
-            }
-        }
         .overlay(alignment: .leading) {
             if isSelected {
-                Capsule()
-                    .fill(TransientPanelVisualStyle.accentColor)
+                RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                    .fill(palette.accent)
                     .frame(width: visualAccessibility.selectionIndicatorWidth)
-                    .frame(height: 30)
+                    .frame(maxHeight: .infinity)
             }
         }
         .overlay {
@@ -273,10 +252,6 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var colorScheme
 
-    private var specularOpacity: Double {
-        colorScheme == .dark ? 0.54 : 0.92
-    }
-
     @ViewBuilder
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -296,36 +271,13 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
                 .background(wash ?? .clear, in: shape)
                 .glassEffect(interactive ? baseGlass.interactive() : baseGlass, in: shape)
                 .overlay {
-                    shape.stroke(edge, lineWidth: 0.65)
-                    shape.stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(specularOpacity),
-                                Color.white.opacity(specularOpacity * 0.16),
-                                edge.opacity(0.34),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.72
-                    )
-                    RoundedRectangle(
-                        cornerRadius: max(0, cornerRadius - 1.2),
-                        style: .continuous
-                    )
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(specularOpacity * 0.28),
-                                Color.clear,
-                                Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 0.5
-                    )
-                    .padding(1.2)
+                    shape.stroke(edge, lineWidth: 0.75)
+                    shape
+                        .inset(by: 1)
+                        .stroke(
+                            Color.white.opacity(colorScheme == .dark ? 0.14 : 0.34),
+                            lineWidth: 0.5
+                        )
                 }
         } else {
             content
@@ -491,14 +443,34 @@ final class LauncherPanelBackdropView: NSView {
 
     private func updateMaterialVisibility() {
         let usesDarkMaterial = Self.usesDarkMaterial(for: effectiveAppearance)
+        if #available(macOS 26.0, *),
+            let glassView = lightGlassView as? NSGlassEffectView
+        {
+            darkMaterialView.isHidden = true
+            lightGlassView.isHidden = false
+            glassView.style = usesDarkMaterial ? .regular : .clear
+            glassView.tintColor =
+                usesDarkMaterial
+                ? NSColor(srgbRed: 0.01, green: 0.025, blue: 0.055, alpha: 0.80)
+                : NSColor(srgbRed: 0.82, green: 0.91, blue: 1, alpha: 0.035)
+            layer?.borderWidth = usesDarkMaterial ? 0.80 : 0.65
+            layer?.borderColor =
+                (usesDarkMaterial
+                ? NSColor.white.withAlphaComponent(0.28)
+                : NSColor.white.withAlphaComponent(0.66)).cgColor
+            updateContentPlacement(usesNativeGlass: true)
+            return
+        }
+
         darkMaterialView.isHidden = !usesDarkMaterial
         lightGlassView.isHidden = usesDarkMaterial
-        updateContentPlacement(usesDarkMaterial: usesDarkMaterial)
+        layer?.borderWidth = 0
+        updateContentPlacement(usesNativeGlass: false)
     }
 
-    private func updateContentPlacement(usesDarkMaterial: Bool) {
+    private func updateContentPlacement(usesNativeGlass: Bool) {
         guard let hostedContentView else { return }
-        if !usesDarkMaterial, #available(macOS 26.0, *),
+        if usesNativeGlass, #available(macOS 26.0, *),
             let glassView = lightGlassView as? NSGlassEffectView
         {
             if glassView.contentView !== hostedContentView {

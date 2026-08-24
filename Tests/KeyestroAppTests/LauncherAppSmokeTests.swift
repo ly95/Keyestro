@@ -96,7 +96,7 @@ import Testing
     #expect(editor.selectedRange() == NSRange(location: 0, length: editor.string.utf16.count))
 }
 
-@Test @MainActor func launcherWindowUsesNativeLightGlassAndKeepsDarkCornersTransparent() throws {
+@Test @MainActor func launcherWindowUsesNativeGlassInBothAppearancesAndKeepsCornersTransparent() throws {
     let defaults = try isolatedDefaults()
     defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
     let provider = AppTestProvider()
@@ -121,26 +121,46 @@ import Testing
     #expect(backdrop.darkMaterialView.isHidden)
     #expect(!backdrop.lightGlassView.isHidden)
     if #available(macOS 26.0, *) {
-        let lightGlass = try #require(backdrop.lightGlassView as? NSGlassEffectView)
-        #expect(lightGlass.style == .regular)
-        #expect(lightGlass.cornerRadius == LauncherPanelLayout.panelCornerRadius)
-        let hostedContent = try #require(lightGlass.contentView)
+        let glass = try #require(backdrop.lightGlassView as? NSGlassEffectView)
+        #expect(glass.style == .clear)
+        #expect(glass.cornerRadius == LauncherPanelLayout.panelCornerRadius)
+        #expect(glass.tintColor != nil)
+        let hostedContent = try #require(glass.contentView)
 
+        backdrop.appearance = darkAppearance
+        backdrop.viewDidChangeEffectiveAppearance()
+        #expect(backdrop.darkMaterialView.isHidden)
+        #expect(!backdrop.lightGlassView.isHidden)
+        #expect(glass.style == .regular)
+        #expect(glass.tintColor != nil)
+        #expect(glass.contentView === hostedContent)
+        #expect(hostedContent.superview !== backdrop)
+
+        backdrop.appearance = lightAppearance
+        backdrop.viewDidChangeEffectiveAppearance()
+        #expect(glass.style == .clear)
+        #expect(glass.contentView === hostedContent)
+        #expect(hostedContent.superview !== backdrop)
+    } else {
         backdrop.appearance = darkAppearance
         backdrop.viewDidChangeEffectiveAppearance()
         #expect(!backdrop.darkMaterialView.isHidden)
         #expect(backdrop.lightGlassView.isHidden)
-        #expect(lightGlass.contentView == nil)
-        #expect(hostedContent.superview === backdrop)
 
         backdrop.appearance = lightAppearance
         backdrop.viewDidChangeEffectiveAppearance()
-        #expect(lightGlass.contentView === hostedContent)
-        #expect(hostedContent.superview !== backdrop)
+        #expect(backdrop.darkMaterialView.isHidden)
+        #expect(!backdrop.lightGlassView.isHidden)
     }
     backdrop.appearance = darkAppearance
     backdrop.viewDidChangeEffectiveAppearance()
-    #expect(!backdrop.darkMaterialView.isHidden)
+    if #available(macOS 26.0, *) {
+        #expect(backdrop.darkMaterialView.isHidden)
+        #expect(!backdrop.lightGlassView.isHidden)
+    } else {
+        #expect(!backdrop.darkMaterialView.isHidden)
+        #expect(backdrop.lightGlassView.isHidden)
+    }
 
     let mask = LauncherPanelVisualHost.roundedMaterialMask(
         cornerRadius: LauncherPanelLayout.panelCornerRadius
@@ -1507,6 +1527,10 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
 
     #expect(LauncherPanelLayout.windowWidth == 664)
     #expect(LauncherPanelLayout.windowHeight == 414)
+    #expect(LauncherPanelLayout.searchFieldCornerRadius == 22)
+    #expect(LauncherPanelLayout.resultContentHorizontalInset == 26)
+    #expect(LauncherPanelLayout.selectionCornerRadius == 14)
+    #expect(LauncherPanelLayout.separatorHorizontalInset == 14)
     #expect(model.selectedItem?.title == "Calculator")
     #expect(model.displayOrderedResults.map(\.item.title).count == 5)
 }

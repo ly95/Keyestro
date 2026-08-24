@@ -31,7 +31,7 @@ struct LauncherView: View {
     var body: some View {
         Group {
             if #available(macOS 26.0, *) {
-                GlassEffectContainer(spacing: 12) {
+                GlassEffectContainer(spacing: 0) {
                     panelLayers
                 }
             } else {
@@ -55,21 +55,7 @@ struct LauncherView: View {
 
     private var panelLayers: some View {
         ZStack {
-            Group {
-                if colorScheme == .dark {
-                    launcherContent
-                        .transientPanelGlassSurface(
-                            cornerRadius: LauncherPanelLayout.panelCornerRadius,
-                            variant: .regular,
-                            tint: Color.black.opacity(0.18),
-                            wash: Color.black.opacity(0.38),
-                            fallback: palette.surfaceBase,
-                            edge: palette.accent.opacity(0.32)
-                        )
-                } else {
-                    launcherContent
-                }
-            }
+            launcherContent
 
             if let message = model.message {
                 VStack(spacing: 3) {
@@ -141,18 +127,16 @@ struct LauncherView: View {
             .padding(.horizontal, 18)
             .frame(height: LauncherPanelLayout.searchFieldHeight)
             .transientPanelGlassSurface(
-                cornerRadius: 16,
+                cornerRadius: LauncherPanelLayout.searchFieldCornerRadius,
                 variant: .clear,
                 tint: colorScheme == .dark
-                    ? Color.black.opacity(0.16)
-                    : Color.white.opacity(0.03),
-                wash: colorScheme == .dark
-                    ? Color.black.opacity(0.18)
-                    : nil,
+                    ? Color.black.opacity(0.08)
+                    : Color.white.opacity(0.02),
+                wash: nil,
                 fallback: insetSurface,
                 edge: colorScheme == .dark
-                    ? Color.white.opacity(0.22)
-                    : Color.white.opacity(0.58),
+                    ? Color.white.opacity(0.28)
+                    : Color.white.opacity(0.62),
                 interactive: true
             )
         }
@@ -611,28 +595,23 @@ struct LauncherView: View {
                 .accessibilityLabel(previewHidden ? L10n.text("Show sensitive preview") : L10n.text("Hide sensitive preview"))
             }
             if selected {
-                HStack(spacing: 9) {
-                    Text(primaryActionTitle(for: item))
-                    Text("↩")
-                        .font(.system(size: 19, weight: .regular))
-                }
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(palette.accent)
-                .accessibilityHidden(true)
+                selectedAction(for: item)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, LauncherPanelLayout.resultContentHorizontalInset)
         .frame(height: LauncherPanelLayout.resultRowHeight)
-        .transientPanelSelectionStyle(isSelected: selected, cornerRadius: 8)
+        .transientPanelSelectionStyle(
+            isSelected: selected,
+            cornerRadius: LauncherPanelLayout.selectionCornerRadius
+        )
         .overlay(alignment: .bottom) {
             if !selected, index < model.displayOrderedResults.count - 1 {
                 Rectangle()
-                    .fill(palette.border.opacity(colorScheme == .dark ? 0.42 : 0.5))
+                    .fill(palette.border.opacity(colorScheme == .dark ? 0.62 : 0.5))
                     .frame(height: 0.5)
-                    .padding(.horizontal, 2)
+                    .padding(.horizontal, LauncherPanelLayout.separatorHorizontalInset)
             }
         }
-        .padding(.horizontal, 12)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             model.selectItem(item.id)
@@ -646,6 +625,34 @@ struct LauncherView: View {
         .accessibilityAction(.default) {
             model.selectItem(item.id)
             model.executeDefault()
+        }
+    }
+
+    @ViewBuilder
+    private func selectedAction(for item: LauncherItem) -> some View {
+        let label = HStack(spacing: 9) {
+            Text(primaryActionTitle(for: item))
+            Text("↩")
+                .font(.system(size: 19, weight: .regular))
+        }
+        .font(.system(size: 16, weight: .medium))
+        .foregroundStyle(palette.accent)
+        .accessibilityHidden(true)
+
+        if colorScheme == .light {
+            label
+                .padding(.horizontal, 7)
+                .frame(height: 30)
+                .transientPanelGlassSurface(
+                    cornerRadius: 15,
+                    variant: .clear,
+                    tint: Color.white.opacity(0.04),
+                    fallback: palette.surfaceElevated,
+                    edge: Color.white.opacity(0.52),
+                    interactive: true
+                )
+        } else {
+            label
         }
     }
 
