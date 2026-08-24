@@ -3,7 +3,7 @@ import KeyestroDomain
 import Testing
 @testable import KeyestroCore
 
-@Test func clipboardAutoPasteIsExplicitAndUsesTheCapturedFrontmostApplication() async throws {
+@Test func clipboardReturnPastesDirectlyIntoTheCapturedFrontmostProcess() async throws {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent("keyestro-clipboard-provider-\(UUID().uuidString)", isDirectory: true)
     defer { try? FileManager.default.removeItem(at: root) }
@@ -31,7 +31,8 @@ import Testing
         mode: .all,
         context: QueryContext(
             frontmostBundleIdentifier: "com.example.target",
-            frontmostApplicationName: "Target Editor"
+            frontmostApplicationName: "Target Editor",
+            frontmostProcessIdentifier: 42
         )
     )
     var items: [LauncherItem] = []
@@ -40,10 +41,12 @@ import Testing
     }
     let item = try #require(items.first)
     #expect(item.id.providerStableID == itemID)
-    #expect(item.defaultActionID == "copy")
+    #expect(item.defaultActionID == "autoPaste")
     let autoPasteAction = item.actions.first(where: { $0.id == "autoPaste" })
-    #expect(autoPasteAction?.risk == .externalSideEffect)
+    #expect(autoPasteAction?.risk == .safe)
     #expect(autoPasteAction?.confirmationTarget == "Target Editor (com.example.target)")
+    #expect(item.actions.first(where: { $0.id == "copy" })?.shortcut?.key == "return")
+    #expect(item.actions.first(where: { $0.id == "copy" })?.shortcut?.modifiers == [.command])
     #expect(item.actions.first(where: { $0.id == "delete" })?.confirmationTarget == "ID \(itemID)")
 
     let result = await provider.execute(
@@ -55,7 +58,10 @@ import Testing
         )
     )
     #expect(result == .success())
-    #expect(await autoPaste.lastTarget == "com.example.target")
+    let target = await autoPaste.lastTarget
+    #expect(target?.bundleIdentifier == "com.example.target")
+    #expect(target?.processIdentifier == 42)
+    #expect(target?.activationPolicy == .activateIfNeeded)
     #expect(await pasteboard.writtenContent == .text("paste me"))
 }
 
@@ -143,10 +149,17 @@ private final class FakePasteboard: PasteboardServicing, @unchecked Sendable {
 }
 
 private actor RecordingAutoPasteService: AutoPasteServicing {
-    private(set) var lastTarget: String?
+    private(set) var lastTarget: AutoPasteTarget?
 
     func paste(intoBundleIdentifier bundleIdentifier: String?) -> Result<Void, ErrorDescriptor> {
-        lastTarget = bundleIdentifier
+        lastTarget = bundleIdentifier.map {
+            AutoPasteTarget(bundleIdentifier: $0, activationPolicy: .activateIfNeeded)
+        }
+        return .success(())
+    }
+
+    func paste(into target: AutoPasteTarget) -> Result<Void, ErrorDescriptor> {
+        lastTarget = target
         return .success(())
     }
 }

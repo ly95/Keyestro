@@ -53,7 +53,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     }
 
     enum PendingConfirmation: Equatable {
-        case item(action: ClipboardActionKind, id: String)
+        case delete(id: String)
         case clear(type: ClipboardContentType)
         case clearAll
     }
@@ -76,6 +76,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     @Published private(set) var pendingConfirmation: PendingConfirmation?
     @Published private(set) var isSearching = false
     @Published private(set) var isExecuting = false
+    @Published private(set) var isAutoPasting = false
     @Published private(set) var isEnabled: Bool
     @Published private(set) var isPaused: Bool
     @Published var message: String?
@@ -164,22 +165,13 @@ final class ClipboardPanelViewModel: ObservableObject {
     var pendingConfirmationPresentation: ConfirmationPresentation? {
         guard let pendingConfirmation else { return nil }
         switch pendingConfirmation {
-        case .item(.autoPaste, _):
-            return ConfirmationPresentation(
-                title: L10n.text("Paste into Previous App?"),
-                message: L10n.format("Clipboard content will be pasted into %@.", pasteConfirmationTarget),
-                buttonTitle: L10n.text("Paste"),
-                isDestructive: false
-            )
-        case let .item(.delete, id):
+        case let .delete(id):
             return ConfirmationPresentation(
                 title: L10n.text("Delete clipboard item?"),
                 message: L10n.format("This permanently deletes encrypted clipboard item ID %@.", id),
                 buttonTitle: L10n.text("Delete"),
                 isDestructive: true
             )
-        case .item(.copy, _):
-            return nil
         case let .clear(type):
             return ConfirmationPresentation(
                 title: L10n.text("Clear clipboard history by type?"),
@@ -228,6 +220,7 @@ final class ClipboardPanelViewModel: ObservableObject {
         messageTask = nil
         isSearching = false
         isExecuting = false
+        isAutoPasting = false
         layer = .results
         pendingConfirmation = nil
         revealedSensitiveItemIDs.removeAll()
@@ -292,11 +285,11 @@ final class ClipboardPanelViewModel: ObservableObject {
     }
 
     func executeDefault() {
-        requestAction(.copy)
+        requestAction(.autoPaste)
     }
 
     func executeSecondary() {
-        requestAction(.autoPaste)
+        requestAction(.copy)
     }
 
     func executeSelectedAction() {
@@ -324,8 +317,8 @@ final class ClipboardPanelViewModel: ObservableObject {
         guard let pendingConfirmation else { return }
         self.pendingConfirmation = nil
         switch pendingConfirmation {
-        case let .item(action, id):
-            performAction(action, itemID: id)
+        case let .delete(id):
+            performAction(.delete, itemID: id)
         case let .clear(type):
             clear(type: type)
         case .clearAll:
@@ -467,10 +460,10 @@ final class ClipboardPanelViewModel: ObservableObject {
     private func requestAction(_ action: ClipboardActionKind) {
         guard canExecuteSelectedEntry, let id = selectedEntry?.id else { return }
         switch action {
-        case .copy:
+        case .copy, .autoPaste:
             performAction(action, itemID: id)
-        case .autoPaste, .delete:
-            pendingConfirmation = .item(action: action, id: id)
+        case .delete:
+            pendingConfirmation = .delete(id: id)
         }
     }
 
@@ -480,16 +473,25 @@ final class ClipboardPanelViewModel: ObservableObject {
             return
         }
         isExecuting = true
+        isAutoPasting = action == .autoPaste
         executionTask?.cancel()
         executionTask = Task { [weak self] in
             guard let self else { return }
+            let target = context.frontmostBundleIdentifier.map {
+                AutoPasteTarget(
+                    bundleIdentifier: $0,
+                    processIdentifier: context.frontmostProcessIdentifier,
+                    activationPolicy: .activateIfNeeded
+                )
+            }
             let result = await actions.execute(
                 action,
                 itemID: itemID,
-                targetBundleIdentifier: context.frontmostBundleIdentifier
+                target: target
             )
             guard !Task.isCancelled else { return }
             isExecuting = false
+            isAutoPasting = false
             executionTask = nil
             layer = .results
             switch result {

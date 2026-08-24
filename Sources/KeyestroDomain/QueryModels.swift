@@ -13,6 +13,7 @@ public enum QueryMode: String, Codable, CaseIterable, Hashable, Sendable {
 public struct QueryContext: Sendable, Equatable {
     public let frontmostBundleIdentifier: String?
     public let frontmostApplicationName: String?
+    public let frontmostProcessIdentifier: Int32?
     public let frontmostWindowTitle: String?
     public let mouseScreenIdentifier: String?
     public let currentDirectoryURL: URL?
@@ -20,12 +21,14 @@ public struct QueryContext: Sendable, Equatable {
     public init(
         frontmostBundleIdentifier: String? = nil,
         frontmostApplicationName: String? = nil,
+        frontmostProcessIdentifier: Int32? = nil,
         frontmostWindowTitle: String? = nil,
         mouseScreenIdentifier: String? = nil,
         currentDirectoryURL: URL? = nil
     ) {
         self.frontmostBundleIdentifier = frontmostBundleIdentifier
         self.frontmostApplicationName = frontmostApplicationName?.limitedToUnicodeScalars(DomainLimits.titleUnicodeScalars)
+        self.frontmostProcessIdentifier = frontmostProcessIdentifier
         self.frontmostWindowTitle = frontmostWindowTitle
         self.mouseScreenIdentifier = mouseScreenIdentifier
         self.currentDirectoryURL = currentDirectoryURL

@@ -2,13 +2,13 @@ import Foundation
 import KeyestroDomain
 
 private actor ClipboardPasteTargetCache {
-    private var targets: [String: String?] = [:]
+    private var targets: [String: AutoPasteTarget?] = [:]
 
-    func replace(ids: [String], targetBundleIdentifier: String?) {
-        targets = Dictionary(uniqueKeysWithValues: ids.map { ($0, targetBundleIdentifier) })
+    func replace(ids: [String], target: AutoPasteTarget?) {
+        targets = Dictionary(uniqueKeysWithValues: ids.map { ($0, target) })
     }
 
-    func target(for id: String) -> String? {
+    func target(for id: String) -> AutoPasteTarget? {
         targets[id] ?? nil
     }
 }
@@ -51,9 +51,16 @@ public struct ClipboardProvider: LauncherProvider {
             switch await store.search(request.normalizedText, limit: request.limit) {
             case let .success(entries):
                 let formatter = RelativeDateTimeFormatter()
+                let target = request.context.frontmostBundleIdentifier.map {
+                    AutoPasteTarget(
+                        bundleIdentifier: $0,
+                        processIdentifier: request.context.frontmostProcessIdentifier,
+                        activationPolicy: .activateIfNeeded
+                    )
+                }
                 await pasteTargets.replace(
                     ids: entries.map(\.id),
-                    targetBundleIdentifier: request.context.frontmostBundleIdentifier
+                    target: target
                 )
                 let items = entries.map { entry in
                     let itemID = ItemID(providerID: descriptor.id, providerStableID: entry.id)
@@ -78,7 +85,7 @@ public struct ClipboardProvider: LauncherProvider {
                         canonicalResource: .command("clipboard:\(entry.id)"),
                         keywords: [entry.contentType.rawValue, "clipboard", "copied"],
                         actions: actions,
-                        defaultActionID: ClipboardActionKind.copy.id,
+                        defaultActionID: ClipboardActionKind.autoPaste.id,
                         scoreFeatures: ScoreFeatures(lastUsedAt: entry.lastCopiedAt, providerPrior: 0.35),
                         privacy: entry.isSensitive ? .sensitive : .normal
                     )
@@ -105,7 +112,7 @@ public struct ClipboardProvider: LauncherProvider {
         return await actions.execute(
             action,
             itemID: request.itemID.providerStableID,
-            targetBundleIdentifier: target
+            target: target
         )
     }
 

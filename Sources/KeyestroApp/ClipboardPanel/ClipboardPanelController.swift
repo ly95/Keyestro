@@ -116,7 +116,8 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             guard let self,
                 generation == presentationGeneration,
                 panel.isVisible,
-                !panel.isKeyWindow
+                !panel.isKeyWindow,
+                !viewModel.isAutoPasting
             else { return }
             dismiss()
         }
@@ -129,6 +130,7 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
         let context = QueryContext(
             frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
             frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
+            frontmostProcessIdentifier: focusCoordinator.previousApplication?.processIdentifier,
             mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
         )
         viewModel.invoke(context: context)

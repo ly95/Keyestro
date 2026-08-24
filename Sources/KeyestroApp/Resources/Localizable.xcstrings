@@ -3581,6 +3581,16 @@
         }
       }
     },
+    "Paste to Active App": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴到当前应用"
+          }
+        }
+      }
+    },
     "Paste into Previous App?": {
       "localizations": {
         "zh-Hans": {

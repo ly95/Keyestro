@@ -118,6 +118,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
         let context = QueryContext(
             frontmostBundleIdentifier: focusCoordinator.previousApplication?.bundleIdentifier,
             frontmostApplicationName: focusCoordinator.previousApplication?.localizedName,
+            frontmostProcessIdentifier: focusCoordinator.previousApplication?.processIdentifier,
             mouseScreenIdentifier: screen.flatMap(TransientPanelPlacement.screenIdentifier)
         )
         // Prepare the refresh state while the window is still invisible. Provider

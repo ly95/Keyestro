@@ -28,17 +28,17 @@ public enum ClipboardActionCatalog {
     ) -> [ActionDescriptor] {
         [
             ActionDescriptor(
-                id: ClipboardActionKind.copy.id,
-                title: "Copy to Clipboard",
-                icon: .systemSymbol("doc.on.clipboard")
-            ),
-            ActionDescriptor(
                 id: ClipboardActionKind.autoPaste.id,
-                title: "Paste into Previous App",
+                title: "Paste to Active App",
                 icon: .systemSymbol("arrowshape.turn.up.left"),
                 behavior: .closeLauncher,
-                risk: .externalSideEffect,
                 confirmationTarget: pasteConfirmationTarget
+            ),
+            ActionDescriptor(
+                id: ClipboardActionKind.copy.id,
+                title: "Copy to Clipboard",
+                icon: .systemSymbol("doc.on.clipboard"),
+                shortcut: KeyEquivalent(key: "return", modifiers: [.command])
             ),
             ActionDescriptor(
                 id: ClipboardActionKind.delete.id,
@@ -72,6 +72,17 @@ public struct ClipboardActionService: Sendable {
         itemID: String,
         targetBundleIdentifier: String?
     ) async -> ActionResult {
+        let target = targetBundleIdentifier.map {
+            AutoPasteTarget(bundleIdentifier: $0, activationPolicy: .activateIfNeeded)
+        }
+        return await execute(action, itemID: itemID, target: target)
+    }
+
+    public func execute(
+        _ action: ClipboardActionKind,
+        itemID: String,
+        target: AutoPasteTarget?
+    ) async -> ActionResult {
         switch action {
         case .copy:
             switch await store.content(id: itemID) {
@@ -89,7 +100,7 @@ public struct ClipboardActionService: Sendable {
                 return .failure(error)
             }
         case .autoPaste:
-            guard let targetBundleIdentifier else {
+            guard let target else {
                 return .failure(
                     ErrorDescriptor(
                         code: "clipboard.autoPaste.targetUnavailable",
@@ -97,13 +108,7 @@ public struct ClipboardActionService: Sendable {
                     )
                 )
             }
-            return await writeAndPaste(
-                itemID: itemID,
-                target: AutoPasteTarget(
-                    bundleIdentifier: targetBundleIdentifier,
-                    activationPolicy: .activateIfNeeded
-                )
-            )
+            return await writeAndPaste(itemID: itemID, target: target)
         case .delete:
             switch await store.delete(id: itemID) {
             case .success: return .success(message: "Clipboard item deleted")

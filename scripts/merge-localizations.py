@@ -306,6 +306,7 @@ ZH_HANS = {
     "Open System Settings": "打开系统设置",
     "Pin or Unpin": "固定或取消固定",
     "Paste into Previous App": "粘贴到先前应用",
+    "Paste to Active App": "粘贴到当前应用",
     "OK": "好",
     "Quick Look": "快速查看",
     "Restore Previous Frame": "恢复上一个窗口位置",

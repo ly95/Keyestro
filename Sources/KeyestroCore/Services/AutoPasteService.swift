@@ -104,10 +104,8 @@ public struct MacAutoPasteService: AutoPasteServicing, Sendable {
                 }
             }
             if case let .failure(error) = activationResult { return .failure(error) }
-            do {
-                try await Task.sleep(for: .milliseconds(80))
-            } catch {
-                return .failure(Self.targetChangedError)
+            if case let .failure(error) = await Self.waitUntilFrontmost(target) {
+                return .failure(error)
             }
         }
 
@@ -181,6 +179,38 @@ public struct MacAutoPasteService: AutoPasteServicing, Sendable {
             !frontmost.isTerminated
         else { return false }
         return target.processIdentifier == nil || frontmost.processIdentifier == application.processIdentifier
+    }
+
+    private static func waitUntilFrontmost(
+        _ target: AutoPasteTarget
+    ) async -> Result<Void, ErrorDescriptor> {
+        let deadline = ContinuousClock.now.advanced(by: .milliseconds(600))
+        while true {
+            let state = await MainActor.run { () -> Result<Bool, ErrorDescriptor> in
+                switch resolveApplication(for: target) {
+                case let .success(application):
+                    return .success(isFrontmost(application, target: target))
+                case let .failure(error):
+                    return .failure(error)
+                }
+            }
+            switch state {
+            case .success(true):
+                return .success(())
+            case let .failure(error):
+                return .failure(error)
+            case .success(false):
+                break
+            }
+            guard ContinuousClock.now < deadline else {
+                return .failure(targetChangedError)
+            }
+            do {
+                try await Task.sleep(for: .milliseconds(16))
+            } catch {
+                return .failure(targetChangedError)
+            }
+        }
     }
 
     private static let targetUnavailableError = ErrorDescriptor(

@@ -295,10 +295,10 @@ struct ClipboardPanelView: View {
     private func quickViewContent(for entry: ClipboardSearchEntry) -> some View {
         let previewHidden = hidesPreview(for: entry)
         let primaryActionTitle = L10n.text(
-            model.actionDescriptor(for: .copy)?.title ?? "Copy to Clipboard"
+            model.actionDescriptor(for: .autoPaste)?.title ?? "Paste to Active App"
         )
         let secondaryActionTitle = L10n.text(
-            model.actionDescriptor(for: .autoPaste)?.title ?? "Paste into Previous App"
+            model.actionDescriptor(for: .copy)?.title ?? "Copy to Clipboard"
         )
         return VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 13) {
@@ -702,8 +702,8 @@ struct ClipboardPanelView: View {
                 footerShortcut("↩", label: "Choose")
                 footerShortcut("Esc", label: "Back")
             case .results:
-                footerShortcut("↩", label: "Copy")
-                footerShortcut("⌘↩", label: "Paste")
+                footerShortcut("↩", label: "Paste")
+                footerShortcut("⌘↩", label: "Copy")
             }
         }
         .font(.system(size: 11))

@@ -104,7 +104,7 @@ func clipboardPanelPreservesSelectionAndClearsSensitiveRevealsOnDismiss() async 
 }
 
 @Test @MainActor
-func clipboardPanelActionsUseCapturedTargetAndConfirmWithoutExposingPayload() async throws {
+func clipboardPanelReturnPastesDirectlyIntoTheCapturedTarget() async throws {
     let autoPaste = RecordingClipboardPanelAutoPaste()
     let fixture = try ClipboardPanelFixture(autoPaste: autoPaste)
     defer { fixture.remove() }
@@ -121,7 +121,8 @@ func clipboardPanelActionsUseCapturedTargetAndConfirmWithoutExposingPayload() as
     model.invoke(
         context: QueryContext(
             frontmostBundleIdentifier: "com.example.original-target",
-            frontmostApplicationName: "Original Target"
+            frontmostApplicationName: "Original Target",
+            frontmostProcessIdentifier: 42
         )
     )
     try await waitForClipboardPanel { model.selectedItemID == itemID }
@@ -132,11 +133,13 @@ func clipboardPanelActionsUseCapturedTargetAndConfirmWithoutExposingPayload() as
     #expect(!deleteConfirmation.message.contains(payload))
     model.cancelPendingAction()
 
-    model.executeSecondary()
-    #expect(model.pendingConfirmation == .item(action: .autoPaste, id: itemID))
-    model.confirmPendingAction()
+    model.executeDefault()
+    #expect(model.pendingConfirmation == nil)
     try await waitForClipboardPanel { !model.isExecuting && dismissalCount == 1 }
-    #expect(await autoPaste.lastTarget == "com.example.original-target")
+    let target = await autoPaste.lastTarget
+    #expect(target?.bundleIdentifier == "com.example.original-target")
+    #expect(target?.processIdentifier == 42)
+    #expect(target?.activationPolicy == .activateIfNeeded)
     #expect(fixture.pasteboard.writtenContent == .text(payload))
 }
 
@@ -165,22 +168,23 @@ func clipboardQuickViewRunsItsDescriptorBackedPrimaryAndSecondaryButtons() async
         model.selectedItemID == itemID && !model.isSearching && model.canExecuteSelectedEntry
     }
 
+    #expect(model.actionDescriptor(for: .autoPaste)?.title == "Paste to Active App")
     #expect(model.actionDescriptor(for: .copy)?.title == "Copy to Clipboard")
-    #expect(model.actionDescriptor(for: .autoPaste)?.title == "Paste into Previous App")
 
     model.executeDefault()
     try await waitForClipboardPanel {
         !model.isExecuting
             && dismissalCount == 1
-            && fixture.pasteboard.writtenContent == .text(payload)
+            && fixture.pasteboard.changeCount == 1
     }
+    #expect((await autoPaste.lastTarget)?.bundleIdentifier == "com.example.quick-view-target")
 
     model.executeSecondary()
-    #expect(model.pendingConfirmation == .item(action: .autoPaste, id: itemID))
-    #expect(!model.canExecuteSelectedEntry)
-    model.confirmPendingAction()
-    try await waitForClipboardPanel { !model.isExecuting && dismissalCount == 2 }
-    #expect(await autoPaste.lastTarget == "com.example.quick-view-target")
+    #expect(model.pendingConfirmation == nil)
+    try await waitForClipboardPanel {
+        !model.isExecuting && dismissalCount == 2 && fixture.pasteboard.changeCount == 2
+    }
+    #expect(fixture.pasteboard.writtenContent == .text(payload))
 }
 
 @Test @MainActor
@@ -202,8 +206,8 @@ func clipboardOpenActionsButtonDisabledStateMirrorsModelExecutability() async th
     let view = ClipboardPanelView(model: model)
     #expect(!view.isOpenActionsButtonDisabled)
 
-    model.executeSecondary()
-    #expect(model.pendingConfirmation == .item(action: .autoPaste, id: itemID))
+    model.requestDeleteSelected()
+    #expect(model.pendingConfirmation == .delete(id: itemID))
     #expect(!model.canExecuteSelectedEntry)
     #expect(model.selectedEntry != nil)
     #expect(view.isOpenActionsButtonDisabled)
@@ -444,10 +448,9 @@ func clipboardPanelRendersEveryStateAndInteractionLayerAsAComponentStory() async
     try await renderer.render()
     model.cancelPendingAction()
 
-    model.executeSecondary()
-    try await renderer.render()
-    model.confirmPendingAction()
+    model.executeDefault()
     try await waitForClipboardPanel { model.isExecuting }
+    try await renderer.render()
     for _ in 0..<2_000 {
         if await autoPaste.isWaiting { break }
         await Task.yield()
@@ -529,6 +532,63 @@ func clipboardPanelControllerPresentsResizesAndDismissesItsComponent() async thr
     #expect(!controller.isVisible)
 }
 
+@Test @MainActor
+func clipboardPanelKeepsAutoPasteAliveWhenTargetActivationResignsTheWindow() async throws {
+    await ComponentStorySerialization.acquire()
+    defer { ComponentStorySerialization.release() }
+
+    let autoPaste = GatedClipboardPanelAutoPaste()
+    let fixture = try ClipboardPanelFixture(autoPaste: autoPaste)
+    defer { fixture.remove() }
+    fixture.settings.clipboardEnabled = true
+    await fixture.store.initialize(enabled: true)
+    let itemID = try #require(
+        (await fixture.store.capture(.text("focus-race-regression"), sourceBundleIdentifier: nil)).successValue
+    )
+    let model = fixture.makeModel()
+    let focusCoordinator = TransientPanelFocusCoordinator()
+    let presentationCoordinator = TransientPanelCoordinator()
+    var controller: ClipboardPanelController?
+    controller = ClipboardPanelController(
+        viewModel: model,
+        focusCoordinator: focusCoordinator,
+        presentationCoordinator: presentationCoordinator
+    )
+    model.onDismiss = { controller?.dismiss(restoringFocus: false) }
+    let panelController = try #require(controller)
+    defer { panelController.dismiss(restoringFocus: false) }
+
+    panelController.show()
+    try await waitForClipboardPanel { panelController.isVisible && model.selectedItemID == itemID }
+    model.invoke(
+        context: QueryContext(
+            frontmostBundleIdentifier: "com.example.focus-target",
+            frontmostApplicationName: "Focus Target",
+            frontmostProcessIdentifier: 77
+        )
+    )
+    try await waitForClipboardPanel { model.selectedItemID == itemID && !model.isSearching }
+    model.executeDefault()
+    try await waitForClipboardPanel { model.isAutoPasting && model.isExecuting }
+    for _ in 0..<2_000 {
+        if await autoPaste.isWaiting { break }
+        await Task.yield()
+    }
+    #expect(await autoPaste.isWaiting)
+
+    let panel = try #require(
+        NSApplication.shared.windows.first { $0.identifier == ClipboardPanelController.panelWindowIdentifier }
+    )
+    panel.resignKey()
+    panelController.windowDidResignKey(Notification(name: NSWindow.didResignKeyNotification, object: panel))
+    try await Task.sleep(for: .milliseconds(90))
+
+    #expect(panelController.isVisible)
+    #expect(model.isAutoPasting)
+    await autoPaste.finish(.success(()))
+    try await waitForClipboardPanel { !panelController.isVisible && !model.isExecuting }
+}
+
 @MainActor
 private final class ClipboardPanelFixture {
     let root: URL
@@ -588,10 +648,17 @@ private final class ClipboardPanelPasteboard: PasteboardServicing, @unchecked Se
 }
 
 private actor RecordingClipboardPanelAutoPaste: AutoPasteServicing {
-    private(set) var lastTarget: String?
+    private(set) var lastTarget: AutoPasteTarget?
 
     func paste(intoBundleIdentifier bundleIdentifier: String?) -> Result<Void, ErrorDescriptor> {
-        lastTarget = bundleIdentifier
+        lastTarget = bundleIdentifier.map {
+            AutoPasteTarget(bundleIdentifier: $0, activationPolicy: .activateIfNeeded)
+        }
+        return .success(())
+    }
+
+    func paste(into target: AutoPasteTarget) -> Result<Void, ErrorDescriptor> {
+        lastTarget = target
         return .success(())
     }
 }
