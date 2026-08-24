@@ -8007,16 +8007,6 @@
         }
       }
     },
-    "⌘ K": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "⌘ K"
-          }
-        }
-      }
-    },
     "⌘ P": {
       "localizations": {
         "zh-Hans": {

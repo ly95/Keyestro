@@ -284,6 +284,7 @@ import Testing
         ) == .deleteSelection
     )
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: true) == nil)
+    #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: false) == nil)
 }
 
 @Test @MainActor func launcherQuickViewKeepsPrimaryAndSecondaryActionsDistinct() throws {

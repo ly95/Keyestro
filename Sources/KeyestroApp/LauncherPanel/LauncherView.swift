@@ -106,15 +106,6 @@ struct LauncherView: View {
                         .controlSize(.small)
                         .accessibilityLabel(L10n.text("Searching"))
                 }
-                Text("⌘ K")
-                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(palette.textSecondary)
-                    .frame(minWidth: 58, minHeight: 24)
-                    .background(iconSurface, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 7, style: .continuous)
-                            .stroke(palette.border, lineWidth: 1)
-                    }
             }
             .padding(.leading, 13)
             .padding(.trailing, 16)
@@ -675,7 +666,6 @@ struct LauncherView: View {
                 .foregroundStyle(palette.textSecondary)
             Spacer()
             footerShortcut("↩", label: model.layer == .results ? "Open" : "Run")
-            footerShortcut("⌘K", label: "Actions")
         }
         .font(.system(size: 11))
         .padding(.horizontal, 24)
@@ -759,7 +749,6 @@ struct LauncherView: View {
         case .submit:
             model.layer == .actions ? model.executeSelectedAction() : model.executeDefault()
         case .submitSecondary: model.executeSecondary()
-        case .openActions: model.openActions()
         case .escape: model.handleEscape()
         case .selectAll: model.requestQueryFocus(selectAll: true)
         case .openSettings: model.onOpenSettings?()

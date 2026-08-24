@@ -764,7 +764,6 @@ ZH_HANS = {
     "Select a result to preview it": "选择结果以预览",
     "Sensitive previews stay hidden": "敏感内容预览保持隐藏",
     "↩": "↩",
-    "⌘ K": "⌘ K",
     "⌘ P": "⌘ P",
     "⌘↩": "⌘↩",
 }

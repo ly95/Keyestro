@@ -701,7 +701,6 @@ struct ClipboardPanelView: View {
             case .results:
                 footerShortcut("↩", label: "Copy")
                 footerShortcut("⌘↩", label: "Paste")
-                footerShortcut("⌘K", label: "Actions")
             }
         }
         .font(.system(size: 11))
@@ -818,7 +817,6 @@ struct ClipboardPanelView: View {
                 model.executeDefault()
             }
         case .submitSecondary: model.executeSecondary()
-        case .openActions: model.openActions()
         case .openFilters: model.openFilters()
         case .deleteSelection: model.requestDeleteSelected()
         case .escape: model.handleEscape()

@@ -6,7 +6,6 @@ enum LauncherCommand: Equatable {
     case moveDown
     case submit
     case submitSecondary
-    case openActions
     case escape
     case selectAll
     case openSettings
@@ -32,7 +31,6 @@ enum LauncherKeyInterpreter {
         guard !isComposing else { return nil }
         if commandModified {
             switch key.lowercased() {
-            case "k": return .openActions
             case "l": return .selectAll
             case "p": return .openFilters
             case ",": return .openSettings
