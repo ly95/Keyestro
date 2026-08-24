@@ -29,7 +29,7 @@ struct ClipboardPanelView: View {
                 searchHeader
                 Rectangle().fill(palette.border).frame(height: 1)
                 content
-                    .frame(height: LauncherPanelLayout.contentHeight)
+                    .frame(height: ClipboardPanelLayout.contentHeight)
                 Rectangle().fill(palette.border).frame(height: 1)
                 footer
             }
@@ -69,7 +69,7 @@ struct ClipboardPanelView: View {
                     .accessibilityHidden(true)
                 LauncherSearchField(
                     text: $model.query,
-                    focusToken: model.queryFocusToken,
+                    focusRequest: model.queryFocusRequest,
                     placeholder: L10n.text("Search Clipboard History"),
                     isEmbedded: true,
                     onChange: { value, isComposing in
@@ -143,7 +143,7 @@ struct ClipboardPanelView: View {
         }
         .padding(.leading, 22)
         .padding(.trailing, 35)
-        .frame(height: LauncherPanelLayout.headerHeight)
+        .frame(height: ClipboardPanelLayout.headerHeight)
         .background(panelSurface)
     }
 
@@ -173,7 +173,7 @@ struct ClipboardPanelView: View {
                 .frame(width: 1)
                 .accessibilityHidden(true)
             quickView
-                .frame(width: LauncherPanelLayout.quickViewWidth)
+                .frame(width: ClipboardPanelLayout.quickViewWidth)
                 .frame(maxHeight: .infinity)
         }
         .background(panelSurface)
@@ -708,7 +708,7 @@ struct ClipboardPanelView: View {
         }
         .font(.system(size: 11))
         .padding(.horizontal, 24)
-        .frame(height: LauncherPanelLayout.footerHeight)
+        .frame(height: ClipboardPanelLayout.footerHeight)
         .background(panelSurface)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(L10n.text("Action hint"))

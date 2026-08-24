@@ -59,39 +59,39 @@ struct LauncherThemePalette {
     }
 
     private static let light = Self(
-        surfaceBase: color(0xF4F5F3),
-        surfaceElevated: color(0xFFFFFF),
-        surfaceSubtle: color(0xECEFEC),
-        surfaceInset: color(0xF2F5F3),
-        textPrimary: color(0x17211E),
-        textSecondary: color(0x5E6A66),
-        border: color(0xD9DEDB),
-        accent: color(0x3F6975),
-        accentSoft: color(0xE5EFF1),
-        selection: color(0xE3EFF2),
-        localStatus: color(0x3B8D68),
-        localStatusSoft: color(0xE3F2EA),
-        privateStatus: color(0xEFD9AA),
-        privateStatusForeground: color(0x8A641F),
-        privateStatusSoft: color(0xFAF0D9)
+        surfaceBase: color(0xEEF3F9),
+        surfaceElevated: color(0xFBFCFE),
+        surfaceSubtle: color(0xE8EEF6),
+        surfaceInset: color(0xF3F7FB),
+        textPrimary: color(0x151A22),
+        textSecondary: color(0x5C6674),
+        border: color(0xB9C4D1),
+        accent: color(0x087E9F),
+        accentSoft: color(0xDDF3F8),
+        selection: color(0xDCEFF5),
+        localStatus: color(0x247B58),
+        localStatusSoft: color(0xDFF1E8),
+        privateStatus: color(0xD7A94E),
+        privateStatusForeground: color(0x75520F),
+        privateStatusSoft: color(0xF8EED8)
     )
 
     private static let dark = Self(
-        surfaceBase: color(0x0E1212),
-        surfaceElevated: color(0x151B19),
-        surfaceSubtle: color(0x19211F),
-        surfaceInset: color(0x1C2622),
-        textPrimary: color(0xECF1EF),
-        textSecondary: color(0xA9B4B0),
-        border: color(0x2B3633),
-        accent: color(0x82B6C5),
-        accentSoft: color(0x24383D),
-        selection: color(0x20343B),
-        localStatus: color(0x72C69F),
-        localStatusSoft: color(0x173B2C),
-        privateStatus: color(0xD8AD64),
-        privateStatusForeground: color(0xD8AD64),
-        privateStatusSoft: color(0x342A19)
+        surfaceBase: color(0x07101C),
+        surfaceElevated: color(0x101925),
+        surfaceSubtle: color(0x182331),
+        surfaceInset: color(0x111B28),
+        textPrimary: color(0xF3F7FB),
+        textSecondary: color(0xA8B4C3),
+        border: color(0x455469),
+        accent: color(0x6FE5FF),
+        accentSoft: color(0x153442),
+        selection: color(0x183A4A),
+        localStatus: color(0x70D3A4),
+        localStatusSoft: color(0x15372A),
+        privateStatus: color(0xE0B45F),
+        privateStatusForeground: color(0xE0B45F),
+        privateStatusSoft: color(0x392D18)
     )
 
     private static func color(_ rgb: UInt32) -> Color {
@@ -199,35 +199,333 @@ private struct TransientPanelSelectionModifier: ViewModifier {
         )
     }
 
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .background(
-                isSelected
-                    ? (visualAccessibility.increaseContrast
+        Group {
+            if isSelected {
+                content.transientPanelGlassSurface(
+                    cornerRadius: cornerRadius,
+                    variant: .regular,
+                    tint: palette.accent.opacity(colorScheme == .dark ? 0.20 : 0.10),
+                    wash: colorScheme == .dark ? Color.black.opacity(0.16) : nil,
+                    fallback: visualAccessibility.increaseContrast
                         ? TransientPanelVisualStyle.accentColor.opacity(visualAccessibility.selectionOpacity)
-                        : palette.selection)
-                    : .clear
-            )
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(alignment: .leading) {
-                if isSelected {
-                    Capsule()
-                        .fill(TransientPanelVisualStyle.accentColor)
-                        .frame(width: visualAccessibility.selectionIndicatorWidth)
-                        .frame(height: 30)
-                }
+                        : palette.selection,
+                    edge: palette.accent.opacity(0.48),
+                    interactive: true
+                )
+            } else {
+                content
             }
-            .overlay {
-                if isSelected, visualAccessibility.usesStrongSelectionOutline {
-                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .stroke(outlineColor, lineWidth: visualAccessibility.selectionOutlineWidth)
-                }
+        }
+        .overlay {
+            if isSelected {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                colorScheme == .dark
+                                    ? palette.accent.opacity(0.10)
+                                    : Color.white.opacity(0.08),
+                                palette.accent.opacity(colorScheme == .dark ? 0.04 : 0.08),
+                                colorScheme == .dark
+                                    ? Color.black.opacity(0.14)
+                                    : Color.clear,
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .allowsHitTesting(false)
             }
+        }
+        .overlay(alignment: .leading) {
+            if isSelected {
+                Capsule()
+                    .fill(TransientPanelVisualStyle.accentColor)
+                    .frame(width: visualAccessibility.selectionIndicatorWidth)
+                    .frame(height: 30)
+            }
+        }
+        .overlay {
+            if isSelected, visualAccessibility.usesStrongSelectionOutline {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(outlineColor, lineWidth: visualAccessibility.selectionOutlineWidth)
+            }
+        }
+    }
+}
+
+enum TransientPanelGlassVariant {
+    case regular
+    case clear
+}
+
+private struct TransientPanelGlassSurfaceModifier: ViewModifier {
+    let cornerRadius: CGFloat
+    let variant: TransientPanelGlassVariant
+    let tint: Color?
+    let wash: Color?
+    let fallback: Color
+    let edge: Color
+    let interactive: Bool
+
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var specularOpacity: Double {
+        colorScheme == .dark ? 0.54 : 0.92
+    }
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        if reduceTransparency {
+            content
+                .background(fallback, in: shape)
+                .clipShape(shape)
+                .overlay { shape.stroke(edge, lineWidth: 1) }
+        } else if #available(macOS 26.0, *) {
+            let glass: Glass =
+                switch variant {
+                case .regular: .regular
+                case .clear: .clear
+                }
+            let baseGlass = glass.tint(tint)
+            content
+                .background(wash ?? .clear, in: shape)
+                .glassEffect(interactive ? baseGlass.interactive() : baseGlass, in: shape)
+                .overlay {
+                    shape.stroke(edge, lineWidth: 0.65)
+                    shape.stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(specularOpacity),
+                                Color.white.opacity(specularOpacity * 0.16),
+                                edge.opacity(0.34),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.72
+                    )
+                    RoundedRectangle(
+                        cornerRadius: max(0, cornerRadius - 1.2),
+                        style: .continuous
+                    )
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(specularOpacity * 0.28),
+                                Color.clear,
+                                Color.black.opacity(colorScheme == .dark ? 0.22 : 0.08),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+                    .padding(1.2)
+                }
+        } else {
+            content
+                .background(.ultraThinMaterial, in: shape)
+                .background(fallback.opacity(0.24), in: shape)
+                .clipShape(shape)
+                .overlay { shape.stroke(edge, lineWidth: 0.75) }
+        }
     }
 }
 
 extension View {
     func transientPanelSelectionStyle(isSelected: Bool, cornerRadius: CGFloat) -> some View {
         modifier(TransientPanelSelectionModifier(isSelected: isSelected, cornerRadius: cornerRadius))
+    }
+
+    func transientPanelGlassSurface(
+        cornerRadius: CGFloat,
+        variant: TransientPanelGlassVariant = .regular,
+        tint: Color? = nil,
+        wash: Color? = nil,
+        fallback: Color,
+        edge: Color = .clear,
+        interactive: Bool = false
+    ) -> some View {
+        modifier(
+            TransientPanelGlassSurfaceModifier(
+                cornerRadius: cornerRadius,
+                variant: variant,
+                tint: tint,
+                wash: wash,
+                fallback: fallback,
+                edge: edge,
+                interactive: interactive
+            )
+        )
+    }
+}
+
+@MainActor
+enum LauncherPanelVisualHost {
+    static func makeView(model: LauncherViewModel) -> NSView {
+        let backdrop = LauncherPanelBackdropView()
+
+        let hosting = NSHostingView(rootView: LauncherView(model: model))
+        backdrop.install(contentView: hosting)
+        return backdrop
+    }
+
+    static func roundedMaterialMask(cornerRadius: CGFloat) -> NSImage {
+        let radius = ceil(cornerRadius)
+        let side = radius * 2 + 1
+        let image = NSImage(
+            size: NSSize(width: side, height: side),
+            flipped: false
+        ) { rect in
+            guard let context = NSGraphicsContext.current?.cgContext else { return false }
+            context.clear(rect)
+            let maskLayer = CALayer()
+            maskLayer.frame = rect
+            maskLayer.backgroundColor = NSColor.white.cgColor
+            maskLayer.cornerRadius = radius
+            maskLayer.cornerCurve = .continuous
+            maskLayer.render(in: context)
+            return true
+        }
+        image.capInsets = NSEdgeInsets(
+            top: radius,
+            left: radius,
+            bottom: radius,
+            right: radius
+        )
+        image.resizingMode = .stretch
+        return image
+    }
+}
+
+@MainActor
+final class LauncherPanelBackdropView: NSView {
+    let darkMaterialView = NSVisualEffectView()
+    let lightGlassView: NSView = {
+        if #available(macOS 26.0, *) {
+            let glassView = NSGlassEffectView()
+            glassView.cornerRadius = LauncherPanelLayout.panelCornerRadius
+            glassView.style = .regular
+            return glassView
+        }
+
+        let materialView = NSVisualEffectView()
+        materialView.material = .underWindowBackground
+        materialView.blendingMode = .behindWindow
+        materialView.state = .active
+        materialView.maskImage = LauncherPanelVisualHost.roundedMaterialMask(
+            cornerRadius: LauncherPanelLayout.panelCornerRadius
+        )
+        return materialView
+    }()
+    private var hostedContentView: NSView?
+    private var directContentConstraints: [NSLayoutConstraint] = []
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        updateMaterialVisibility()
+    }
+
+    static func usesDarkMaterial(for appearance: NSAppearance) -> Bool {
+        let match = appearance.bestMatch(
+            from: [
+                .accessibilityHighContrastDarkAqua,
+                .darkAqua,
+                .accessibilityHighContrastAqua,
+                .aqua,
+            ]
+        )
+        return match == .darkAqua || match == .accessibilityHighContrastDarkAqua
+    }
+
+    func install(contentView: NSView) {
+        hostedContentView = contentView
+        updateMaterialVisibility()
+    }
+
+    private func configure() {
+        wantsLayer = true
+        layer?.cornerRadius = LauncherPanelLayout.panelCornerRadius
+        layer?.cornerCurve = .continuous
+        layer?.masksToBounds = true
+
+        darkMaterialView.translatesAutoresizingMaskIntoConstraints = false
+        darkMaterialView.material = .hudWindow
+        darkMaterialView.blendingMode = .behindWindow
+        darkMaterialView.state = .active
+        darkMaterialView.isEmphasized = true
+        darkMaterialView.maskImage = LauncherPanelVisualHost.roundedMaterialMask(
+            cornerRadius: LauncherPanelLayout.panelCornerRadius
+        )
+        addSubview(darkMaterialView)
+
+        lightGlassView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(lightGlassView)
+        NSLayoutConstraint.activate([
+            darkMaterialView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            darkMaterialView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            darkMaterialView.topAnchor.constraint(equalTo: topAnchor),
+            darkMaterialView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            lightGlassView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            lightGlassView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            lightGlassView.topAnchor.constraint(equalTo: topAnchor),
+            lightGlassView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+        updateMaterialVisibility()
+    }
+
+    private func updateMaterialVisibility() {
+        let usesDarkMaterial = Self.usesDarkMaterial(for: effectiveAppearance)
+        darkMaterialView.isHidden = !usesDarkMaterial
+        lightGlassView.isHidden = usesDarkMaterial
+        updateContentPlacement(usesDarkMaterial: usesDarkMaterial)
+    }
+
+    private func updateContentPlacement(usesDarkMaterial: Bool) {
+        guard let hostedContentView else { return }
+        if !usesDarkMaterial, #available(macOS 26.0, *),
+            let glassView = lightGlassView as? NSGlassEffectView
+        {
+            if glassView.contentView !== hostedContentView {
+                NSLayoutConstraint.deactivate(directContentConstraints)
+                directContentConstraints.removeAll()
+                hostedContentView.removeFromSuperview()
+                glassView.contentView = hostedContentView
+            }
+            return
+        }
+
+        guard hostedContentView.superview !== self else { return }
+        if #available(macOS 26.0, *),
+            let glassView = lightGlassView as? NSGlassEffectView,
+            glassView.contentView === hostedContentView
+        {
+            glassView.contentView = nil
+        }
+        hostedContentView.removeFromSuperview()
+        hostedContentView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostedContentView, positioned: .above, relativeTo: lightGlassView)
+        directContentConstraints = [
+            hostedContentView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostedContentView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostedContentView.topAnchor.constraint(equalTo: topAnchor),
+            hostedContentView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ]
+        NSLayoutConstraint.activate(directContentConstraints)
     }
 }

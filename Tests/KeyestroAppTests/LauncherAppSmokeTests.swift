@@ -50,14 +50,16 @@ import Testing
         width: LauncherPanelLayout.windowWidth,
         height: LauncherPanelLayout.windowHeight
     )
-    let window = NSWindow(
+    let window = KeyestroTransientPanel(
         contentRect: hosting.frame,
         styleMask: [.borderless],
         backing: .buffered,
         defer: false
     )
+    window.alphaValue = 0
     window.contentView = hosting
     window.orderFrontRegardless()
+    defer { window.orderOut(nil) }
     window.layoutIfNeeded()
     hosting.displayIfNeeded()
     await Task.yield()
@@ -67,6 +69,103 @@ import Testing
     let item = try #require(model.results.first?.item)
     #expect(LauncherAccessibility.resultLabel(for: item, previewHidden: false) == "Alpha Application")
     #expect(LauncherAccessibility.resultLabel(for: item, previewHidden: true) == L10n.text("Sensitive item"))
+
+    model.queryDidChange("calendar reminders", isComposing: false)
+    await settleLauncherView(hosting, in: window)
+    let field = try #require(firstSubview(of: CommandTextField.self, in: hosting))
+    #expect(field.stringValue == "calendar reminders")
+    #expect(window.makeFirstResponder(field))
+    field.prepareFieldEditor()
+    let editor = try #require(field.currentEditor() as? CommandFieldEditor)
+    editor.setSelectedRange(NSRange(location: editor.string.utf16.count, length: 0))
+    let commandA = try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: window.windowNumber,
+            context: nil,
+            characters: "a",
+            charactersIgnoringModifiers: "a",
+            isARepeat: false,
+            keyCode: 0
+        )
+    )
+    editor.keyDown(with: commandA)
+    #expect(editor.selectedRange() == NSRange(location: 0, length: editor.string.utf16.count))
+}
+
+@Test @MainActor func launcherWindowUsesNativeLightGlassAndKeepsDarkCornersTransparent() throws {
+    let defaults = try isolatedDefaults()
+    defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+    let provider = AppTestProvider()
+    let model = LauncherViewModel(
+        coordinator: QueryCoordinator(providers: [provider]),
+        actionRunner: ActionRunner(providers: [provider]),
+        settings: SettingsStore(defaults: defaults)
+    )
+    let backdrop = try #require(
+        LauncherPanelVisualHost.makeView(model: model) as? LauncherPanelBackdropView
+    )
+    #expect(backdrop.darkMaterialView.maskImage != nil)
+    #expect(backdrop.darkMaterialView.material == .hudWindow)
+    #expect(backdrop.layer?.masksToBounds == true)
+    #expect(backdrop.layer?.cornerCurve == .continuous)
+    let lightAppearance = try #require(NSAppearance(named: .aqua))
+    let darkAppearance = try #require(NSAppearance(named: .darkAqua))
+    #expect(!LauncherPanelBackdropView.usesDarkMaterial(for: lightAppearance))
+    #expect(LauncherPanelBackdropView.usesDarkMaterial(for: darkAppearance))
+    backdrop.appearance = lightAppearance
+    backdrop.viewDidChangeEffectiveAppearance()
+    #expect(backdrop.darkMaterialView.isHidden)
+    #expect(!backdrop.lightGlassView.isHidden)
+    if #available(macOS 26.0, *) {
+        let lightGlass = try #require(backdrop.lightGlassView as? NSGlassEffectView)
+        #expect(lightGlass.style == .regular)
+        #expect(lightGlass.cornerRadius == LauncherPanelLayout.panelCornerRadius)
+        let hostedContent = try #require(lightGlass.contentView)
+
+        backdrop.appearance = darkAppearance
+        backdrop.viewDidChangeEffectiveAppearance()
+        #expect(!backdrop.darkMaterialView.isHidden)
+        #expect(backdrop.lightGlassView.isHidden)
+        #expect(lightGlass.contentView == nil)
+        #expect(hostedContent.superview === backdrop)
+
+        backdrop.appearance = lightAppearance
+        backdrop.viewDidChangeEffectiveAppearance()
+        #expect(lightGlass.contentView === hostedContent)
+        #expect(hostedContent.superview !== backdrop)
+    }
+    backdrop.appearance = darkAppearance
+    backdrop.viewDidChangeEffectiveAppearance()
+    #expect(!backdrop.darkMaterialView.isHidden)
+
+    let mask = LauncherPanelVisualHost.roundedMaterialMask(
+        cornerRadius: LauncherPanelLayout.panelCornerRadius
+    )
+    let bitmap = try #require(mask.tiffRepresentation.flatMap(NSBitmapImageRep.init(data:)))
+
+    let cornerCoordinates = [
+        (0, 0),
+        (bitmap.pixelsWide - 1, 0),
+        (0, bitmap.pixelsHigh - 1),
+        (bitmap.pixelsWide - 1, bitmap.pixelsHigh - 1),
+    ]
+    for (x, y) in cornerCoordinates {
+        let color = try #require(bitmap.colorAt(x: x, y: y))
+        #expect(color.alphaComponent == 0)
+    }
+
+    let center = try #require(
+        bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)
+    )
+    #expect(center.alphaComponent == 1)
+    #expect(mask.capInsets.top == LauncherPanelLayout.panelCornerRadius)
+    #expect(mask.capInsets.left == LauncherPanelLayout.panelCornerRadius)
+    #expect(mask.capInsets.bottom == LauncherPanelLayout.panelCornerRadius)
+    #expect(mask.capInsets.right == LauncherPanelLayout.panelCornerRadius)
 }
 
 @Test @MainActor func launcherViewModelKeepsStableSelectionAcrossStreamingReplacement() async throws {
@@ -274,6 +373,8 @@ import Testing
         ) == .command(.submitSecondary)
     )
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "1", commandModified: true, isComposing: false) == .executeIndex(0))
+    #expect(LauncherKeyInterpreter.commandEquivalent(key: "a", commandModified: true, isComposing: false) == .selectAll)
+    #expect(LauncherKeyInterpreter.commandEquivalent(key: "A", commandModified: true, isComposing: false) == .selectAll)
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "p", commandModified: true, isComposing: false) == .openFilters)
     #expect(
         LauncherKeyInterpreter.commandEquivalent(
@@ -285,6 +386,61 @@ import Testing
     )
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: true) == nil)
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: false) == nil)
+
+    let caretRequest = LauncherSearchFocusRequest.initial.next(selectAll: false)
+    let selectAllRequest = caretRequest.next(selectAll: true)
+    let repeatedSelectAllRequest = selectAllRequest.next(selectAll: true)
+    #expect(!caretRequest.selectAll)
+    #expect(selectAllRequest.selectAll)
+    #expect(repeatedSelectAllRequest.selectAll)
+    #expect(Set([caretRequest.id, selectAllRequest.id, repeatedSelectAllRequest.id]).count == 3)
+}
+
+@Test @MainActor func launcherSearchFieldCommandASelectsTheEntireQueryImmediately() throws {
+    let field = CommandTextField(
+        frame: NSRect(x: 0, y: 0, width: 320, height: 44)
+    )
+    field.stringValue = "calendar reminders"
+    var forwardedCommands: [LauncherCommand] = []
+    field.commandHandler = { command in
+        forwardedCommands.append(command)
+        return true
+    }
+    let window = KeyestroTransientPanel(
+        contentRect: field.frame,
+        styleMask: [.borderless],
+        backing: .buffered,
+        defer: false
+    )
+    window.contentView = field
+    #expect(window.makeFirstResponder(field))
+    field.prepareFieldEditor()
+    let editor = try #require(field.currentEditor() as? NSTextView)
+    #expect(editor is CommandFieldEditor)
+    editor.setSelectedRange(NSRange(location: editor.string.utf16.count, length: 0))
+
+    let event = try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: window.windowNumber,
+            context: nil,
+            characters: "a",
+            charactersIgnoringModifiers: "a",
+            isARepeat: false,
+            keyCode: 0
+        )
+    )
+
+    #expect(field.performKeyEquivalent(with: event))
+    #expect(editor.selectedRange() == NSRange(location: 0, length: editor.string.utf16.count))
+
+    editor.setSelectedRange(NSRange(location: editor.string.utf16.count, length: 0))
+    editor.keyDown(with: event)
+    #expect(editor.selectedRange() == NSRange(location: 0, length: editor.string.utf16.count))
+    #expect(forwardedCommands.isEmpty)
 }
 
 @Test @MainActor func launcherQuickViewKeepsPrimaryAndSecondaryActionsDistinct() throws {
@@ -1311,6 +1467,50 @@ func launcherRendersTheLocalLensReferenceStateWithoutThemeLayoutShift() async th
     #expect(await filesProvider.lastExecutedActionID() == "show-in-finder")
 }
 
+@Test @MainActor
+func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws {
+    await ComponentStorySerialization.acquire()
+    defer { ComponentStorySerialization.release() }
+
+    let suiteName = "com.keyestro.liquid-glass-reference-tests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let providers = LocalLensReferenceProvider.makeLiquidGlassProviders()
+    let settings = SettingsStore(defaults: defaults)
+    let model = LauncherViewModel(
+        coordinator: QueryCoordinator(providers: providers),
+        actionRunner: ActionRunner(providers: providers),
+        settings: settings
+    )
+    let renderer = LauncherComponentStoryRenderer(model: model)
+    defer { renderer.retainUntilProcessExit() }
+    defer { model.didDismiss() }
+
+    model.invoke(context: QueryContext())
+    model.queryDidChange("cal", isComposing: false)
+    try await waitUntil { model.results.count == 5 && !model.isSearching }
+    let calculatorID = try #require(
+        model.displayOrderedResults.first { $0.item.title == "Calculator" }?.id
+    )
+    model.selectItem(calculatorID)
+
+    let outputDirectory = ProcessInfo.processInfo.environment["KEYESTRO_LAUNCHER_QA_OUTPUT_DIR"]
+        .map { URL(fileURLWithPath: $0, isDirectory: true) }
+    for appearance in [LauncherAppearancePreference.light, .dark] {
+        settings.launcherAppearance = appearance
+        try await waitUntil { model.launcherAppearance == appearance }
+        let outputURL = outputDirectory?.appendingPathComponent("implementation-\(appearance.rawValue).png")
+        try await renderer.render(to: outputURL, focusesSearchField: false)
+    }
+
+    #expect(LauncherPanelLayout.windowWidth == 664)
+    #expect(LauncherPanelLayout.windowHeight == 414)
+    #expect(model.selectedItem?.title == "Calculator")
+    #expect(model.displayOrderedResults.map(\.item.title).count == 5)
+}
+
 private let defaultsSuiteName = "com.keyestro.app-tests"
 
 @MainActor
@@ -2004,7 +2204,7 @@ private actor LauncherComponentStoryProvider: LauncherProvider {
             ("tenth", "Alpha Tenth Result", .systemSymbol("10.circle"), .normal),
         ]
         let items = stories.map { id, title, icon, privacy in
-            LauncherItem(
+            return LauncherItem(
                 id: ItemID(providerID: providerID, providerStableID: id),
                 providerID: providerID,
                 title: title,
@@ -2242,6 +2442,66 @@ private actor LocalLensReferenceProvider: LauncherProvider {
         ]
     }
 
+    nonisolated static func makeLiquidGlassProviders() -> [any LauncherProvider] {
+        let providerID: ProviderID = "liquid-glass-reference"
+        let open = ActionDescriptor(id: "open", title: "Open")
+        let app = { (stableID: String, title: String, iconPath: String) in
+            let executionCount: Int
+            switch stableID {
+            case "calculator": executionCount = 100
+            case "calendar": executionCount = 80
+            case "calendar-reminders": executionCount = 60
+            default: executionCount = 0
+            }
+            return LauncherItem(
+                id: ItemID(providerID: providerID, providerStableID: stableID),
+                providerID: providerID,
+                title: title,
+                icon: .application(URL(fileURLWithPath: iconPath)),
+                keywords: ["cal"],
+                actions: [open],
+                defaultActionID: open.id,
+                scoreFeatures: ScoreFeatures(
+                    lastUsedAt: executionCount > 0 ? Date() : nil,
+                    executionCount90Days: executionCount,
+                    context: executionCount > 0 ? 1 : 0,
+                    providerPrior: executionCount > 0 ? 1 : 0,
+                    isPinned: stableID == "calculator"
+                )
+            )
+        }
+        return [
+            LocalLensReferenceProvider(
+                id: providerID,
+                items: [
+                    app("calculator", "Calculator", "/System/Applications/Calculator.app"),
+                    app("calendar", "Calendar", "/System/Applications/Calendar.app"),
+                    app("calendar-reminders", "Calendar / Reminders", "/System/Applications/Calendar.app"),
+                    LauncherItem(
+                        id: ItemID(providerID: providerID, providerStableID: "applications-folder"),
+                        providerID: providerID,
+                        title: "Open Applications Folder",
+                        icon: .file(URL(fileURLWithPath: "/Users/Shared")),
+                        keywords: ["cal"],
+                        actions: [open],
+                        defaultActionID: open.id,
+                        scoreFeatures: ScoreFeatures(
+                            lastUsedAt: Date(),
+                            executionCount90Days: 40,
+                            context: 1,
+                            providerPrior: 1
+                        )
+                    ),
+                    app(
+                        "calibration-assistant",
+                        "Ca\u{200B}libration Assistant",
+                        "/System/Applications/System Settings.app"
+                    ),
+                ]
+            )
+        ]
+    }
+
     nonisolated func search(request _: QueryRequest) -> AsyncThrowingStream<ProviderEvent, any Error> {
         AsyncThrowingStream { continuation in
             Task { await emit(into: continuation) }
@@ -2267,12 +2527,12 @@ private final class LauncherComponentStoryRenderer {
     // off-screen host for the lifetime of the test process to avoid teardown races.
     private static var retainedRenderers: [LauncherComponentStoryRenderer] = []
 
-    private let hosting: NSHostingView<LauncherView>
+    private let hosting: NSHostingView<LauncherComponentStoryRenderRoot>
     private let window: NSWindow
     private var isRetained = false
 
     init(model: LauncherViewModel) {
-        hosting = NSHostingView(rootView: LauncherView(model: model))
+        hosting = NSHostingView(rootView: LauncherComponentStoryRenderRoot(model: model))
         hosting.frame = NSRect(
             x: 0,
             y: 0,
@@ -2285,6 +2545,9 @@ private final class LauncherComponentStoryRenderer {
             backing: .buffered,
             defer: false
         )
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
         window.contentView = hosting
     }
 
@@ -2320,5 +2583,35 @@ private final class LauncherComponentStoryRenderer {
         guard !isRetained else { return }
         isRetained = true
         Self.retainedRenderers.append(self)
+    }
+}
+
+private struct LauncherComponentStoryRenderRoot: View {
+    @ObservedObject var model: LauncherViewModel
+
+    var body: some View {
+        ZStack {
+            if model.launcherAppearance == .light {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.83, green: 0.90, blue: 0.97),
+                        Color(red: 0.97, green: 0.92, blue: 0.90),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.03, green: 0.07, blue: 0.13),
+                        Color(red: 0.08, green: 0.16, blue: 0.29),
+                        Color(red: 0.02, green: 0.04, blue: 0.08),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            LauncherView(model: model)
+        }
     }
 }

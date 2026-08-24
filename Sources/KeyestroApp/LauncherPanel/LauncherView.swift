@@ -29,16 +29,47 @@ struct LauncherView: View {
     }
 
     var body: some View {
-        ZStack {
-            VStack(spacing: 0) {
-                searchHeader
-                Rectangle().fill(palette.border).frame(height: 1)
-                content
-                    .frame(height: LauncherPanelLayout.contentHeight)
-                Rectangle().fill(palette.border).frame(height: 1)
-                footer
+        Group {
+            if #available(macOS 26.0, *) {
+                GlassEffectContainer(spacing: 12) {
+                    panelLayers
+                }
+            } else {
+                panelLayers
             }
-            .background(background)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .foregroundStyle(palette.textPrimary)
+        .tint(palette.accent)
+        .preferredColorScheme(model.launcherAppearance.preferredColorScheme)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: LauncherPanelLayout.panelCornerRadius,
+                style: .continuous
+            )
+        )
+        .transaction { transaction in
+            if reduceMotion { transaction.animation = nil }
+        }
+    }
+
+    private var panelLayers: some View {
+        ZStack {
+            Group {
+                if colorScheme == .dark {
+                    launcherContent
+                        .transientPanelGlassSurface(
+                            cornerRadius: LauncherPanelLayout.panelCornerRadius,
+                            variant: .regular,
+                            tint: Color.black.opacity(0.18),
+                            wash: Color.black.opacity(0.38),
+                            fallback: palette.surfaceBase,
+                            edge: palette.accent.opacity(0.32)
+                        )
+                } else {
+                    launcherContent
+                }
+            }
 
             if let message = model.message {
                 VStack(spacing: 3) {
@@ -68,33 +99,30 @@ struct LauncherView: View {
                 executingOverlay
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(palette.textPrimary)
-        .tint(palette.accent)
-        .preferredColorScheme(model.launcherAppearance.preferredColorScheme)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(palette.border, lineWidth: 1)
-        }
-        .transaction { transaction in
-            if reduceMotion { transaction.animation = nil }
+    }
+
+    private var launcherContent: some View {
+        VStack(spacing: 0) {
+            searchHeader
+            content
+                .frame(height: LauncherPanelLayout.contentHeight)
         }
     }
 
     private var searchHeader: some View {
-        HStack(spacing: 0) {
-            HStack(spacing: 10) {
+        HStack {
+            HStack(spacing: 14) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 17, weight: .regular))
+                    .font(.system(size: 22, weight: .regular))
                     .foregroundStyle(palette.textSecondary)
-                    .frame(width: 20)
+                    .frame(width: 26)
                     .accessibilityHidden(true)
                 LauncherSearchField(
                     text: $model.query,
-                    focusToken: model.queryFocusToken,
+                    focusRequest: model.queryFocusRequest,
                     placeholder: L10n.text("launcher.search.placeholder"),
                     isEmbedded: true,
+                    fontSize: 23,
                     onChange: { text, composing in
                         model.queryDidChange(text, isComposing: composing)
                     },
@@ -110,48 +138,26 @@ struct LauncherView: View {
                 }
                 .frame(width: 16, height: 16)
             }
-            .padding(.leading, 13)
-            .padding(.trailing, 16)
-            .frame(height: 44)
-            .background(insetSurface, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(palette.border, lineWidth: colorSchemeContrast == .increased ? 1.5 : 1)
-            }
-
-            Spacer().frame(width: 14)
-
-            HStack(spacing: 7) {
-                Circle().fill(palette.accent).frame(width: 8, height: 8)
-                Text(scopeLabel).lineLimit(1)
-            }
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(palette.accent)
-            .frame(width: 80, height: 44)
-            .background(palette.accentSoft, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .accessibilityElement(children: .combine)
-
-            Spacer().frame(width: 25)
-
-            Button {
-                model.openActions()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundStyle(palette.textSecondary)
-                    .frame(width: 38, height: 38)
-                    .background(insetSurface, in: Circle())
-                    .overlay { Circle().stroke(palette.border, lineWidth: 1) }
-            }
-            .buttonStyle(.plain)
-            .disabled(!model.canExecuteSelectedResult)
-            .help(L10n.text("Open actions"))
-            .accessibilityLabel(L10n.text("Open actions"))
+            .padding(.horizontal, 18)
+            .frame(height: LauncherPanelLayout.searchFieldHeight)
+            .transientPanelGlassSurface(
+                cornerRadius: 16,
+                variant: .clear,
+                tint: colorScheme == .dark
+                    ? Color.black.opacity(0.16)
+                    : Color.white.opacity(0.03),
+                wash: colorScheme == .dark
+                    ? Color.black.opacity(0.18)
+                    : nil,
+                fallback: insetSurface,
+                edge: colorScheme == .dark
+                    ? Color.white.opacity(0.22)
+                    : Color.white.opacity(0.58),
+                interactive: true
+            )
         }
-        .padding(.leading, 22)
-        .padding(.trailing, 35)
+        .padding(.horizontal, LauncherPanelLayout.horizontalInset)
         .frame(height: LauncherPanelLayout.headerHeight)
-        .background(panelSurface)
     }
 
     @ViewBuilder
@@ -336,44 +342,27 @@ struct LauncherView: View {
     }
 
     private var resultWorkspace: some View {
-        HStack(spacing: 0) {
-            resultsColumn
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            Rectangle()
-                .fill(palette.border)
-                .frame(width: 1)
-                .accessibilityHidden(true)
-            quickView
-                .frame(width: LauncherPanelLayout.quickViewWidth)
-                .frame(maxHeight: .infinity)
-        }
-        .background(panelSurface)
+        resultsColumn
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var resultsColumn: some View {
-        VStack(spacing: 0) {
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(model.displayOrderedResults.enumerated()), id: \.element.id) { index, ranked in
-                            resultRow(ranked.item, index: index)
-                                .id(ranked.id)
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(model.displayOrderedResults.enumerated()), id: \.element.id) { index, ranked in
+                        resultRow(ranked.item, index: index)
+                            .id(ranked.id)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityLabel(L10n.text("Results"))
                 }
-                .onChange(of: model.selectedItemID) { _, id in
-                    if let id { proxy.scrollTo(id, anchor: .center) }
-                }
+                .padding(.bottom, 8)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel(L10n.text("Results"))
             }
-            privacyNotice
-                .padding(.horizontal, 16)
-                .padding(.bottom, 36)
+            .onChange(of: model.selectedItemID) { _, id in
+                if let id { proxy.scrollTo(id) }
+            }
         }
-        .background(panelSurface)
     }
 
     private var privacyNotice: some View {
@@ -602,23 +591,14 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func resultRow(_ item: LauncherItem, index _: Int) -> some View {
+    private func resultRow(_ item: LauncherItem, index: Int) -> some View {
         let selected = model.selectedItemID == item.id
         let previewHidden = hidesPreview(for: item)
-        return HStack(spacing: 14) {
+        return HStack(spacing: 12) {
             resultIcon(for: item, selected: selected)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(previewHidden ? L10n.text("Sensitive item") : localizedTitle(item))
-                    .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                if let subtitle = item.subtitle {
-                    Text(previewHidden ? L10n.text("Preview hidden") : localizedSubtitle(subtitle, for: item))
-                        .font(.system(size: 11))
-                        .foregroundStyle(palette.textSecondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
-            }
+            Text(previewHidden ? L10n.text("Sensitive item") : localizedTitle(item))
+                .font(.system(size: 19.5, weight: .regular))
+                .lineLimit(1)
             Spacer(minLength: 12)
             if selected, item.privacy == .sensitive {
                 Button {
@@ -630,13 +610,29 @@ struct LauncherView: View {
                 .help(previewHidden ? L10n.text("Show sensitive preview") : L10n.text("Hide sensitive preview"))
                 .accessibilityLabel(previewHidden ? L10n.text("Show sensitive preview") : L10n.text("Hide sensitive preview"))
             }
-            if let accessory = rowAccessory(for: item, selected: selected) {
-                resultAccessory(accessory)
+            if selected {
+                HStack(spacing: 9) {
+                    Text(primaryActionTitle(for: item))
+                    Text("↩")
+                        .font(.system(size: 19, weight: .regular))
+                }
+                .font(.system(size: 16, weight: .medium))
+                .foregroundStyle(palette.accent)
+                .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 60)
-        .transientPanelSelectionStyle(isSelected: selected, cornerRadius: 14)
+        .padding(.horizontal, 14)
+        .frame(height: LauncherPanelLayout.resultRowHeight)
+        .transientPanelSelectionStyle(isSelected: selected, cornerRadius: 8)
+        .overlay(alignment: .bottom) {
+            if !selected, index < model.displayOrderedResults.count - 1 {
+                Rectangle()
+                    .fill(palette.border.opacity(colorScheme == .dark ? 0.42 : 0.5))
+                    .frame(height: 0.5)
+                    .padding(.horizontal, 2)
+            }
+        }
+        .padding(.horizontal, 12)
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             model.selectItem(item.id)
@@ -859,23 +855,12 @@ struct LauncherView: View {
     private func resultIcon(for item: LauncherItem, selected: Bool) -> some View {
         if usesHighContrastGlyph(item.icon) {
             LauncherIcon(reference: item.icon)
-                .frame(width: 32, height: 32)
+                .frame(width: 48, height: 48)
                 .foregroundStyle(palette.textPrimary)
         } else {
             LauncherIcon(reference: item.icon)
-                .frame(width: 28, height: 28)
-                .padding(2)
+                .frame(width: 48, height: 48)
                 .foregroundStyle(selected ? palette.accent : palette.textSecondary)
-                .background(
-                    selected ? iconSurface : palette.surfaceSubtle,
-                    in: RoundedRectangle(cornerRadius: 9, style: .continuous)
-                )
-                .overlay {
-                    if selected {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .stroke(palette.border, lineWidth: 1)
-                    }
-                }
         }
     }
 

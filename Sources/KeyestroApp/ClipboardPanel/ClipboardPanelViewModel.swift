@@ -81,7 +81,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     @Published var message: String?
     @Published private(set) var messageDetail: String?
     @Published private(set) var messageOffersPermissions = false
-    @Published private(set) var queryFocusToken = 0
+    @Published private(set) var queryFocusRequest = LauncherSearchFocusRequest.initial
     @Published private var revealedSensitiveItemIDs = Set<String>()
     @Published private(set) var launcherAppearance: LauncherAppearancePreference
 
@@ -382,7 +382,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     }
 
     func requestQueryFocus(selectAll: Bool) {
-        queryFocusToken += selectAll ? 2 : 1
+        queryFocusRequest = queryFocusRequest.next(selectAll: selectAll)
     }
 
     private func clipboardEnabledDidChange(_ enabled: Bool) {

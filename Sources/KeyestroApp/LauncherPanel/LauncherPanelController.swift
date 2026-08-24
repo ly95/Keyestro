@@ -51,7 +51,7 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
 
         panel.delegate = self
         TransientPanelPresentation.configure(panel, identifier: Self.panelWindowIdentifier)
-        panel.contentView = NSHostingView(rootView: LauncherView(model: viewModel))
+        panel.contentView = LauncherPanelVisualHost.makeView(model: viewModel)
         panel.contentView?.layoutSubtreeIfNeeded()
         panel.contentView?.needsDisplay = true
         panel.contentView?.displayIfNeeded()
@@ -267,15 +267,19 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
 }
 
 enum LauncherPanelLayout {
-    static let windowWidth: CGFloat = 800
-    static let windowHeight: CGFloat = 620
-    static let headerHeight: CGFloat = 80
-    static let footerHeight: CGFloat = 52
-    static let quickViewWidth: CGFloat = 260
-    static let contentHeight = windowHeight - headerHeight - footerHeight - 2
+    static let windowWidth: CGFloat = 664
+    static let windowHeight: CGFloat = 414
+    static let headerHeight: CGFloat = 78
+    static let footerHeight: CGFloat = 0
+    static let quickViewWidth: CGFloat = 0
+    static let panelCornerRadius: CGFloat = 28
+    static let horizontalInset: CGFloat = 12
+    static let searchFieldHeight: CGFloat = 54
+    static let resultRowHeight: CGFloat = 64
+    static let contentHeight = windowHeight - headerHeight
     static let compactHeight = windowHeight
     static let recoveryHeight = windowHeight
-    static let chromeHeight = headerHeight + footerHeight + 2
+    static let chromeHeight = headerHeight
     static let emptyStateVerticalMargins: CGFloat = 32
 
     static func availableContentHeight(panelHeight: CGFloat) -> CGFloat {

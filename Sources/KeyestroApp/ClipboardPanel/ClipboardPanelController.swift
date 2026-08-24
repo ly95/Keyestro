@@ -29,8 +29,8 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
             contentRect: NSRect(
                 x: 0,
                 y: 0,
-                width: LauncherPanelLayout.windowWidth,
-                height: LauncherPanelLayout.windowHeight
+                width: ClipboardPanelLayout.windowWidth,
+                height: ClipboardPanelLayout.windowHeight
             ),
             styleMask: [.borderless, .nonactivatingPanel, .fullSizeContentView],
             backing: .buffered,
@@ -160,9 +160,9 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
     static func frame(in visible: NSRect) -> NSRect {
         TransientPanelPlacement.frame(
             in: visible,
-            preferredHeight: LauncherPanelLayout.windowHeight,
-            preferredWidth: LauncherPanelLayout.windowWidth,
-            maximumHeight: LauncherPanelLayout.windowHeight
+            preferredHeight: ClipboardPanelLayout.windowHeight,
+            preferredWidth: ClipboardPanelLayout.windowWidth,
+            maximumHeight: ClipboardPanelLayout.windowHeight
         )
     }
 
@@ -176,4 +176,13 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
     @objc private func screenParametersChanged() {
         if panel.isVisible { positionPanel(on: targetScreen()) }
     }
+}
+
+enum ClipboardPanelLayout {
+    static let windowWidth: CGFloat = 800
+    static let windowHeight: CGFloat = 620
+    static let headerHeight: CGFloat = 80
+    static let footerHeight: CGFloat = 52
+    static let quickViewWidth: CGFloat = 260
+    static let contentHeight = windowHeight - headerHeight - footerHeight - 2
 }

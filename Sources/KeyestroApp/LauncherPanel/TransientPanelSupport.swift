@@ -2,8 +2,27 @@ import AppKit
 import CoreGraphics
 
 final class KeyestroTransientPanel: NSPanel {
+    private lazy var commandFieldEditor: CommandFieldEditor = {
+        let editor = CommandFieldEditor(frame: .zero)
+        editor.isFieldEditor = true
+        editor.isRichText = false
+        editor.importsGraphics = false
+        return editor
+    }()
+
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func fieldEditor(_ createFlag: Bool, for object: Any?) -> NSText? {
+        guard object is CommandTextField else {
+            return super.fieldEditor(createFlag, for: object)
+        }
+        return createFlag ? commandFieldEditor : commandFieldEditorIfAttached(to: object)
+    }
+
+    private func commandFieldEditorIfAttached(to object: Any?) -> NSText? {
+        commandFieldEditor.delegate === object as AnyObject ? commandFieldEditor : nil
+    }
 }
 
 @MainActor
@@ -17,7 +36,7 @@ enum TransientPanelPresentation {
         panel.hasShadow = true
         panel.titleVisibility = .hidden
         panel.titlebarAppearsTransparent = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient, .ignoresCycle]
+        panel.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient, .ignoresCycle]
         panel.animationBehavior = .none
         panel.identifier = identifier
         panel.setFrameAutosaveName("")

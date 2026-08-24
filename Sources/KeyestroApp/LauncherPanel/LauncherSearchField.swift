@@ -21,6 +21,17 @@ enum LauncherCommandInterpretation: Equatable {
     case command(LauncherCommand)
 }
 
+struct LauncherSearchFocusRequest: Equatable {
+    let id: Int
+    let selectAll: Bool
+
+    static let initial = Self(id: 0, selectAll: false)
+
+    func next(selectAll: Bool) -> Self {
+        Self(id: id + 1, selectAll: selectAll)
+    }
+}
+
 enum LauncherKeyInterpreter {
     static func commandEquivalent(
         key: String,
@@ -31,7 +42,7 @@ enum LauncherKeyInterpreter {
         guard !isComposing else { return nil }
         if commandModified {
             switch key.lowercased() {
-            case "l": return .selectAll
+            case "a", "l": return .selectAll
             case "p": return .openFilters
             case ",": return .openSettings
             case "1"..."9": return key.first?.wholeNumberValue.map { .executeIndex($0 - 1) }
@@ -58,6 +69,35 @@ enum LauncherKeyInterpreter {
         case #selector(NSResponder.insertTab(_:)): return .command(.tab)
         default: return .passThrough
         }
+    }
+}
+
+final class CommandFieldEditor: NSTextView {
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        if selectAllIfRequested(by: event) { return true }
+        return super.performKeyEquivalent(with: event)
+    }
+
+    override func keyDown(with event: NSEvent) {
+        guard !selectAllIfRequested(by: event) else { return }
+        super.keyDown(with: event)
+    }
+
+    private func selectAllIfRequested(by event: NSEvent) -> Bool {
+        guard !hasMarkedText(),
+            let key = event.charactersIgnoringModifiers
+        else { return false }
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        guard
+            LauncherKeyInterpreter.commandEquivalent(
+                key: key,
+                commandModified: modifiers.contains(.command),
+                controlModified: modifiers.contains(.control),
+                isComposing: false
+            ) == .selectAll
+        else { return false }
+        selectAll(nil)
+        return true
     }
 }
 
@@ -103,6 +143,12 @@ final class CommandTextField: NSTextField {
         else {
             return super.performKeyEquivalent(with: event)
         }
+        if command == .selectAll,
+            let editor = currentEditor() as? NSTextView
+        {
+            editor.selectAll(nil)
+            return true
+        }
         if commandHandler?(command) == true { return true }
         return super.performKeyEquivalent(with: event)
     }
@@ -110,9 +156,10 @@ final class CommandTextField: NSTextField {
 
 struct LauncherSearchField: View {
     @Binding var text: String
-    let focusToken: Int
+    let focusRequest: LauncherSearchFocusRequest
     let placeholder: String
     var isEmbedded = false
+    var fontSize: CGFloat = 14
     let onChange: (String, Bool) -> Void
     let onCommand: (LauncherCommand) -> Bool
 
@@ -123,8 +170,9 @@ struct LauncherSearchField: View {
     var body: some View {
         let field = LauncherSearchTextField(
             text: $text,
-            focusToken: focusToken,
+            focusRequest: focusRequest,
             placeholder: placeholder,
+            fontSize: fontSize,
             onChange: onChange,
             onCommand: onCommand
         )
@@ -163,8 +211,9 @@ struct LauncherSearchField: View {
 
 private struct LauncherSearchTextField: NSViewRepresentable {
     @Binding var text: String
-    let focusToken: Int
+    let focusRequest: LauncherSearchFocusRequest
     let placeholder: String
+    let fontSize: CGFloat
     let onChange: (String, Bool) -> Void
     let onCommand: (LauncherCommand) -> Bool
 
@@ -179,7 +228,7 @@ private struct LauncherSearchTextField: NSViewRepresentable {
         field.isBezeled = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = .systemFont(ofSize: 14, weight: .regular)
+        field.font = .systemFont(ofSize: fontSize, weight: .regular)
         field.isAutomaticTextCompletionEnabled = false
         field.placeholderString = placeholder
         field.lineBreakMode = .byTruncatingTail
@@ -191,17 +240,20 @@ private struct LauncherSearchTextField: NSViewRepresentable {
         context.coordinator.parent = self
         field.commandHandler = onCommand
         field.placeholderString = placeholder
+        field.font = .systemFont(ofSize: fontSize, weight: .regular)
         field.prepareFieldEditor()
         if (field.currentEditor() as? NSTextView)?.hasMarkedText() != true, field.stringValue != text {
             field.stringValue = text
         }
-        if context.coordinator.lastFocusToken != focusToken {
-            context.coordinator.lastFocusToken = focusToken
+        if context.coordinator.lastFocusRequestID != focusRequest.id {
+            context.coordinator.lastFocusRequestID = focusRequest.id
             DispatchQueue.main.async {
                 field.prepareFieldEditor()
                 field.window?.makeFirstResponder(field)
-                if focusToken.isMultiple(of: 2) {
+                if focusRequest.selectAll {
                     field.currentEditor()?.selectAll(nil)
+                } else if let editor = field.currentEditor() as? NSTextView {
+                    editor.setSelectedRange(NSRange(location: editor.string.utf16.count, length: 0))
                 }
             }
         }
@@ -210,7 +262,7 @@ private struct LauncherSearchTextField: NSViewRepresentable {
     @MainActor
     final class Coordinator: NSObject, NSTextFieldDelegate {
         var parent: LauncherSearchTextField
-        var lastFocusToken = -1
+        var lastFocusRequestID = -1
 
         init(parent: LauncherSearchTextField) {
             self.parent = parent
@@ -239,6 +291,10 @@ private struct LauncherSearchTextField: NSViewRepresentable {
                     isComposing: false
                 )
             {
+                if command == .selectAll {
+                    textView.selectAll(nil)
+                    return true
+                }
                 return parent.onCommand(command)
             }
             let interpretation = LauncherKeyInterpreter.interpret(

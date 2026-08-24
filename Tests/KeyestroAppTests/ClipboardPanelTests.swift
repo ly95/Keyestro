@@ -317,8 +317,8 @@ func clipboardPanelUsesTheLocalLensAppearanceAndFixedGeometry() async throws {
     let frame = ClipboardPanelController.frame(
         in: NSRect(x: 0, y: 0, width: 1_440, height: 900)
     )
-    #expect(frame.width == LauncherPanelLayout.windowWidth)
-    #expect(frame.height == LauncherPanelLayout.windowHeight)
+    #expect(frame.width == ClipboardPanelLayout.windowWidth)
+    #expect(frame.height == ClipboardPanelLayout.windowHeight)
 }
 
 @Test @MainActor
@@ -513,8 +513,8 @@ func clipboardPanelControllerPresentsResizesAndDismissesItsComponent() async thr
     for _ in 0..<50 where !controller.isVisible { await Task.yield() }
     #expect(controller.isVisible)
     try await waitForClipboardPanel { !model.entries.isEmpty }
-    #expect(controller.frame.width == LauncherPanelLayout.windowWidth)
-    #expect(controller.frame.height == LauncherPanelLayout.windowHeight)
+    #expect(controller.frame.width == ClipboardPanelLayout.windowWidth)
+    #expect(controller.frame.height == ClipboardPanelLayout.windowHeight)
     model.openActions()
     await Task.yield()
     model.openFilters()
@@ -627,8 +627,8 @@ private final class ClipboardPanelStoryRenderer {
         hosting.frame = NSRect(
             x: 0,
             y: 0,
-            width: LauncherPanelLayout.windowWidth,
-            height: LauncherPanelLayout.windowHeight
+            width: ClipboardPanelLayout.windowWidth,
+            height: ClipboardPanelLayout.windowHeight
         )
         window = NSWindow(
             contentRect: hosting.frame,

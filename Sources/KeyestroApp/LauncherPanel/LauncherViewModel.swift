@@ -38,7 +38,7 @@ final class LauncherViewModel: ObservableObject {
     @Published private(set) var messageDetail: String?
     @Published var pendingConfirmation: PendingConfirmation?
     @Published var parameterForm: ParameterFormState?
-    @Published private(set) var queryFocusToken = 0
+    @Published private(set) var queryFocusRequest = LauncherSearchFocusRequest.initial
     @Published private var revealedSensitiveItemIDs = Set<ItemID>()
     @Published private(set) var launcherAppearance: LauncherAppearancePreference
 
@@ -243,7 +243,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     func requestQueryFocus(selectAll: Bool) {
-        queryFocusToken += selectAll ? 2 : 1
+        queryFocusRequest = queryFocusRequest.next(selectAll: selectAll)
     }
 
     func retrySearch() {
