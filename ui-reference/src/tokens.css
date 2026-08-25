@@ -1,0 +1,56 @@
+:root {
+  /* Typography: one shared ramp for every non-locked product surface. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --type-display: 26px;
+  --type-title: 20px;
+  --type-heading: 16px;
+  --type-body: 14px;
+  --type-label: 12px;
+  --type-meta: 11px;
+  --type-caption: 10px;
+  --type-micro: 9px;
+  --leading-tight: 1;
+  --leading-heading: 1.15;
+  --leading-ui: 1.3;
+  --leading-copy: 1.45;
+
+  /* Spacing: all layout rhythm is built from a 4 px base. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Controls: context chooses a documented size, never a one-off height. */
+  --control-search: 54px;
+  --control-toolbar: 44px;
+  --control-button: 32px;
+  --control-compact: 28px;
+  --control-keycap: 24px;
+
+  /* Rows: one size per information density. */
+  --row-launcher: 66px;
+  --row-command: 54px;
+  --row-list: 60px;
+  --row-settings: 32px;
+
+  /* Radius scale: six approved values plus fully circular/pill shapes. */
+  --radius-compact: 6px;
+  --radius-button: 8px;
+  --radius-control: 12px;
+  --radius-search: 16px;
+  --radius-floating: 24px;
+  --radius-launcher: 28px;
+  --radius-pill: 999px;
+
+  --stroke-hairline: .75px;
+  --stroke-control: 1px;
+
+  /* Locked Launcher Results metrics. Values are intentionally unchanged. */
+  --launcher-header-height: 78px;
+  --launcher-search-type: 23px;
+  --launcher-result-type: 19.5px;
+}

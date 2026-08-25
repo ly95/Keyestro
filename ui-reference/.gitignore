@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.DS_Store
+
+# Keep only final design-QA evidence in git; iterative captures stay local.
+qa/*
+!qa/launcher-locked-after-light.png
+!qa/launcher-locked-after-dark.png
+!qa/launcher-locked-token-pass-light.png
+!qa/launcher-locked-token-pass-dark.png
+!qa/standards-after-foundations.png
+!qa/standards-after-actions.jpg
+!qa/standards-after-clipboard.jpg
+!qa/standards-after-settings-general.jpg
+!qa/standards-contact-launcher-clipboard.jpg
+!qa/standards-contact-settings.jpg
+!qa/standards-contact-other-surfaces.jpg
+!qa/standards-option3-source-vs-current.png
+!qa/standards-launcher-locked-regression.png
