@@ -267,6 +267,11 @@ final class LauncherPanelController: NSObject, NSWindowDelegate {
     }
 }
 
+enum LauncherResultScrollTarget: Equatable {
+    case top
+    case selectedBottom
+}
+
 enum LauncherPanelLayout {
     static let windowWidth: CGFloat = 664
     static let windowHeight: CGFloat = 414
@@ -278,15 +283,19 @@ enum LauncherPanelLayout {
     static let searchFieldHeight: CGFloat = 54
     static let searchFieldCornerRadius = panelCornerRadius - horizontalInset
     static let resultRowHeight: CGFloat = 66
-    static let resultBottomInset: CGFloat = 6
+    static let visibleResultRowCount = 5
+    static let resultTopInset: CGFloat = 6
     static let resultContentHorizontalInset: CGFloat = 26
     static let selectionCornerRadius = panelCornerRadius
-    static let separatorHorizontalInset: CGFloat = 14
     static let contentHeight = windowHeight - headerHeight
     static let compactHeight = windowHeight
     static let recoveryHeight = windowHeight
     static let chromeHeight = headerHeight
     static let emptyStateVerticalMargins: CGFloat = 32
+
+    static func resultScrollTarget(forSelectedIndex index: Int) -> LauncherResultScrollTarget {
+        index >= visibleResultRowCount - 1 ? .selectedBottom : .top
+    }
 
     static func availableContentHeight(panelHeight: CGFloat) -> CGFloat {
         max(0, panelHeight - chromeHeight)

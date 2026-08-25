@@ -3,6 +3,10 @@ import KeyestroDomain
 import SwiftUI
 
 struct LauncherView: View {
+    private enum ResultsScrollAnchor: Hashable {
+        case top
+    }
+
     @ObservedObject var model: LauncherViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
@@ -472,19 +476,30 @@ struct LauncherView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(Array(model.displayOrderedResults.enumerated()), id: \.element.id) { index, ranked in
-                        resultRow(ranked.item, index: index)
+                    Color.clear
+                        .frame(height: LauncherPanelLayout.resultTopInset)
+                        .accessibilityHidden(true)
+                        .id(ResultsScrollAnchor.top)
+                    ForEach(model.displayOrderedResults, id: \.id) { ranked in
+                        resultRow(ranked.item)
                             .id(ranked.id)
                     }
                 }
-                .padding(.bottom, LauncherPanelLayout.resultBottomInset)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel(L10n.text("Results"))
             }
             .scrollIndicators(.hidden)
             .scrollClipDisabled(false)
             .onChange(of: model.selectedItemID) { _, id in
-                if let id { proxy.scrollTo(id) }
+                guard let id,
+                    let index = model.displayOrderedResults.firstIndex(where: { $0.id == id })
+                else { return }
+                switch LauncherPanelLayout.resultScrollTarget(forSelectedIndex: index) {
+                case .top:
+                    proxy.scrollTo(ResultsScrollAnchor.top, anchor: .top)
+                case .selectedBottom:
+                    proxy.scrollTo(id, anchor: .bottom)
+                }
             }
         }
     }
@@ -715,7 +730,7 @@ struct LauncherView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func resultRow(_ item: LauncherItem, index: Int) -> some View {
+    private func resultRow(_ item: LauncherItem) -> some View {
         let selected = model.selectedItemID == item.id
         let previewHidden = hidesPreview(for: item)
         return HStack(spacing: 12) {
@@ -744,14 +759,6 @@ struct LauncherView: View {
             isSelected: selected,
             cornerRadius: LauncherPanelLayout.selectionCornerRadius
         )
-        .overlay(alignment: .bottom) {
-            if !selected, index < model.displayOrderedResults.count - 1 {
-                Rectangle()
-                    .fill(palette.border.opacity(colorScheme == .dark ? 0.62 : 0.5))
-                    .frame(height: 0.5)
-                    .padding(.horizontal, LauncherPanelLayout.separatorHorizontalInset)
-            }
-        }
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             model.selectItem(item.id)

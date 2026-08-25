@@ -1551,7 +1551,7 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
 
     model.invoke(context: QueryContext())
     model.queryDidChange("cal", isComposing: false)
-    try await waitUntil { model.results.count == 5 && !model.isSearching }
+    try await waitUntil { model.results.count == 7 && !model.isSearching }
     let calculatorID = try #require(
         model.displayOrderedResults.first { $0.item.title == "Calculator" }?.id
     )
@@ -1564,11 +1564,38 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
         try await waitUntil { model.launcherAppearance == appearance }
         let outputURL = outputDirectory?.appendingPathComponent("implementation-\(appearance.rawValue).png")
         try await renderer.render(to: outputURL, focusesSearchField: false)
-        if let outputDirectory, let bottomID = model.displayOrderedResults.last?.id {
-            model.selectItem(bottomID)
+        if let outputDirectory, model.displayOrderedResults.count >= 7 {
+            let orderedIDs = model.displayOrderedResults.map(\.id)
+            for _ in 0..<6 {
+                model.moveSelection(1)
+                await Task.yield()
+            }
+            #expect(model.selectedItemID == orderedIDs[6])
             try await renderer.render(
                 to: outputDirectory.appendingPathComponent(
-                    "implementation-bottom-selection-\(appearance.rawValue).png"
+                    "implementation-sequence-7-\(appearance.rawValue).png"
+                ),
+                focusesSearchField: false
+            )
+            for _ in 0..<6 {
+                model.moveSelection(-1)
+                await Task.yield()
+            }
+            #expect(model.selectedItemID == orderedIDs[0])
+            try await renderer.render(
+                to: outputDirectory.appendingPathComponent(
+                    "implementation-sequence-7-1-\(appearance.rawValue).png"
+                ),
+                focusesSearchField: false
+            )
+            for _ in 0..<4 {
+                model.moveSelection(1)
+                await Task.yield()
+            }
+            #expect(model.selectedItemID == orderedIDs[4])
+            try await renderer.render(
+                to: outputDirectory.appendingPathComponent(
+                    "implementation-sequence-7-1-5-\(appearance.rawValue).png"
                 ),
                 focusesSearchField: false
             )
@@ -1580,13 +1607,23 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
     #expect(LauncherPanelLayout.windowHeight == 414)
     #expect(LauncherPanelLayout.searchFieldCornerRadius == 16)
     #expect(LauncherPanelLayout.resultRowHeight == 66)
-    #expect(LauncherPanelLayout.resultBottomInset == 6)
+    #expect(LauncherPanelLayout.visibleResultRowCount == 5)
+    #expect(LauncherPanelLayout.resultTopInset == 6)
+    #expect(
+        LauncherPanelLayout.resultTopInset
+            + LauncherPanelLayout.resultRowHeight
+                * CGFloat(LauncherPanelLayout.visibleResultRowCount)
+            == LauncherPanelLayout.contentHeight
+    )
+    #expect(
+        [6, 0, 4].map(LauncherPanelLayout.resultScrollTarget(forSelectedIndex:))
+            == [.selectedBottom, .top, .selectedBottom]
+    )
     #expect(LauncherPanelLayout.resultContentHorizontalInset == 26)
     #expect(LauncherPanelLayout.selectionCornerRadius == 28)
     #expect(LauncherPanelLayout.selectionCornerRadius == LauncherPanelLayout.panelCornerRadius)
-    #expect(LauncherPanelLayout.separatorHorizontalInset == 14)
     #expect(model.selectedItem?.title == "Calculator")
-    #expect(model.displayOrderedResults.map(\.item.title).count == 5)
+    #expect(model.displayOrderedResults.map(\.item.title).count == 7)
 }
 
 private let defaultsSuiteName = "com.keyestro.app-tests"
@@ -2530,6 +2567,9 @@ private actor LocalLensReferenceProvider: LauncherProvider {
             case "calculator": executionCount = 100
             case "calendar": executionCount = 80
             case "calendar-reminders": executionCount = 60
+            case "calibration-assistant": executionCount = 20
+            case "calibration-notes": executionCount = 10
+            case "calibration-reference": executionCount = 5
             default: executionCount = 0
             }
             return LauncherItem(
@@ -2575,6 +2615,16 @@ private actor LocalLensReferenceProvider: LauncherProvider {
                         "calibration-assistant",
                         "Ca\u{200B}libration Assistant",
                         "/System/Applications/System Settings.app"
+                    ),
+                    app(
+                        "calibration-notes",
+                        "Ca\u{200B}libration Notes",
+                        "/System/Applications/TextEdit.app"
+                    ),
+                    app(
+                        "calibration-reference",
+                        "Ca\u{200B}libration Reference",
+                        "/System/Applications/Dictionary.app"
                     ),
                 ]
             )
