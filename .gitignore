@@ -23,3 +23,4 @@ Config/requirements-evidence.json
 scripts/audit-requirements.py
 scripts/test-requirements-audit.py
 description.md
+design-qa.md
