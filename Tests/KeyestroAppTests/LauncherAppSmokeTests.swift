@@ -109,8 +109,6 @@ import Testing
     let backdrop = try #require(
         LauncherPanelVisualHost.makeView(model: model) as? LauncherPanelBackdropView
     )
-    #expect(backdrop.darkMaterialView.maskImage != nil)
-    #expect(backdrop.darkMaterialView.material == .hudWindow)
     #expect(backdrop.layer?.masksToBounds == true)
     #expect(backdrop.layer?.cornerCurve == .continuous)
     let lightAppearance = try #require(NSAppearance(named: .aqua))
@@ -119,23 +117,31 @@ import Testing
     #expect(LauncherPanelBackdropView.usesDarkMaterial(for: darkAppearance))
     backdrop.appearance = lightAppearance
     backdrop.viewDidChangeEffectiveAppearance()
-    #expect(backdrop.darkMaterialView.isHidden)
-    #expect(!backdrop.lightGlassView.isHidden)
+    #expect(!backdrop.adaptiveGlassView.isHidden)
     if #available(macOS 26.0, *) {
-        let glass = try #require(backdrop.lightGlassView as? NSGlassEffectView)
+        let glass = try #require(backdrop.adaptiveGlassView as? NSGlassEffectView)
         #expect(glass.style == .clear)
         #expect(glass.cornerRadius == LauncherPanelLayout.panelCornerRadius)
-        #expect(glass.tintColor != nil)
+        let lightTint = try #require(glass.tintColor?.usingColorSpace(.sRGB))
+        #expect(
+            lightTint.alphaComponent == LauncherPanelBackdropView.approvedLightGlassTintOpacity
+        )
+        #expect(abs(lightTint.redComponent - 0.82) < 0.001)
+        #expect(abs(lightTint.greenComponent - 0.91) < 0.001)
+        #expect(abs(lightTint.blueComponent - 1) < 0.001)
         let hostedContent = try #require(glass.contentView)
+        #expect(backdrop.layer?.borderWidth == 0.65)
 
         backdrop.appearance = darkAppearance
         backdrop.viewDidChangeEffectiveAppearance()
-        #expect(backdrop.darkMaterialView.isHidden)
-        #expect(!backdrop.lightGlassView.isHidden)
-        #expect(glass.style == .regular)
         let darkTint = try #require(glass.tintColor?.usingColorSpace(.sRGB))
-        #expect(darkTint.alphaComponent >= 0.65)
-        #expect(darkTint.alphaComponent <= 0.72)
+        #expect(!backdrop.adaptiveGlassView.isHidden)
+        #expect(glass.style == .clear)
+        #expect(darkTint.alphaComponent == LauncherPanelBackdropView.darkGlassTintOpacity)
+        #expect(darkTint.redComponent < 0.05)
+        #expect(darkTint.greenComponent < 0.07)
+        #expect(darkTint.blueComponent < 0.10)
+        #expect(backdrop.layer?.borderWidth == 0.65)
         #expect(glass.contentView === hostedContent)
         #expect(hostedContent.superview !== backdrop)
 
@@ -145,24 +151,17 @@ import Testing
         #expect(glass.contentView === hostedContent)
         #expect(hostedContent.superview !== backdrop)
     } else {
+        let material = try #require(backdrop.adaptiveGlassView as? NSVisualEffectView)
+        #expect(material.material == .underWindowBackground)
         backdrop.appearance = darkAppearance
         backdrop.viewDidChangeEffectiveAppearance()
-        #expect(!backdrop.darkMaterialView.isHidden)
-        #expect(backdrop.lightGlassView.isHidden)
+        #expect(!backdrop.adaptiveGlassView.isHidden)
+        #expect(material.material == .underWindowBackground)
 
         backdrop.appearance = lightAppearance
         backdrop.viewDidChangeEffectiveAppearance()
-        #expect(backdrop.darkMaterialView.isHidden)
-        #expect(!backdrop.lightGlassView.isHidden)
-    }
-    backdrop.appearance = darkAppearance
-    backdrop.viewDidChangeEffectiveAppearance()
-    if #available(macOS 26.0, *) {
-        #expect(backdrop.darkMaterialView.isHidden)
-        #expect(!backdrop.lightGlassView.isHidden)
-    } else {
-        #expect(!backdrop.darkMaterialView.isHidden)
-        #expect(backdrop.lightGlassView.isHidden)
+        #expect(!backdrop.adaptiveGlassView.isHidden)
+        #expect(material.material == .underWindowBackground)
     }
 
     let mask = LauncherPanelVisualHost.roundedMaterialMask(
@@ -1612,7 +1611,7 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
     #expect(
         LauncherPanelLayout.resultTopInset
             + LauncherPanelLayout.resultRowHeight
-                * CGFloat(LauncherPanelLayout.visibleResultRowCount)
+            * CGFloat(LauncherPanelLayout.visibleResultRowCount)
             == LauncherPanelLayout.contentHeight
     )
     #expect(

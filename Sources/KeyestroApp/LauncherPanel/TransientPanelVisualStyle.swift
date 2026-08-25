@@ -187,7 +187,6 @@ private struct TransientPanelSelectionModifier: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.launcherNativeGlassEnabled) private var nativeGlassEnabled
 
     private var visualAccessibility: TransientPanelVisualAccessibilityPolicy {
         TransientPanelVisualAccessibilityPolicy(
@@ -221,73 +220,20 @@ private struct TransientPanelSelectionModifier: ViewModifier {
             if isSelected {
                 ZStack(alignment: .leading) {
                     content
-                    if colorScheme == .dark, nativeGlassEnabled {
-                        selectionShape
-                            .stroke(
-                                LinearGradient(
-                                    colors: [
-                                        Color.white.opacity(0.68),
-                                        Color.white.opacity(0.42),
-                                        Color.white.opacity(0.12),
-                                        Color(red: 0.60, green: 0.74, blue: 0.84).opacity(0.36),
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                lineWidth: 1
-                            )
-                            .allowsHitTesting(false)
-                        HStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            LinearGradient(
-                                colors: [
-                                    Color(red: 0.66, green: 0.80, blue: 0.94).opacity(0.30),
-                                    Color.white.opacity(0.18),
-                                    Color.clear,
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                            .frame(width: 0.8)
-                        }
-                        .padding(.vertical, cornerRadius * 0.72)
-                        .clipShape(selectionShape)
-                        .allowsHitTesting(false)
-                    }
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(
-                            colorScheme == .dark
-                                ? Color(red: 0.28, green: 0.92, blue: 1)
-                                : palette.accent
-                        )
-                        .frame(
-                            width: colorScheme == .dark
-                                ? max(3, visualAccessibility.selectionIndicatorWidth)
-                                : visualAccessibility.selectionIndicatorWidth
-                        )
+                        .fill(palette.accent)
+                        .frame(width: visualAccessibility.selectionIndicatorWidth)
                         .frame(maxHeight: .infinity)
-                        .shadow(
-                            color: colorScheme == .dark ? palette.accent.opacity(0.58) : .clear,
-                            radius: colorScheme == .dark ? 1.5 : 0,
-                            x: colorScheme == .dark ? 0.5 : 0
-                        )
                 }
                 .clipShape(selectionShape)
                 .transientPanelGlassSurface(
                     cornerRadius: cornerRadius,
                     variant: .regular,
-                    tint: colorScheme == .dark
-                        ? Color(red: 0.02, green: 0.20, blue: 0.31).opacity(0.58)
-                        : palette.accent.opacity(0.055),
-                    wash: colorScheme == .dark
-                        ? Color(red: 0.03, green: 0.10, blue: 0.165).opacity(0.62)
-                        : nil,
+                    tint: palette.accent.opacity(0.055),
                     fallback: visualAccessibility.increaseContrast
                         ? TransientPanelVisualStyle.accentColor.opacity(visualAccessibility.selectionOpacity)
                         : palette.selection,
-                    edge: colorScheme == .dark
-                        ? Color(red: 0.52, green: 0.68, blue: 0.78).opacity(0.32)
-                        : palette.accent.opacity(0.30),
+                    edge: palette.accent.opacity(0.30),
                     interactive: true
                 )
             } else {
@@ -312,331 +258,19 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
     let cornerRadius: CGFloat
     let variant: TransientPanelGlassVariant
     let tint: Color?
-    let wash: Color?
     let fallback: Color
     let edge: Color
     let interactive: Bool
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.launcherNativeGlassEnabled) private var nativeGlassEnabled
 
-    private var darkSurfaceWash: LinearGradient {
-        let colors: [Color] =
-            switch variant {
-            case .regular:
-                [
-                    Color.white.opacity(0.055),
-                    Color(red: 0.16, green: 0.39, blue: 0.52).opacity(0.065),
-                    Color.clear,
-                    Color.black.opacity(0.07),
-                ]
-            case .clear:
-                [
-                    Color.white.opacity(0.025),
-                    Color(red: 0.08, green: 0.16, blue: 0.28).opacity(0.025),
-                    Color.clear,
-                    Color.black.opacity(0.035),
-                ]
-            }
-        return LinearGradient(
-            colors: colors,
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private var darkEdgeRefraction: RadialGradient {
-        let refractionColor: Color
-        let opacity: Double
-        let endRadius: CGFloat
-        switch variant {
-        case .regular:
-            refractionColor = Color(red: 0.25, green: 0.50, blue: 0.65)
-            opacity = 0.11
-            endRadius = 220
-        case .clear:
-            refractionColor = Color(red: 0.20, green: 0.25, blue: 0.35)
-            opacity = 0.26
-            endRadius = 110
-        }
-        return RadialGradient(
-            colors: [
-                refractionColor.opacity(opacity),
-                Color.clear,
-            ],
-            center: UnitPoint(x: 0.04, y: variant == .regular ? 0 : 0.42),
-            startRadius: 0,
-            endRadius: endRadius
-        )
-    }
-
     @ViewBuilder
-    private func darkForegroundOptics(in shape: RoundedRectangle) -> some View {
-        if variant == .regular {
-            ZStack {
-                shape.fill(
-                    LinearGradient(
-                        stops: [
-                            .init(
-                                color: Color(red: 0.20, green: 0.37, blue: 0.37).opacity(0.18),
-                                location: 0
-                            ),
-                            .init(color: Color.clear, location: 0.72),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                LinearGradient(
-                    stops: [
-                        .init(
-                            color: Color(red: 0.70, green: 0.86, blue: 0.98).opacity(0.85),
-                            location: 0
-                        ),
-                        .init(
-                            color: Color(red: 0.50, green: 0.64, blue: 0.76).opacity(0.62),
-                            location: 0.15
-                        ),
-                        .init(
-                            color: Color(red: 0.42, green: 0.48, blue: 0.54).opacity(0.20),
-                            location: 0.30
-                        ),
-                        .init(color: Color.clear, location: 0.48),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white, location: 0),
-                            .init(color: Color.white.opacity(0.85), location: 0.04),
-                            .init(color: Color.white.opacity(0.22), location: 0.16),
-                            .init(color: Color.clear, location: 0.24),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                LinearGradient(
-                    stops: [
-                        .init(
-                            color: Color(red: 0.45, green: 0.58, blue: 0.68).opacity(0.25),
-                            location: 0
-                        ),
-                        .init(
-                            color: Color(red: 0.42, green: 0.50, blue: 0.58).opacity(0.34),
-                            location: 0.45
-                        ),
-                        .init(
-                            color: Color(red: 0.38, green: 0.44, blue: 0.50).opacity(0.22),
-                            location: 0.78
-                        ),
-                        .init(color: Color.clear, location: 1),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.clear, location: 0.88),
-                            .init(color: Color.white.opacity(0.15), location: 0.94),
-                            .init(color: Color.white, location: 1),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-            }
-            .clipShape(shape)
-        } else {
-            ZStack {
-                shape.fill(
-                    LinearGradient(
-                        stops: [
-                            .init(
-                                color: Color(red: 0.22, green: 0.28, blue: 0.42).opacity(0.18),
-                                location: 0
-                            ),
-                            .init(color: Color.clear, location: 0.08),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                LinearGradient(
-                    stops: [
-                        .init(color: Color.white.opacity(0.10), location: 0),
-                        .init(color: Color.white.opacity(0.025), location: 0.34),
-                        .init(color: Color.clear, location: 0.76),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white, location: 0),
-                            .init(color: Color.clear, location: 0.12),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-            }
-            .clipShape(shape)
-        }
-    }
-
-    @ViewBuilder
-    private func darkDirectionalEdges(in shape: RoundedRectangle) -> some View {
-        let isRegular = variant == .regular
-        ZStack {
-            VStack(spacing: 0) {
-                if isRegular {
-                    LinearGradient(
-                        stops: [
-                            .init(
-                                color: Color(red: 0.62, green: 0.78, blue: 0.90).opacity(0.82),
-                                location: 0
-                            ),
-                            .init(
-                                color: Color(red: 0.50, green: 0.66, blue: 0.78).opacity(0.62),
-                                location: 0.13
-                            ),
-                            .init(
-                                color: Color(red: 0.48, green: 0.55, blue: 0.62).opacity(0.32),
-                                location: 0.26
-                            ),
-                            .init(
-                                color: Color(red: 0.40, green: 0.45, blue: 0.50).opacity(0.10),
-                                location: 0.42
-                            ),
-                            .init(color: Color.clear, location: 0.52),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(height: 4)
-                    .mask(
-                        LinearGradient(
-                            stops: [
-                                .init(color: Color.white, location: 0),
-                                .init(color: Color.white, location: 0.55),
-                                .init(color: Color.clear, location: 1),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                } else {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(0.22), location: 0),
-                            .init(
-                                color: Color(red: 0.58, green: 0.72, blue: 0.84).opacity(0.13),
-                                location: 0.22
-                            ),
-                            .init(color: Color.white.opacity(0.08), location: 0.52),
-                            .init(color: Color.clear, location: 0.82),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(height: 0.7)
-                }
-                Spacer(minLength: 0)
-                if isRegular {
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.white.opacity(0.22), location: 0),
-                            .init(
-                                color: Color(red: 0.52, green: 0.62, blue: 0.70).opacity(0.22),
-                                location: 0.42
-                            ),
-                            .init(color: Color.clear, location: 0.84),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(height: 3)
-                    .mask(
-                        LinearGradient(
-                            colors: [Color.clear, Color.white],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-                }
-            }
-            .padding(.horizontal, cornerRadius * 0.72)
-
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.68, green: 0.80, blue: 0.96)
-                            .opacity(isRegular ? 0.18 : 0.13),
-                        Color.white.opacity(isRegular ? 0.10 : 0.07),
-                        Color.clear,
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(width: 0.7)
-            }
-            .padding(.vertical, cornerRadius * 0.72)
-        }
-        .clipShape(shape)
-        .allowsHitTesting(false)
-    }
-
-    @ViewBuilder
-    private func glassEdges(in shape: RoundedRectangle, native: Bool) -> some View {
-        shape.stroke(edge, lineWidth: colorScheme == .dark ? 0.9 : 0.75)
-        if colorScheme == .dark {
-            shape
-                .inset(by: 1)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(variant == .regular ? 0.32 : 0.16),
-                            Color(red: 0.42, green: 0.78, blue: 0.94)
-                                .opacity(variant == .regular ? 0.12 : 0.05),
-                            Color.clear,
-                            Color.black.opacity(0.32),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 0.5
-                )
-            darkDirectionalEdges(in: shape)
-            if native, variant == .regular {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.11),
-                            Color(red: 0.52, green: 0.76, blue: 0.90).opacity(0.16),
-                            Color.white.opacity(0.08),
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(height: 0.7)
-                }
-                .padding(.horizontal, cornerRadius * 0.72)
-                .clipShape(shape)
-                .allowsHitTesting(false)
-            }
-        } else {
-            shape
-                .inset(by: 1)
-                .stroke(Color.white.opacity(0.34), lineWidth: 0.5)
-        }
+    private func glassEdges(in shape: RoundedRectangle) -> some View {
+        shape.stroke(edge, lineWidth: 0.75)
+        shape
+            .inset(by: 1)
+            .stroke(Color.white.opacity(0.34), lineWidth: 0.5)
     }
 
     @ViewBuilder
@@ -655,38 +289,16 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
                 }
             let baseGlass = glass.tint(tint)
             content
-                .background {
-                    if colorScheme == .dark {
-                        darkForegroundOptics(in: shape)
-                    }
-                }
-                .background(wash ?? .clear, in: shape)
-                .background {
-                    if colorScheme == .dark {
-                        ZStack {
-                            shape.fill(darkSurfaceWash)
-                            shape.fill(darkEdgeRefraction)
-                        }
-                    }
-                }
                 .glassEffect(interactive ? baseGlass.interactive() : baseGlass, in: shape)
                 .overlay {
-                    glassEdges(in: shape, native: true)
+                    glassEdges(in: shape)
                 }
         } else {
             content
-                .background {
-                    ZStack {
-                        shape.fill(fallback)
-                        if colorScheme == .dark {
-                            shape.fill(darkSurfaceWash)
-                            shape.fill(darkEdgeRefraction)
-                        }
-                    }
-                }
+                .background(fallback, in: shape)
                 .clipShape(shape)
                 .overlay {
-                    glassEdges(in: shape, native: false)
+                    glassEdges(in: shape)
                 }
         }
     }
@@ -701,7 +313,6 @@ extension View {
         cornerRadius: CGFloat,
         variant: TransientPanelGlassVariant = .regular,
         tint: Color? = nil,
-        wash: Color? = nil,
         fallback: Color,
         edge: Color = .clear,
         interactive: Bool = false
@@ -711,7 +322,6 @@ extension View {
                 cornerRadius: cornerRadius,
                 variant: variant,
                 tint: tint,
-                wash: wash,
                 fallback: fallback,
                 edge: edge,
                 interactive: interactive
@@ -760,12 +370,14 @@ enum LauncherPanelVisualHost {
 
 @MainActor
 final class LauncherPanelBackdropView: NSView {
-    let darkMaterialView = NSVisualEffectView()
-    let lightGlassView: NSView = {
+    static let approvedLightGlassTintOpacity: CGFloat = 0.035
+    static let darkGlassTintOpacity: CGFloat = 0.55
+
+    let adaptiveGlassView: NSView = {
         if #available(macOS 26.0, *) {
             let glassView = NSGlassEffectView()
             glassView.cornerRadius = LauncherPanelLayout.panelCornerRadius
-            glassView.style = .regular
+            glassView.style = .clear
             return glassView
         }
 
@@ -793,7 +405,7 @@ final class LauncherPanelBackdropView: NSView {
 
     override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
-        updateMaterialVisibility()
+        updateMaterialAppearance()
     }
 
     static func usesDarkMaterial(for appearance: NSAppearance) -> Bool {
@@ -808,9 +420,33 @@ final class LauncherPanelBackdropView: NSView {
         return match == .darkAqua || match == .accessibilityHighContrastDarkAqua
     }
 
+    static func glassTintColor(for appearance: NSAppearance) -> NSColor {
+        if usesDarkMaterial(for: appearance) {
+            return NSColor(
+                srgbRed: 0x08 / 255,
+                green: 0x0D / 255,
+                blue: 0x16 / 255,
+                alpha: darkGlassTintOpacity
+            )
+        }
+        return NSColor(
+            srgbRed: 0.82,
+            green: 0.91,
+            blue: 1,
+            alpha: approvedLightGlassTintOpacity
+        )
+    }
+
+    static func borderColor(for appearance: NSAppearance) -> NSColor {
+        if usesDarkMaterial(for: appearance) {
+            return NSColor(srgbRed: 0x35 / 255, green: 0x42 / 255, blue: 0x53 / 255, alpha: 0.66)
+        }
+        return NSColor.white.withAlphaComponent(0.66)
+    }
+
     func install(contentView: NSView) {
         hostedContentView = contentView
-        updateMaterialVisibility()
+        updateMaterialAppearance()
     }
 
     private func configure() {
@@ -819,62 +455,40 @@ final class LauncherPanelBackdropView: NSView {
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
 
-        darkMaterialView.translatesAutoresizingMaskIntoConstraints = false
-        darkMaterialView.material = .hudWindow
-        darkMaterialView.blendingMode = .behindWindow
-        darkMaterialView.state = .active
-        darkMaterialView.isEmphasized = true
-        darkMaterialView.maskImage = LauncherPanelVisualHost.roundedMaterialMask(
-            cornerRadius: LauncherPanelLayout.panelCornerRadius
-        )
-        addSubview(darkMaterialView)
-
-        lightGlassView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(lightGlassView)
+        adaptiveGlassView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(adaptiveGlassView)
         NSLayoutConstraint.activate([
-            darkMaterialView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            darkMaterialView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            darkMaterialView.topAnchor.constraint(equalTo: topAnchor),
-            darkMaterialView.bottomAnchor.constraint(equalTo: bottomAnchor),
-            lightGlassView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            lightGlassView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            lightGlassView.topAnchor.constraint(equalTo: topAnchor),
-            lightGlassView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            adaptiveGlassView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            adaptiveGlassView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            adaptiveGlassView.topAnchor.constraint(equalTo: topAnchor),
+            adaptiveGlassView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
-        updateMaterialVisibility()
+        updateMaterialAppearance()
     }
 
-    private func updateMaterialVisibility() {
-        let usesDarkMaterial = Self.usesDarkMaterial(for: effectiveAppearance)
+    private func updateMaterialAppearance() {
+        layer?.backgroundColor = NSColor.clear.cgColor
+        layer?.borderWidth = 0.65
+        layer?.borderColor = Self.borderColor(for: effectiveAppearance).cgColor
+
         if #available(macOS 26.0, *),
-            let glassView = lightGlassView as? NSGlassEffectView
+            let glassView = adaptiveGlassView as? NSGlassEffectView
         {
-            darkMaterialView.isHidden = true
-            lightGlassView.isHidden = false
             glassView.style = .clear
-            glassView.tintColor =
-                usesDarkMaterial
-                ? NSColor(srgbRed: 0.01, green: 0.025, blue: 0.055, alpha: 0.84)
-                : NSColor(srgbRed: 0.82, green: 0.91, blue: 1, alpha: 0.035)
-            layer?.borderWidth = usesDarkMaterial ? 0 : 0.65
-            layer?.borderColor =
-                (usesDarkMaterial
-                ? NSColor.clear
-                : NSColor.white.withAlphaComponent(0.66)).cgColor
+            glassView.tintColor = Self.glassTintColor(for: effectiveAppearance)
             updateContentPlacement(usesNativeGlass: true)
             return
         }
 
-        darkMaterialView.isHidden = !usesDarkMaterial
-        lightGlassView.isHidden = usesDarkMaterial
         layer?.borderWidth = 0
+        layer?.borderColor = nil
         updateContentPlacement(usesNativeGlass: false)
     }
 
     private func updateContentPlacement(usesNativeGlass: Bool) {
         guard let hostedContentView else { return }
         if usesNativeGlass, #available(macOS 26.0, *),
-            let glassView = lightGlassView as? NSGlassEffectView
+            let glassView = adaptiveGlassView as? NSGlassEffectView
         {
             if glassView.contentView !== hostedContentView {
                 NSLayoutConstraint.deactivate(directContentConstraints)
@@ -887,14 +501,14 @@ final class LauncherPanelBackdropView: NSView {
 
         guard hostedContentView.superview !== self else { return }
         if #available(macOS 26.0, *),
-            let glassView = lightGlassView as? NSGlassEffectView,
+            let glassView = adaptiveGlassView as? NSGlassEffectView,
             glassView.contentView === hostedContentView
         {
             glassView.contentView = nil
         }
         hostedContentView.removeFromSuperview()
         hostedContentView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostedContentView, positioned: .above, relativeTo: lightGlassView)
+        addSubview(hostedContentView, positioned: .above, relativeTo: adaptiveGlassView)
         directContentConstraints = [
             hostedContentView.leadingAnchor.constraint(equalTo: leadingAnchor),
             hostedContentView.trailingAnchor.constraint(equalTo: trailingAnchor),

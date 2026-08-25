@@ -1,8 +1,14 @@
-# Launcher Dark Liquid Glass design QA
+# Launcher Liquid Glass design QA
+
+> Appearance requirement updated on 2026-08-25: Light is the structural baseline. Light and Dark
+> use the same backdrop class/style, material layers, borders, radii, spacing, and interaction states.
+> The approved Light baseline is frozen at native clear glass with a 3.5% tint. Dark uses the same
+> clear glass layer with a 55% deep semantic tint so bright desktop colors cannot overwhelm the mode;
+> neither appearance may add an opaque SwiftUI shell fill or extra optical layer.
 
 ## Comparison target
 
-- Dark source visual truth: `/Users/linyang/.codex/generated_images/01a03264-0a6d-7fa2-a51c-48a7737b32ba/exec-d79dd23d-f914-411b-ad68-ba6e70cfe8c8.png`
+- Historical Dark geometry/local-surface reference: `/Users/linyang/.codex/generated_images/01a03264-0a6d-7fa2-a51c-48a7737b32ba/exec-d79dd23d-f914-411b-ad68-ba6e70cfe8c8.png`
 - Normalized source panel: `/tmp/keyestro-dark-final.eNpPrM/design-dark.png`
 - Production-host implementation capture: `/tmp/keyestro-dark-final.eNpPrM/live-dark.png`
 - Full comparison: `/tmp/keyestro-dark-final.eNpPrM/compare-dark-final.png`
@@ -15,37 +21,36 @@
 
 ## Capture safety and method
 
-- The production `LauncherPanelVisualHost` was rendered in a real borderless AppKit window.
-- The QA window started fully transparent, was moved to Desktop 2 through the test-only space mover, and was made visible only after its assigned space was verified.
-- Capture used the QA process's own window image only. ScreenCaptureKit was not used, so QA does not request screen-recording permission or capture unrelated desktop content.
-- The live QA window was hidden and ordered out after every capture.
-- The full suite was intentionally stopped when an unrelated legacy window test surfaced on the active desktop. Only headless tests and the Desktop-2-guarded visual test were run afterward.
+- The historical production comparison used the guarded live-capture path documented by the paths above.
+- The 2026-08-25 Light/Dark unification pass used only the off-screen `NSHostingView` renderer. It did not order a QA window front, switch spaces, or use Desktop 2.
+- ScreenCaptureKit was not used, so QA did not request screen-recording permission or capture unrelated desktop content.
+- Routine launcher QA must remain off-screen. Do not enable the live QA path or use another desktop unless the user explicitly opts in.
 
 ## Full-view comparison evidence
 
 - The 664 × 414 pt shell, 28 pt outer radius, 78 pt header, 54 pt search field, 66 pt result rhythm, five-row stack, content insets, action alignment, and 6 pt bottom clearance match the approved composition.
-- Dark uses native macOS glass with a deep navy transmissive film rather than Light's pale acrylic treatment.
-- The outer shell has a restrained layered rim, a top environmental reflection, and transparent rounded corners without an opaque rectangular backing.
+- Light and Dark use one adaptive shell implementation: native clear glass on macOS 26 and the same `underWindowBackground` fallback on earlier systems.
+- The approved Light tint remains 3.5%; Dark uses a 55% deep tint on that same glass layer. Both retain the same 0.65 pt rim and 28 pt continuous radius, with no opaque content-layer fill. Rounded corners outside the shell remain transparent.
 - Scroll indicators are hidden in the approved five-result state.
 
 ## Focused region evidence
 
-- Search: native clear interactive glass, 22 pt continuous radius, dark navy wash, cool edge refraction, leading environmental pickup, and source-aligned icon/query placement.
-- Selection: native regular glass, smoky blue transmission, cyan leading refraction, directional top and bottom highlights, source-aligned content coordinates, and a 14 pt continuous radius.
-- Shell: deep navy vertical value falloff, narrow leading-edge illumination, controlled top reflection, and a layered but non-acrylic rim.
+- Search: the same clear interactive glass, 22 pt continuous radius, tint opacity, two edge strokes, and content placement in Light and Dark.
+- Selection: the same regular interactive glass, 14 pt continuous radius, tint opacity, two edge strokes, leading-indicator width, and content coordinates in Light and Dark.
+- Shell: the same clear adaptive backdrop, border width, and content hosting path in both appearances. Only the glass tint RGBA changes; Light's approved values are regression-locked.
 
 ## Required fidelity surfaces
 
 - Typography: native San Francisco system type, sizes, weights, baselines, truncation, and hierarchy align at the target viewport.
 - Spacing: frame, header, row heights, icon slots, label baselines, separators, action position, radii, and bottom clearance align with the source.
-- Color and material: deep navy/black transmission, cool gray-blue edges, white primary text, subdued separators, and cyan interaction tokens reproduce the Dark reference hierarchy.
+- Color and material: appearance differences are confined to semantic palette RGB values. Material variants, opacity, layer count, edge topology, and geometry remain identical.
 - Assets: the implementation intentionally uses the installed macOS Calculator, Calendar, folder, and System Settings icons. Their current OS artwork differs from the generated mock.
 - Copy: `cal`, Calculator, Calendar, Calendar / Reminders, Open Applications Folder, Calibration Assistant, Open, and the return indicator match the source state.
 - Interaction: Command-A selects the full search query; Return from clipboard history pastes into the captured target; keyboard navigation and default action behavior remain intact.
 
 ## Findings
 
-No actionable P0, P1, or P2 design differences remain for the reviewed Dark launcher state.
+No actionable P0, P1, or P2 structural differences remain between the reviewed Light and Dark launcher states.
 
 Residual P3/environmental differences:
 
@@ -57,10 +62,14 @@ Residual P3/environmental differences:
 
 - [x] Approved Dark image used as source truth
 - [x] Exact-size full, search, and selection comparisons reviewed together
-- [x] Production AppKit/SwiftUI glass host captured at 2× on Desktop 2
-- [x] QA window hidden until Desktop 2 assignment was verified
+- [x] Historical live-capture evidence retained without rerunning the Desktop 2 path
 - [x] No ScreenCaptureKit or protected-folder access used
 - [x] Light appearance captured as a non-regression check
+- [x] Approved Light clear-glass values remain unchanged
+- [x] Current off-screen Light reference is byte-for-byte identical to the `HEAD` baseline
+- [x] Dark uses the same clear Liquid Glass layer with no opaque shell fill
+- [x] Light and Dark use identical material topology, opacity, borders, radii, and spacing
+- [x] Unification screenshots rendered off-screen without opening or moving a QA window
 - [x] Transparent outer corners verified
 - [x] Command-A, clipboard Return paste, quick paste, and Dark visual assertions passed
 - [x] Release build passed with warnings treated as errors

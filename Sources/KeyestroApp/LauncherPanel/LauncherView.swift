@@ -11,7 +11,6 @@ struct LauncherView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.launcherNativeGlassEnabled) private var nativeGlassEnabled
     @FocusState private var focusedArgumentID: String?
 
     private var palette: LauncherThemePalette {
@@ -38,79 +37,23 @@ struct LauncherView: View {
         // GlassEffectContainer extracts the selected row from the ScrollView's
         // clipping context, allowing it to render over the search header.
         panelLayers
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .foregroundStyle(palette.textPrimary)
-        .tint(palette.accent)
-        .preferredColorScheme(model.launcherAppearance.preferredColorScheme)
-        .clipShape(
-            RoundedRectangle(
-                cornerRadius: LauncherPanelLayout.panelCornerRadius,
-                style: .continuous
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .foregroundStyle(palette.textPrimary)
+            .tint(palette.accent)
+            .preferredColorScheme(model.launcherAppearance.preferredColorScheme)
+            .clipShape(
+                RoundedRectangle(
+                    cornerRadius: LauncherPanelLayout.panelCornerRadius,
+                    style: .continuous
+                )
             )
-        )
-        .overlay { darkShellEdge }
-        .transaction { transaction in
-            if reduceMotion { transaction.animation = nil }
-        }
+            .transaction { transaction in
+                if reduceMotion { transaction.animation = nil }
+            }
     }
 
     private var panelLayers: some View {
         ZStack {
-            if colorScheme == .dark {
-                LinearGradient(
-                    colors: [
-                        Color(red: 0.040, green: 0.050, blue: 0.105).opacity(0.94),
-                        Color(red: 0.050, green: 0.065, blue: 0.092).opacity(0.95),
-                        Color(red: 0.035, green: 0.046, blue: 0.072).opacity(0.96),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
-
-                LinearGradient(
-                    colors: [
-                        Color.clear,
-                        Color(red: 0.16, green: 0.34, blue: 0.52).opacity(0.075),
-                        Color.clear,
-                        Color(red: 0.08, green: 0.19, blue: 0.32).opacity(0.060),
-                        Color.clear,
-                    ],
-                    startPoint: UnitPoint(x: 0.05, y: 0.95),
-                    endPoint: UnitPoint(x: 0.90, y: 0.02)
-                )
-                .blendMode(.screen)
-                .allowsHitTesting(false)
-
-                LinearGradient(
-                    stops: [
-                        .init(
-                            color: Color(red: 0.22, green: 0.25, blue: 0.38).opacity(0.16),
-                            location: 0
-                        ),
-                        .init(color: Color.clear, location: 0.11),
-                    ],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
-                .blendMode(.screen)
-                .allowsHitTesting(false)
-
-                LinearGradient(
-                    stops: [
-                        .init(
-                            color: Color(red: 0.35, green: 0.40, blue: 0.48).opacity(0.22),
-                            location: 0
-                        ),
-                        .init(color: Color.clear, location: 0.045),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .blendMode(.screen)
-                .allowsHitTesting(false)
-            }
-
             launcherContent
 
             if let message = model.message {
@@ -140,90 +83,6 @@ struct LauncherView: View {
             if model.isExecuting {
                 executingOverlay
             }
-        }
-    }
-
-    @ViewBuilder
-    private var darkShellEdge: some View {
-        if colorScheme == .dark {
-            let shape = RoundedRectangle(
-                cornerRadius: LauncherPanelLayout.panelCornerRadius,
-                style: .continuous
-            )
-            ZStack {
-                shape.stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.38),
-                            Color(red: 0.42, green: 0.58, blue: 0.78).opacity(0.30),
-                            Color.white.opacity(0.12),
-                            palette.accent.opacity(0.22),
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-                shape
-                    .inset(by: 1.4)
-                    .stroke(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.20),
-                                Color.clear,
-                                Color.black.opacity(0.52),
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 0.5
-                    )
-                shape
-                    .inset(by: 2.8)
-                    .stroke(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.10), Color.clear],
-                            startPoint: .top,
-                            endPoint: .center
-                        ),
-                        lineWidth: 0.45
-                    )
-                if nativeGlassEnabled {
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.18),
-                                Color.white.opacity(0.08),
-                                Color.clear,
-                                Color(red: 0.58, green: 0.72, blue: 0.90).opacity(0.12),
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                        .frame(height: 0.7)
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.horizontal, LauncherPanelLayout.panelCornerRadius * 0.75)
-                    .clipShape(shape)
-
-                    HStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        LinearGradient(
-                            colors: [
-                                Color(red: 0.62, green: 0.76, blue: 0.92).opacity(0.18),
-                                Color.white.opacity(0.08),
-                                Color.clear,
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(width: 0.7)
-                    }
-                    .padding(.vertical, LauncherPanelLayout.panelCornerRadius * 0.75)
-                    .clipShape(shape)
-                }
-            }
-            .allowsHitTesting(false)
         }
     }
 
@@ -272,9 +131,6 @@ struct LauncherView: View {
                 tint: colorScheme == .dark
                     ? Color(red: 0.008, green: 0.025, blue: 0.055).opacity(0.28)
                     : Color.white.opacity(0.02),
-                wash: colorScheme == .dark
-                    ? Color(red: 0.022, green: 0.050, blue: 0.105).opacity(0.55)
-                    : nil,
                 fallback: insetSurface,
                 edge: colorScheme == .dark
                     ? Color(red: 0.54, green: 0.64, blue: 0.79).opacity(0.40)
