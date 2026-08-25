@@ -277,7 +277,8 @@ enum LauncherPanelLayout {
     static let horizontalInset: CGFloat = 12
     static let searchFieldHeight: CGFloat = 54
     static let searchFieldCornerRadius: CGFloat = 22
-    static let resultRowHeight: CGFloat = 64
+    static let resultRowHeight: CGFloat = 66
+    static let resultBottomInset: CGFloat = 6
     static let resultContentHorizontalInset: CGFloat = 26
     static let selectionCornerRadius: CGFloat = 14
     static let separatorHorizontalInset: CGFloat = 14

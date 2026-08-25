@@ -3,7 +3,7 @@ import Carbon
 import Foundation
 import KeyestroCore
 import KeyestroDomain
-import ScreenCaptureKit
+import ObjectiveC.runtime
 import SwiftUI
 import Testing
 @testable import KeyestroApp
@@ -1569,6 +1569,8 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
     #expect(LauncherPanelLayout.windowWidth == 664)
     #expect(LauncherPanelLayout.windowHeight == 414)
     #expect(LauncherPanelLayout.searchFieldCornerRadius == 22)
+    #expect(LauncherPanelLayout.resultRowHeight == 66)
+    #expect(LauncherPanelLayout.resultBottomInset == 6)
     #expect(LauncherPanelLayout.resultContentHorizontalInset == 26)
     #expect(LauncherPanelLayout.selectionCornerRadius == 14)
     #expect(LauncherPanelLayout.separatorHorizontalInset == 14)
@@ -2688,7 +2690,8 @@ private final class LauncherComponentStoryRenderer {
             liveWindow.backgroundColor = .clear
             liveWindow.hasShadow = false
             liveWindow.level = .statusBar
-            liveWindow.collectionBehavior = [.moveToActiveSpace, .transient, .ignoresCycle]
+            liveWindow.collectionBehavior = [.transient, .ignoresCycle]
+            liveWindow.ignoresMouseEvents = true
             liveWindow.contentView = liveBackdrop
             self.liveBackdrop = liveBackdrop
             self.liveWindow = liveWindow
@@ -2705,7 +2708,17 @@ private final class LauncherComponentStoryRenderer {
                 )
             )
         }
+        liveWindow.alphaValue = 0
         liveWindow.orderFrontRegardless()
+        defer {
+            liveWindow.alphaValue = 0
+            liveWindow.orderOut(nil)
+        }
+        try LauncherQASpaceMover.move(
+            window: liveWindow,
+            toDesktopAt: 2
+        )
+        liveWindow.alphaValue = 1
         if focusesSearchField {
             liveWindow.makeFirstResponder(firstSubview(of: CommandTextField.self, in: liveBackdrop))
         } else {
@@ -2719,33 +2732,7 @@ private final class LauncherComponentStoryRenderer {
             try await Task.sleep(for: .milliseconds(20))
         }
 
-        let frame = liveWindow.frame
-        let captureRect: CGRect
-        if let screen = liveWindow.screen ?? NSScreen.main {
-            captureRect = CGRect(
-                x: frame.minX,
-                y: screen.frame.maxY - frame.maxY,
-                width: frame.width,
-                height: frame.height
-            )
-        } else {
-            captureRect = frame
-        }
-        guard #available(macOS 15.2, *) else {
-            throw AppTestError.liveCaptureUnavailable
-        }
-        let image = try await withCheckedThrowingContinuation {
-            (continuation: CheckedContinuation<CGImage, any Error>) in
-            SCScreenshotManager.captureImage(in: captureRect) { image, error in
-                if let error {
-                    continuation.resume(throwing: error)
-                } else if let image {
-                    continuation.resume(returning: image)
-                } else {
-                    continuation.resume(throwing: AppTestError.liveCaptureUnavailable)
-                }
-            }
-        }
+        let image = try #require(LauncherQASpaceMover.capture(window: liveWindow))
         let bitmap = NSBitmapImageRep(cgImage: image)
         let renderedPNG = try #require(
             bitmap.representation(using: NSBitmapImageRep.FileType.png, properties: [:])
@@ -2755,7 +2742,159 @@ private final class LauncherComponentStoryRenderer {
             withIntermediateDirectories: true
         )
         try renderedPNG.write(to: outputURL, options: .atomic)
-        liveWindow.orderOut(nil)
+    }
+}
+
+// Live visual QA must never cover the desktop where the developer is working.
+// Keep the window invisible until SkyLight confirms it belongs to Desktop 2,
+// and capture only that test process's own window without ScreenCaptureKit/TCC.
+private enum LauncherQASpaceMover {
+    private typealias MainConnectionID = @convention(c) () -> Int32
+    private typealias CopyManagedDisplaySpaces = @convention(c) (Int32) -> Unmanaged<CFArray>?
+    private typealias CopySpacesForWindows =
+        @convention(c) (
+            Int32,
+            Int32,
+            CFArray
+        ) -> Unmanaged<CFArray>?
+    private typealias ObjCAlloc =
+        @convention(c) (
+            AnyClass,
+            Selector
+        ) -> UnsafeMutableRawPointer
+    private typealias ObjCInitSpaceOperation =
+        @convention(c) (
+            UnsafeMutableRawPointer,
+            Selector,
+            NSArray,
+            UInt64
+        ) -> UnsafeMutableRawPointer
+    private typealias CreateWindowImage =
+        @convention(c) (
+            CGRect,
+            UInt32,
+            CGWindowID,
+            UInt32
+        ) -> Unmanaged<CGImage>?
+
+    @MainActor
+    static func capture(window: NSWindow) -> CGImage? {
+        guard
+            let createImage = dlsym(
+                UnsafeMutableRawPointer(bitPattern: -2),
+                "CGWindowListCreateImage"
+            )
+        else { return nil }
+        let capture = unsafeBitCast(createImage, to: CreateWindowImage.self)
+        let includeSpecifiedWindow: UInt32 = 1 << 3
+        let ignoreFramingAndUseBestResolution: UInt32 = (1 << 0) | (1 << 3)
+        return capture(
+            .null,
+            includeSpecifiedWindow,
+            CGWindowID(window.windowNumber),
+            ignoreFramingAndUseBestResolution
+        )?.takeRetainedValue()
+    }
+
+    @MainActor
+    static func move(window: NSWindow, toDesktopAt oneBasedIndex: Int) throws {
+        guard oneBasedIndex > 0,
+            let skyLight = dlopen(
+                "/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight",
+                RTLD_LAZY
+            ),
+            let mainConnection: MainConnectionID = loadSymbol(
+                "SLSMainConnectionID",
+                from: skyLight
+            ),
+            let copyManagedDisplaySpaces: CopyManagedDisplaySpaces = loadSymbol(
+                "SLSCopyManagedDisplaySpaces",
+                from: skyLight
+            ),
+            let copySpacesForWindows: CopySpacesForWindows = loadSymbol(
+                "SLSCopySpacesForWindows",
+                from: skyLight
+            )
+        else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+
+        let connection = mainConnection()
+        guard
+            let displayArray = copyManagedDisplaySpaces(connection)?.takeRetainedValue()
+                as? [[String: Any]],
+            let mainDisplay = displayArray.first,
+            let spaces = mainDisplay["Spaces"] as? [[String: Any]]
+        else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+        let userSpaceIDs = spaces.compactMap { space -> UInt64? in
+            guard (space["type"] as? NSNumber)?.intValue == 0 else { return nil }
+            return (space["id64"] as? NSNumber)?.uint64Value
+        }
+        guard userSpaceIDs.indices.contains(oneBasedIndex - 1) else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+
+        let targetSpaceID = userSpaceIDs[oneBasedIndex - 1]
+        let currentSpaceID =
+            ((mainDisplay["Current Space"] as? [String: Any])?["id64"] as? NSNumber)?
+            .uint64Value
+        guard currentSpaceID != targetSpaceID else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+        let windowID = UInt32(window.windowNumber)
+        try move(
+            windowID: windowID,
+            to: targetSpaceID
+        )
+        let windowIDs = [NSNumber(value: windowID)] as CFArray
+        for _ in 0..<40 {
+            let assignedSpaces =
+                copySpacesForWindows(connection, 0x7, windowIDs)?
+                .takeRetainedValue() as? [NSNumber]
+            if assignedSpaces?.contains(NSNumber(value: targetSpaceID)) == true {
+                return
+            }
+            RunLoop.current.run(until: Date(timeIntervalSinceNow: 0.01))
+        }
+        throw AppTestError.liveCaptureUnavailable
+    }
+
+    private static func move(windowID: UInt32, to spaceID: UInt64) throws {
+        guard
+            let operationClass: AnyClass = NSClassFromString(
+                "SLSBridgedMoveWindowsToManagedSpaceOperation"
+            ),
+            let messageSend = dlsym(
+                UnsafeMutableRawPointer(bitPattern: -2),
+                "objc_msgSend"
+            )
+        else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+
+        let allocate = unsafeBitCast(messageSend, to: ObjCAlloc.self)
+        let initialize = unsafeBitCast(messageSend, to: ObjCInitSpaceOperation.self)
+        let allocation = allocate(operationClass, sel_registerName("alloc"))
+        let operationPointer = initialize(
+            allocation,
+            sel_registerName("initWithWindows:spaceID:"),
+            [NSNumber(value: windowID)],
+            spaceID
+        )
+        let operation = Unmanaged<AnyObject>.fromOpaque(operationPointer).takeRetainedValue()
+        guard let object = operation as? NSObject,
+            object.responds(to: sel_registerName("invokeFallback"))
+        else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+        object.perform(sel_registerName("invokeFallback"))
+    }
+
+    private static func loadSymbol<T>(_ name: String, from handle: UnsafeMutableRawPointer) -> T? {
+        guard let pointer = dlsym(handle, name) else { return nil }
+        return unsafeBitCast(pointer, to: T.self)
     }
 }
 
@@ -2785,6 +2924,7 @@ private struct LauncherComponentStoryRenderRoot: View {
                 )
             }
             LauncherView(model: model)
+                .environment(\.launcherNativeGlassEnabled, false)
         }
     }
 }
