@@ -206,12 +206,14 @@ private struct TransientPanelSelectionModifier: ViewModifier {
                 content.transientPanelGlassSurface(
                     cornerRadius: cornerRadius,
                     variant: .regular,
-                    tint: palette.accent.opacity(colorScheme == .dark ? 0.075 : 0.055),
-                    wash: nil,
+                    tint: palette.accent.opacity(colorScheme == .dark ? 0.34 : 0.055),
+                    wash: colorScheme == .dark
+                        ? Color(red: 0.05, green: 0.16, blue: 0.24).opacity(0.20)
+                        : nil,
                     fallback: visualAccessibility.increaseContrast
                         ? TransientPanelVisualStyle.accentColor.opacity(visualAccessibility.selectionOpacity)
                         : palette.selection,
-                    edge: palette.accent.opacity(colorScheme == .dark ? 0.34 : 0.30),
+                    edge: palette.accent.opacity(colorScheme == .dark ? 0.54 : 0.30),
                     interactive: true
                 )
             } else {
@@ -252,6 +254,31 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorScheme) private var colorScheme
 
+    private var darkSurfaceWash: LinearGradient {
+        let colors: [Color] =
+            switch variant {
+            case .regular:
+                [
+                    Color.white.opacity(0.12),
+                    Color(red: 0.22, green: 0.56, blue: 0.72).opacity(0.14),
+                    Color.clear,
+                    Color.black.opacity(0.05),
+                ]
+            case .clear:
+                [
+                    Color.white.opacity(0.06),
+                    Color(red: 0.20, green: 0.38, blue: 0.62).opacity(0.08),
+                    Color.clear,
+                    Color.black.opacity(0.10),
+                ]
+            }
+        return LinearGradient(
+            colors: colors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
     @ViewBuilder
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -269,15 +296,34 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
             let baseGlass = glass.tint(tint)
             content
                 .background(wash ?? .clear, in: shape)
+                .background {
+                    if colorScheme == .dark {
+                        shape.fill(darkSurfaceWash)
+                    }
+                }
                 .glassEffect(interactive ? baseGlass.interactive() : baseGlass, in: shape)
                 .overlay {
                     shape.stroke(edge, lineWidth: 0.75)
-                    shape
-                        .inset(by: 1)
-                        .stroke(
-                            Color.white.opacity(colorScheme == .dark ? 0.14 : 0.34),
-                            lineWidth: 0.5
-                        )
+                    if colorScheme == .dark {
+                        shape
+                            .inset(by: 1)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.28),
+                                        Color.white.opacity(0.08),
+                                        Color.black.opacity(0.22),
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
+                    } else {
+                        shape
+                            .inset(by: 1)
+                            .stroke(Color.white.opacity(0.34), lineWidth: 0.5)
+                    }
                 }
         } else {
             content
@@ -451,12 +497,12 @@ final class LauncherPanelBackdropView: NSView {
             glassView.style = usesDarkMaterial ? .regular : .clear
             glassView.tintColor =
                 usesDarkMaterial
-                ? NSColor(srgbRed: 0.01, green: 0.025, blue: 0.055, alpha: 0.80)
+                ? NSColor(srgbRed: 0.015, green: 0.045, blue: 0.095, alpha: 0.68)
                 : NSColor(srgbRed: 0.82, green: 0.91, blue: 1, alpha: 0.035)
-            layer?.borderWidth = usesDarkMaterial ? 0.80 : 0.65
+            layer?.borderWidth = usesDarkMaterial ? 0.45 : 0.65
             layer?.borderColor =
                 (usesDarkMaterial
-                ? NSColor.white.withAlphaComponent(0.28)
+                ? NSColor.white.withAlphaComponent(0.18)
                 : NSColor.white.withAlphaComponent(0.66)).cgColor
             updateContentPlacement(usesNativeGlass: true)
             return

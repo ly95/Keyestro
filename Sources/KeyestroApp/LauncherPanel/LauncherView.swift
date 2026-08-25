@@ -48,6 +48,7 @@ struct LauncherView: View {
                 style: .continuous
             )
         )
+        .overlay { darkShellEdge }
         .transaction { transaction in
             if reduceMotion { transaction.animation = nil }
         }
@@ -55,6 +56,19 @@ struct LauncherView: View {
 
     private var panelLayers: some View {
         ZStack {
+            if colorScheme == .dark {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.015, green: 0.035, blue: 0.075).opacity(0.74),
+                        Color(red: 0.02, green: 0.055, blue: 0.11).opacity(0.68),
+                        Color.black.opacity(0.80),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .allowsHitTesting(false)
+            }
+
             launcherContent
 
             if let message = model.message {
@@ -84,6 +98,56 @@ struct LauncherView: View {
             if model.isExecuting {
                 executingOverlay
             }
+        }
+    }
+
+    @ViewBuilder
+    private var darkShellEdge: some View {
+        if colorScheme == .dark {
+            let shape = RoundedRectangle(
+                cornerRadius: LauncherPanelLayout.panelCornerRadius,
+                style: .continuous
+            )
+            ZStack {
+                shape.stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.68),
+                            Color(red: 0.48, green: 0.62, blue: 0.82).opacity(0.44),
+                            Color.white.opacity(0.14),
+                            palette.accent.opacity(0.28),
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.9
+                )
+                shape
+                    .inset(by: 1.4)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.28),
+                                Color.clear,
+                                Color.black.opacity(0.38),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.5
+                    )
+                shape
+                    .inset(by: 2.8)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.12), Color.clear],
+                            startPoint: .top,
+                            endPoint: .center
+                        ),
+                        lineWidth: 0.45
+                    )
+            }
+            .allowsHitTesting(false)
         }
     }
 
@@ -130,12 +194,12 @@ struct LauncherView: View {
                 cornerRadius: LauncherPanelLayout.searchFieldCornerRadius,
                 variant: .clear,
                 tint: colorScheme == .dark
-                    ? Color.black.opacity(0.08)
+                    ? Color(red: 0.035, green: 0.075, blue: 0.14).opacity(0.16)
                     : Color.white.opacity(0.02),
                 wash: nil,
                 fallback: insetSurface,
                 edge: colorScheme == .dark
-                    ? Color.white.opacity(0.28)
+                    ? Color(red: 0.62, green: 0.72, blue: 0.87).opacity(0.84)
                     : Color.white.opacity(0.62),
                 interactive: true
             )

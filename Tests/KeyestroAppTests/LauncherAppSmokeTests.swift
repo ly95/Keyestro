@@ -3,6 +3,7 @@ import Carbon
 import Foundation
 import KeyestroCore
 import KeyestroDomain
+import ScreenCaptureKit
 import SwiftUI
 import Testing
 @testable import KeyestroApp
@@ -132,7 +133,9 @@ import Testing
         #expect(backdrop.darkMaterialView.isHidden)
         #expect(!backdrop.lightGlassView.isHidden)
         #expect(glass.style == .regular)
-        #expect(glass.tintColor != nil)
+        let darkTint = try #require(glass.tintColor?.usingColorSpace(.sRGB))
+        #expect(darkTint.alphaComponent >= 0.65)
+        #expect(darkTint.alphaComponent <= 0.72)
         #expect(glass.contentView === hostedContent)
         #expect(hostedContent.superview !== backdrop)
 
@@ -1555,6 +1558,7 @@ private func waitUntil(_ condition: @escaping @MainActor () -> Bool) async throw
 
 private enum AppTestError: Error {
     case conditionTimedOut
+    case liveCaptureUnavailable
 }
 
 @MainActor
@@ -2552,10 +2556,14 @@ private final class LauncherComponentStoryRenderer {
     private static var retainedRenderers: [LauncherComponentStoryRenderer] = []
 
     private let hosting: NSHostingView<LauncherComponentStoryRenderRoot>
+    private let model: LauncherViewModel
     private let window: NSWindow
+    private var liveBackdrop: LauncherPanelBackdropView?
+    private var liveWindow: NSWindow?
     private var isRetained = false
 
     init(model: LauncherViewModel) {
+        self.model = model
         hosting = NSHostingView(rootView: LauncherComponentStoryRenderRoot(model: model))
         hosting.frame = NSRect(
             x: 0,
@@ -2576,6 +2584,13 @@ private final class LauncherComponentStoryRenderer {
     }
 
     func render(to outputURL: URL? = nil, focusesSearchField: Bool = true) async throws {
+        if ProcessInfo.processInfo.environment["KEYESTRO_LAUNCHER_QA_LIVE"] == "1",
+            let outputURL
+        {
+            try await renderLiveComposite(to: outputURL, focusesSearchField: focusesSearchField)
+            return
+        }
+
         for _ in 0..<8 {
             window.layoutIfNeeded()
             hosting.layoutSubtreeIfNeeded()
@@ -2604,9 +2619,105 @@ private final class LauncherComponentStoryRenderer {
 
     func retainUntilProcessExit() {
         window.orderOut(nil)
+        liveWindow?.orderOut(nil)
         guard !isRetained else { return }
         isRetained = true
         Self.retainedRenderers.append(self)
+    }
+
+    private func renderLiveComposite(to outputURL: URL, focusesSearchField: Bool) async throws {
+        let liveBackdrop: LauncherPanelBackdropView
+        let liveWindow: NSWindow
+        if let existingBackdrop = self.liveBackdrop, let existingWindow = self.liveWindow {
+            liveBackdrop = existingBackdrop
+            liveWindow = existingWindow
+        } else {
+            liveBackdrop = try #require(
+                LauncherPanelVisualHost.makeView(model: model) as? LauncherPanelBackdropView
+            )
+            liveWindow = NSWindow(
+                contentRect: NSRect(
+                    x: 0,
+                    y: 0,
+                    width: LauncherPanelLayout.windowWidth,
+                    height: LauncherPanelLayout.windowHeight
+                ),
+                styleMask: [.borderless],
+                backing: .buffered,
+                defer: false
+            )
+            liveWindow.isOpaque = false
+            liveWindow.backgroundColor = .clear
+            liveWindow.hasShadow = false
+            liveWindow.level = .statusBar
+            liveWindow.collectionBehavior = [.moveToActiveSpace, .transient, .ignoresCycle]
+            liveWindow.contentView = liveBackdrop
+            self.liveBackdrop = liveBackdrop
+            self.liveWindow = liveWindow
+        }
+
+        liveWindow.appearance = model.launcherAppearance.panelAppearance
+        liveBackdrop.appearance = model.launcherAppearance.panelAppearance
+        liveBackdrop.viewDidChangeEffectiveAppearance()
+        if let screen = NSScreen.main ?? NSScreen.screens.first {
+            liveWindow.setFrameOrigin(
+                NSPoint(
+                    x: screen.visibleFrame.midX - LauncherPanelLayout.windowWidth / 2,
+                    y: screen.visibleFrame.midY - LauncherPanelLayout.windowHeight / 2
+                )
+            )
+        }
+        liveWindow.orderFrontRegardless()
+        if focusesSearchField {
+            liveWindow.makeFirstResponder(firstSubview(of: CommandTextField.self, in: liveBackdrop))
+        } else {
+            liveWindow.makeFirstResponder(nil)
+        }
+
+        for _ in 0..<12 {
+            liveWindow.layoutIfNeeded()
+            liveBackdrop.layoutSubtreeIfNeeded()
+            liveBackdrop.displayIfNeeded()
+            try await Task.sleep(for: .milliseconds(20))
+        }
+
+        let frame = liveWindow.frame
+        let captureRect: CGRect
+        if let screen = liveWindow.screen ?? NSScreen.main {
+            captureRect = CGRect(
+                x: frame.minX,
+                y: screen.frame.maxY - frame.maxY,
+                width: frame.width,
+                height: frame.height
+            )
+        } else {
+            captureRect = frame
+        }
+        guard #available(macOS 15.2, *) else {
+            throw AppTestError.liveCaptureUnavailable
+        }
+        let image = try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<CGImage, any Error>) in
+            SCScreenshotManager.captureImage(in: captureRect) { image, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let image {
+                    continuation.resume(returning: image)
+                } else {
+                    continuation.resume(throwing: AppTestError.liveCaptureUnavailable)
+                }
+            }
+        }
+        let bitmap = NSBitmapImageRep(cgImage: image)
+        let renderedPNG = try #require(
+            bitmap.representation(using: NSBitmapImageRep.FileType.png, properties: [:])
+        )
+        try FileManager.default.createDirectory(
+            at: outputURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try renderedPNG.write(to: outputURL, options: .atomic)
+        liveWindow.orderOut(nil)
     }
 }
 
