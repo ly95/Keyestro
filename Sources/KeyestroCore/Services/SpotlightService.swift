@@ -48,6 +48,19 @@ public struct SpotlightSearchOptions: Equatable, Sendable {
     }
 }
 
+public struct FileSearchConfiguration: Equatable, Sendable {
+    public var isEnabled: Bool
+    public var options: SpotlightSearchOptions
+
+    public init(
+        isEnabled: Bool = false,
+        options: SpotlightSearchOptions = SpotlightSearchOptions()
+    ) {
+        self.isEnabled = isEnabled
+        self.options = options
+    }
+}
+
 public enum SpotlightSearchPhase: Equatable, Sendable {
     case initial
     case liveUpdate
@@ -64,14 +77,14 @@ public struct SpotlightSearchBatch: Equatable, Sendable {
 }
 
 public actor FileSearchPreferences {
-    private var value: SpotlightSearchOptions
+    private var value: FileSearchConfiguration
 
-    public init(_ value: SpotlightSearchOptions = SpotlightSearchOptions()) {
+    public init(_ value: FileSearchConfiguration = FileSearchConfiguration()) {
         self.value = value
     }
 
-    public func options() -> SpotlightSearchOptions { value }
-    public func update(_ value: SpotlightSearchOptions) { self.value = value }
+    public func configuration() -> FileSearchConfiguration { value }
+    public func update(_ value: FileSearchConfiguration) { self.value = value }
 }
 
 public protocol SpotlightServicing: Sendable {
@@ -125,6 +138,37 @@ extension ApplicationDiscovering {
 public struct EmptyApplicationDiscoveryService: ApplicationDiscovering {
     public init() {}
     public func discoverApplicationURLs(limit: Int) async throws -> [URL] { [] }
+}
+
+/// Defers protected-folder scope resolution until file search has been explicitly enabled
+/// and a query actually needs Spotlight.
+public actor LazyMDSpotlightService: SpotlightServicing {
+    private var service: MDSpotlightService?
+
+    public init() {}
+
+    public func searchFiles(
+        containing query: String,
+        options: SpotlightSearchOptions,
+        limit: Int
+    ) async throws -> [SpotlightRecord] {
+        try await resolvedService().searchFiles(containing: query, options: options, limit: limit)
+    }
+
+    public func searchFileUpdates(
+        containing query: String,
+        options: SpotlightSearchOptions,
+        limit: Int
+    ) async -> AsyncThrowingStream<SpotlightSearchBatch, any Error> {
+        await resolvedService().searchFileUpdates(containing: query, options: options, limit: limit)
+    }
+
+    private func resolvedService() -> MDSpotlightService {
+        if let service { return service }
+        let service = MDSpotlightService()
+        self.service = service
+        return service
+    }
 }
 
 public enum SpotlightServiceError: Error, Equatable, Sendable {
@@ -620,16 +664,32 @@ private final class MetadataQuerySession: NSObject, @unchecked Sendable {
 
 /// Discovers application bundles from the local machine's existing Spotlight index.
 public actor MDApplicationDiscoveryService: ApplicationDiscovering {
-    public init() {}
+    private let searchScopes: [URL]
+
+    public init(searchScopes: [URL] = MDApplicationDiscoveryService.defaultSearchScopes) {
+        self.searchScopes = searchScopes.map(\.standardizedFileURL)
+    }
+
+    public static var defaultSearchScopes: [URL] {
+        [
+            URL(fileURLWithPath: "/Applications", isDirectory: true),
+            URL(fileURLWithPath: "/System/Applications", isDirectory: true),
+            FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+                "Applications",
+                isDirectory: true
+            ),
+        ]
+    }
 
     public func discoverApplicationURLs(limit: Int = 2_000) async throws -> [URL] {
         try Task.checkCancellation()
+        guard !searchScopes.isEmpty else { return [] }
         let queryString = "kMDItemContentTypeTree == 'com.apple.application-bundle'"
         guard let metadataQuery = MDQueryCreate(nil, queryString as CFString, nil, nil) else {
             throw SpotlightServiceError.unavailable
         }
         let maximum = min(max(1, limit), 5_000)
-        MDQuerySetSearchScope(metadataQuery, [kMDQueryScopeComputerIndexed] as CFArray, 0)
+        MDQuerySetSearchScope(metadataQuery, searchScopes.map(\.path) as CFArray, 0)
         MDQuerySetMaxCount(metadataQuery, CFIndex(maximum))
         guard MDQueryExecute(metadataQuery, CFOptionFlags(kMDQuerySynchronous.rawValue)) else {
             throw SpotlightServiceError.executionFailed
@@ -655,27 +715,40 @@ public actor MDApplicationDiscoveryService: ApplicationDiscovering {
     }
 
     public func applicationURLUpdates(limit: Int = 2_000) async -> AsyncThrowingStream<[URL], any Error> {
+        guard !searchScopes.isEmpty else {
+            return AsyncThrowingStream { continuation in continuation.finish() }
+        }
         let maximum = min(max(1, limit), 5_000)
-        return ApplicationMetadataQuerySession.makeStream(maximum: maximum)
+        return ApplicationMetadataQuerySession.makeStream(scopes: searchScopes, maximum: maximum)
     }
 }
 
 private final class ApplicationMetadataQuerySession: NSObject, @unchecked Sendable {
     private let query = NSMetadataQuery()
+    private let scopes: [URL]
     private let maximum: Int
     private var continuation: AsyncThrowingStream<[URL], any Error>.Continuation?
     private var stopped = false
 
-    private init(maximum: Int, continuation: AsyncThrowingStream<[URL], any Error>.Continuation) {
+    private init(
+        scopes: [URL],
+        maximum: Int,
+        continuation: AsyncThrowingStream<[URL], any Error>.Continuation
+    ) {
+        self.scopes = scopes
         self.maximum = maximum
         self.continuation = continuation
     }
 
-    static func makeStream(maximum: Int) -> AsyncThrowingStream<[URL], any Error> {
+    static func makeStream(scopes: [URL], maximum: Int) -> AsyncThrowingStream<[URL], any Error> {
         let (stream, continuation) = AsyncThrowingStream<[URL], any Error>.makeStream(
             bufferingPolicy: .bufferingNewest(2)
         )
-        let session = ApplicationMetadataQuerySession(maximum: maximum, continuation: continuation)
+        let session = ApplicationMetadataQuerySession(
+            scopes: scopes,
+            maximum: maximum,
+            continuation: continuation
+        )
         continuation.onTermination = { @Sendable _ in
             MetadataQueryRunLoop.shared.perform { session.stop() }
         }
@@ -689,7 +762,7 @@ private final class ApplicationMetadataQuerySession: NSObject, @unchecked Sendab
             NSMetadataItemContentTypeTreeKey,
             "com.apple.application-bundle"
         )
-        query.searchScopes = [NSMetadataQueryIndexedLocalComputerScope]
+        query.searchScopes = scopes
         query.notificationBatchingInterval = 0.5
         NotificationCenter.default.addObserver(
             self,

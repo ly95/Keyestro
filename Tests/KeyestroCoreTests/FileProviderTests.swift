@@ -6,11 +6,14 @@ import Testing
 @Test func fileProviderLabelsContentMatchesAndForwardsSearchPreferences() async throws {
     let spotlight = RecordingSpotlightService()
     let preferences = FileSearchPreferences(
-        SpotlightSearchOptions(
-            searchContents: true,
-            includeHiddenFiles: true,
-            includeSystemLocations: true,
-            includeTrash: true
+        FileSearchConfiguration(
+            isEnabled: true,
+            options: SpotlightSearchOptions(
+                searchContents: true,
+                includeHiddenFiles: true,
+                includeSystemLocations: true,
+                includeTrash: true
+            )
         )
     )
     let provider = FileProvider(
@@ -38,8 +41,71 @@ import Testing
     #expect(received?.includeTrash == true)
 }
 
+@Test func fileProviderDoesNotContactSpotlightUntilFileSearchIsExplicitlyEnabled() async throws {
+    let spotlight = RecordingSpotlightService()
+    let preferences = FileSearchPreferences()
+    let provider = FileProvider(
+        spotlight: spotlight,
+        actions: NoopFileActions(),
+        preferences: preferences
+    )
+    let request = QueryRequest(
+        generation: 1,
+        rawText: "report",
+        normalizedText: "report",
+        mode: .files
+    )
+
+    #expect(try await replacementTitles(from: provider.search(request: request)).isEmpty)
+    #expect(await spotlight.requestCount == 0)
+
+    await preferences.update(FileSearchConfiguration(isEnabled: true))
+    #expect(try await replacementTitles(from: provider.search(request: request)) == [["report.txt"]])
+    #expect(await spotlight.requestCount == 1)
+}
+
+@Test func fileProviderStopsBeforeInspectingAStaleFileAfterConsentIsRevoked() async throws {
+    let preferences = FileSearchPreferences(FileSearchConfiguration(isEnabled: true))
+    let provider = FileProvider(
+        spotlight: RecordingSpotlightService(),
+        actions: NoopFileActions(),
+        preferences: preferences
+    )
+    let request = QueryRequest(
+        generation: 1,
+        rawText: "report",
+        normalizedText: "report",
+        mode: .files
+    )
+    var foundItem: LauncherItem?
+    for try await event in provider.search(request: request) {
+        if case let .replacement(items, _) = event { foundItem = items.first }
+    }
+    let item = try #require(foundItem)
+
+    await preferences.update(FileSearchConfiguration())
+    let result = await provider.execute(
+        request: ProviderActionRequest(
+            executionID: UUID(),
+            itemID: item.id,
+            actionID: "open",
+            arguments: [:]
+        )
+    )
+
+    guard case let .failure(error) = result else {
+        Issue.record("A file action executed after file-search consent was revoked")
+        return
+    }
+    #expect(error.code == "files.searchDisabled")
+}
+
 @Test func fileProviderPublishesInitialAndLiveReplacementBatches() async throws {
-    let provider = FileProvider(spotlight: UpdatingSpotlightService(), actions: NoopFileActions())
+    let provider = FileProvider(
+        spotlight: UpdatingSpotlightService(),
+        actions: NoopFileActions(),
+        preferences: FileSearchPreferences(FileSearchConfiguration(isEnabled: true))
+    )
     let request = QueryRequest(generation: 1, rawText: "report", normalizedText: "report", mode: .files)
     var batches: [[String]] = []
     for try await event in provider.search(request: request) {
@@ -56,6 +122,7 @@ import Testing
     let provider = FileProvider(
         spotlight: spotlight,
         actions: NoopFileActions(),
+        preferences: FileSearchPreferences(FileSearchConfiguration(isEnabled: true)),
         recentCacheLifetime: .seconds(10),
         clock: clock
     )
@@ -85,12 +152,14 @@ private func replacementTitles(
 
 private actor RecordingSpotlightService: SpotlightServicing {
     private(set) var lastOptions: SpotlightSearchOptions?
+    private(set) var requestCount = 0
 
     func searchFiles(
         containing query: String,
         options: SpotlightSearchOptions,
         limit: Int
     ) -> [SpotlightRecord] {
+        requestCount += 1
         lastOptions = options
         return [
             SpotlightRecord(

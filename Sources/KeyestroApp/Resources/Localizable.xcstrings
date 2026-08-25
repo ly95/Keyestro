@@ -115,6 +115,22 @@
         }
       }
     },
+    "%lld results": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld results"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个结果"
+          }
+        }
+      }
+    },
     "/Applications": {
       "localizations": {
         "zh-Hans": {
@@ -2141,6 +2157,26 @@
         }
       }
     },
+    "Enable file search": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用文件搜索"
+          }
+        }
+      }
+    },
+    "Enable file search in Keyestro Settings before accessing files.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请先在 Keyestro 设置中启用文件搜索，再访问文件。"
+          }
+        }
+      }
+    },
     "Enabled": {
       "localizations": {
         "zh-Hans": {
@@ -2447,6 +2483,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "文件搜索失败。"
+          }
+        }
+      }
+    },
+    "File search is disabled.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件搜索已关闭。"
           }
         }
       }
@@ -3261,6 +3307,16 @@
         }
       }
     },
+    "Off by default. Keyestro does not inspect Desktop, Documents, Downloads, or other file-search folders until you enable this setting. macOS may ask for folder access on your first file search.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认关闭。启用此设置前，Keyestro 不会检查桌面、文稿、下载或其他文件搜索目录。首次搜索文件时，macOS 可能会请求相应的文件夹访问权限。"
+          }
+        }
+      }
+    },
     "Off by default. When enabled, this extension receives queries outside @ mode.": {
       "localizations": {
         "zh-Hans": {
@@ -3581,22 +3637,22 @@
         }
       }
     },
-    "Paste to Active App": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘贴到当前应用"
-          }
-        }
-      }
-    },
     "Paste into Previous App?": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "粘贴到上一个应用？"
+          }
+        }
+      }
+    },
+    "Paste to Active App": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴到当前应用"
           }
         }
       }
@@ -7193,22 +7249,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keyestro %@（构建 %@）"
-          }
-        }
-      }
-    },
-    "%lld results": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld results"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld 个结果"
           }
         }
       }

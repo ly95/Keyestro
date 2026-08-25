@@ -2,6 +2,19 @@ import Foundation
 import Testing
 @testable import KeyestroCore
 
+@Test func defaultApplicationDiscoveryScopesNeverIncludeProtectedUserFolders() {
+    let home = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
+    let protectedFolders = ["Desktop", "Documents", "Downloads"].map {
+        home.appendingPathComponent($0, isDirectory: true).path
+    }
+    let scopePaths = Set(MDApplicationDiscoveryService.defaultSearchScopes.map(\.standardizedFileURL.path))
+
+    #expect(scopePaths.contains("/Applications"))
+    #expect(scopePaths.contains("/System/Applications"))
+    #expect(scopePaths.contains(home.appendingPathComponent("Applications", isDirectory: true).path))
+    #expect(scopePaths.isDisjoint(with: protectedFolders))
+}
+
 private struct ApplicationDiscoveryFake: ApplicationDiscovering {
     let urls: [URL]
     func discoverApplicationURLs(limit: Int) async throws -> [URL] { Array(urls.prefix(limit)) }

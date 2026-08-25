@@ -46,6 +46,7 @@ final class SettingsStore: ObservableObject {
         static let clipboardRetentionPreset = "clipboard.retentionPreset"
         static let clipboardExcludedApplications = "clipboard.excludedApplications"
         static let ocrLanguagePreset = "capture.ocrLanguagePreset"
+        static let fileSearchEnabled = "files.searchEnabled"
         static let fileContentSearchEnabled = "files.contentSearchEnabled"
         static let fileHiddenFilesEnabled = "files.hiddenFilesEnabled"
         static let fileSystemLocationsEnabled = "files.systemLocationsEnabled"
@@ -241,6 +242,17 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var fileSearchEnabled: Bool {
+        didSet {
+            guard !isRollingBackSetting else { return }
+            guard persist(fileSearchEnabled, forKey: Key.fileSearchEnabled) else {
+                rollbackSetting { fileSearchEnabled = oldValue }
+                return
+            }
+            syncFileSearchPreferences()
+        }
+    }
+
     @Published var fileContentSearchEnabled: Bool {
         didSet {
             guard !isRollingBackSetting else { return }
@@ -340,16 +352,20 @@ final class SettingsStore: ObservableObject {
     init(persistence: any SettingsPersisting) {
         self.persistence = persistence
         persistenceError = nil
+        let fileSearch = persistence.object(forKey: Key.fileSearchEnabled) as? Bool ?? false
         let contentSearch = persistence.object(forKey: Key.fileContentSearchEnabled) as? Bool ?? false
         let hiddenFiles = persistence.object(forKey: Key.fileHiddenFilesEnabled) as? Bool ?? false
         let systemLocations = persistence.object(forKey: Key.fileSystemLocationsEnabled) as? Bool ?? false
         let trash = persistence.object(forKey: Key.fileTrashEnabled) as? Bool ?? false
         fileSearchPreferences = FileSearchPreferences(
-            SpotlightSearchOptions(
-                searchContents: contentSearch,
-                includeHiddenFiles: hiddenFiles,
-                includeSystemLocations: systemLocations,
-                includeTrash: trash
+            FileSearchConfiguration(
+                isEnabled: fileSearch,
+                options: SpotlightSearchOptions(
+                    searchContents: contentSearch,
+                    includeHiddenFiles: hiddenFiles,
+                    includeSystemLocations: systemLocations,
+                    includeTrash: trash
+                )
             )
         )
         let learningEnabled = persistence.object(forKey: Key.rankingLearningEnabled) as? Bool ?? true
@@ -410,6 +426,7 @@ final class SettingsStore: ObservableObject {
         clipboardRetentionPreset = persistence.string(forKey: Key.clipboardRetentionPreset) ?? "30-days"
         clipboardExcludedApplications = persistence.string(forKey: Key.clipboardExcludedApplications) ?? ""
         ocrLanguagePreset = persistence.string(forKey: Key.ocrLanguagePreset) ?? "en-zh"
+        fileSearchEnabled = fileSearch
         fileContentSearchEnabled = contentSearch
         fileHiddenFilesEnabled = hiddenFiles
         fileSystemLocationsEnabled = systemLocations
@@ -423,13 +440,18 @@ final class SettingsStore: ObservableObject {
     }
 
     func restoreDefaults() throws {
+        var original = exportedConfiguration()
+        original[Key.fileSearchEnabled] = .bool(fileSearchEnabled)
         do {
-            try applyImportedConfiguration(Self.defaultConfiguration)
-        } catch SettingsImportError.rollbackFailed {
-            persistenceError =
-                "Default settings could not be restored, and automatic rollback was incomplete. Restore a configuration backup."
-            throw SettingsImportError.rollbackFailed
+            try applyImportedValues(Self.defaultConfiguration, includeFileSearchConsent: true)
         } catch {
+            do {
+                try applyImportedValues(original, includeFileSearchConsent: true)
+            } catch {
+                persistenceError =
+                    "Default settings could not be restored, and automatic rollback was incomplete. Restore a configuration backup."
+                throw SettingsImportError.rollbackFailed
+            }
             persistenceError = "Default settings could not be restored. Previous values were kept."
             throw SettingsImportError.persistenceFailed
         }
@@ -480,7 +502,10 @@ final class SettingsStore: ObservableObject {
         }
     }
 
-    private func applyImportedValues(_ values: [String: JSONValue]) throws {
+    private func applyImportedValues(
+        _ values: [String: JSONValue],
+        includeFileSearchConsent: Bool = false
+    ) throws {
         let importedLauncherShortcut = Self.importedShortcut(
             from: values,
             keyCodeKey: Key.launcherKeyCode,
@@ -575,6 +600,13 @@ final class SettingsStore: ObservableObject {
             ocrLanguagePreset = value
             guard ocrLanguagePreset == value else { throw SettingsImportError.persistenceFailed }
         }
+        if includeFileSearchConsent,
+            case let .bool(value) = values[Key.fileSearchEnabled],
+            value != fileSearchEnabled
+        {
+            fileSearchEnabled = value
+            guard fileSearchEnabled == value else { throw SettingsImportError.persistenceFailed }
+        }
         if case let .bool(value) = values[Key.fileContentSearchEnabled], value != fileContentSearchEnabled {
             fileContentSearchEnabled = value
             guard fileContentSearchEnabled == value else { throw SettingsImportError.persistenceFailed }
@@ -646,15 +678,18 @@ final class SettingsStore: ObservableObject {
     private func syncFileSearchPreferences() {
         fileSearchPreferencesGeneration &+= 1
         let generation = fileSearchPreferencesGeneration
-        let options = SpotlightSearchOptions(
-            searchContents: fileContentSearchEnabled,
-            includeHiddenFiles: fileHiddenFilesEnabled,
-            includeSystemLocations: fileSystemLocationsEnabled,
-            includeTrash: fileTrashEnabled
+        let configuration = FileSearchConfiguration(
+            isEnabled: fileSearchEnabled,
+            options: SpotlightSearchOptions(
+                searchContents: fileContentSearchEnabled,
+                includeHiddenFiles: fileHiddenFilesEnabled,
+                includeSystemLocations: fileSystemLocationsEnabled,
+                includeTrash: fileTrashEnabled
+            )
         )
         Task { [weak self] in
             guard let self, generation == fileSearchPreferencesGeneration else { return }
-            await fileSearchPreferences.update(options)
+            await fileSearchPreferences.update(configuration)
         }
     }
 
@@ -813,6 +848,7 @@ final class SettingsStore: ObservableObject {
         Key.clipboardRetentionPreset: .string("30-days"),
         Key.clipboardExcludedApplications: .string(""),
         Key.ocrLanguagePreset: .string("en-zh"),
+        Key.fileSearchEnabled: .bool(false),
         Key.fileContentSearchEnabled: .bool(false),
         Key.fileHiddenFilesEnabled: .bool(false),
         Key.fileSystemLocationsEnabled: .bool(false),

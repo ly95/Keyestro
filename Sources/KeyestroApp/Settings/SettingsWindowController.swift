@@ -301,12 +301,16 @@ private struct SettingsView: View {
         case .features:
             GroupBox("File Search") {
                 VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Search indexed file contents", isOn: $settings.fileContentSearchEnabled)
-                    Toggle("Include hidden files", isOn: $settings.fileHiddenFilesEnabled)
-                    Toggle("Include system locations", isOn: $settings.fileSystemLocationsEnabled)
-                    Toggle("Include the Trash", isOn: $settings.fileTrashEnabled)
+                    Toggle("Enable file search", isOn: $settings.fileSearchEnabled)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Toggle("Search indexed file contents", isOn: $settings.fileContentSearchEnabled)
+                        Toggle("Include hidden files", isOn: $settings.fileHiddenFilesEnabled)
+                        Toggle("Include system locations", isOn: $settings.fileSystemLocationsEnabled)
+                        Toggle("Include the Trash", isOn: $settings.fileTrashEnabled)
+                    }
+                    .disabled(!settings.fileSearchEnabled)
                     Text(
-                        "Content matches are labeled and rank below file-name matches. Keyestro never requests Full Disk Access automatically."
+                        "Off by default. Keyestro does not inspect Desktop, Documents, Downloads, or other file-search folders until you enable this setting. macOS may ask for folder access on your first file search."
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)

@@ -979,6 +979,8 @@ private enum OnboardingComponentHostRetainer {
 
 @Test @MainActor func rapidFileSearchSettingChangesConvergeOnTheLatestCompleteSnapshot() async {
     let settings = SettingsStore(persistence: FaultingSettingsPersistence())
+    #expect(!settings.fileSearchEnabled)
+    settings.fileSearchEnabled = true
     settings.fileContentSearchEnabled = true
     settings.fileHiddenFilesEnabled = true
     settings.fileSystemLocationsEnabled = true
@@ -986,15 +988,18 @@ private enum OnboardingComponentHostRetainer {
     settings.fileContentSearchEnabled = false
     settings.fileSystemLocationsEnabled = false
 
-    var options = await settings.fileSearchPreferences.options()
+    var configuration = await settings.fileSearchPreferences.configuration()
     for _ in 0..<1_000 {
-        options = await settings.fileSearchPreferences.options()
-        if options
-            == SpotlightSearchOptions(
-                searchContents: false,
-                includeHiddenFiles: true,
-                includeSystemLocations: false,
-                includeTrash: true
+        configuration = await settings.fileSearchPreferences.configuration()
+        if configuration
+            == FileSearchConfiguration(
+                isEnabled: true,
+                options: SpotlightSearchOptions(
+                    searchContents: false,
+                    includeHiddenFiles: true,
+                    includeSystemLocations: false,
+                    includeTrash: true
+                )
             )
         {
             break
@@ -1002,14 +1007,44 @@ private enum OnboardingComponentHostRetainer {
         await Task.yield()
     }
     #expect(
-        options
-            == SpotlightSearchOptions(
-                searchContents: false,
-                includeHiddenFiles: true,
-                includeSystemLocations: false,
-                includeTrash: true
+        configuration
+            == FileSearchConfiguration(
+                isEnabled: true,
+                options: SpotlightSearchOptions(
+                    searchContents: false,
+                    includeHiddenFiles: true,
+                    includeSystemLocations: false,
+                    includeTrash: true
+                )
             )
     )
+}
+
+@Test @MainActor func fileSearchRequiresPersistedExplicitOptInAndFailsClosedOnWriteErrors() async throws {
+    let persistence = FaultingSettingsPersistence()
+    let settings = SettingsStore(persistence: persistence)
+    #expect(!settings.fileSearchEnabled)
+    #expect(!(await settings.fileSearchPreferences.configuration()).isEnabled)
+
+    settings.fileSearchEnabled = true
+    #expect(SettingsStore(persistence: persistence).fileSearchEnabled)
+    #expect(settings.exportedConfiguration()["files.searchEnabled"] == nil)
+
+    let imported = SettingsStore(persistence: FaultingSettingsPersistence())
+    try imported.applyImportedConfiguration(["files.searchEnabled": .bool(true)])
+    #expect(!imported.fileSearchEnabled)
+
+    var configuration = await settings.fileSearchPreferences.configuration()
+    for _ in 0..<1_000 where !configuration.isEnabled {
+        await Task.yield()
+        configuration = await settings.fileSearchPreferences.configuration()
+    }
+    #expect(configuration.isEnabled)
+
+    persistence.failingKey = "files.searchEnabled"
+    settings.fileSearchEnabled = false
+    #expect(settings.fileSearchEnabled)
+    #expect((await settings.fileSearchPreferences.configuration()).isEnabled)
 }
 
 @Test @MainActor func importedSettingsRollbackAllEarlierChangesWhenOneWriteFails() {
@@ -1036,12 +1071,14 @@ private enum OnboardingComponentHostRetainer {
     settings.prefixesEnabled = false
     settings.rankingLearningEnabled = false
     settings.clipboardEnabled = true
+    settings.fileSearchEnabled = true
 
     persistence.failingKey = "ranking.learningEnabled"
     #expect(throws: SettingsImportError.persistenceFailed) { try settings.restoreDefaults() }
     #expect(!settings.prefixesEnabled)
     #expect(!settings.rankingLearningEnabled)
     #expect(settings.clipboardEnabled)
+    #expect(settings.fileSearchEnabled)
 
     persistence.failingKey = nil
     try settings.restoreDefaults()
@@ -1053,6 +1090,7 @@ private enum OnboardingComponentHostRetainer {
     #expect(!settings.quickPasteEnabled)
     #expect(settings.quickPasteAllowsSensitiveContent)
     #expect(settings.launcherAppearance == .automatic)
+    #expect(!settings.fileSearchEnabled)
 }
 
 @Test @MainActor func shortcutPersistenceUsesOneValidatedValueAndRollsBackAtomically() {

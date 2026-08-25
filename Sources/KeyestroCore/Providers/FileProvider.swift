@@ -85,7 +85,7 @@ public struct FileProvider: LauncherProvider {
     private let clock: any ClockServicing
 
     public init(
-        spotlight: any SpotlightServicing = MDSpotlightService(),
+        spotlight: any SpotlightServicing = LazyMDSpotlightService(),
         actions: any FileActionServicing,
         preferences: FileSearchPreferences = FileSearchPreferences(),
         recentCacheLifetime: Duration = .seconds(300),
@@ -103,6 +103,12 @@ public struct FileProvider: LauncherProvider {
             bufferingPolicy: .bufferingNewest(8)
         )
         let task = Task {
+            let configuration = await preferences.configuration()
+            guard configuration.isEnabled else {
+                continuation.yield(.items([], isFinal: true))
+                continuation.finish()
+                return
+            }
             guard !request.normalizedText.isEmpty else {
                 continuation.yield(.items([], isFinal: true))
                 continuation.finish()
@@ -116,10 +122,9 @@ public struct FileProvider: LauncherProvider {
                 continuation.yield(.replacement(items, isFinal: false))
             }
             do {
-                let options = await preferences.options()
                 let updates = await spotlight.searchFileUpdates(
                     containing: request.normalizedText,
-                    options: options,
+                    options: configuration.options,
                     limit: DomainLimits.candidatesPerProvider
                 )
                 for try await batch in updates {
@@ -222,6 +227,15 @@ public struct FileProvider: LauncherProvider {
     }
 
     public func execute(request: ProviderActionRequest) async -> ActionResult {
+        guard await preferences.configuration().isEnabled else {
+            return .failure(
+                ErrorDescriptor(
+                    code: "files.searchDisabled",
+                    message: "File search is disabled.",
+                    recoverySuggestion: "Enable file search in Keyestro Settings before accessing files."
+                )
+            )
+        }
         guard request.itemID.providerID == descriptor.id,
             let record = await cache.record(for: request.itemID.providerStableID)
         else {
