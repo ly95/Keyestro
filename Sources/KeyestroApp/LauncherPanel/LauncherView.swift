@@ -30,15 +30,10 @@ struct LauncherView: View {
     }
 
     var body: some View {
-        Group {
-            if #available(macOS 26.0, *), nativeGlassEnabled {
-                GlassEffectContainer(spacing: 0) {
-                    panelLayers
-                }
-            } else {
-                panelLayers
-            }
-        }
+        // Keep each glass surface in its local layout hierarchy. A panel-wide
+        // GlassEffectContainer extracts the selected row from the ScrollView's
+        // clipping context, allowing it to render over the search header.
+        panelLayers
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .foregroundStyle(palette.textPrimary)
         .tint(palette.accent)
@@ -487,6 +482,7 @@ struct LauncherView: View {
                 .accessibilityLabel(L10n.text("Results"))
             }
             .scrollIndicators(.hidden)
+            .scrollClipDisabled(false)
             .onChange(of: model.selectedItemID) { _, id in
                 if let id { proxy.scrollTo(id) }
             }

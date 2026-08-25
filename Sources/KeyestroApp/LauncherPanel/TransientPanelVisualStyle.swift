@@ -211,6 +211,10 @@ private struct TransientPanelSelectionModifier: ViewModifier {
         )
     }
 
+    private var selectionShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+    }
+
     @ViewBuilder
     func body(content: Content) -> some View {
         Group {
@@ -218,7 +222,7 @@ private struct TransientPanelSelectionModifier: ViewModifier {
                 ZStack(alignment: .leading) {
                     content
                     if colorScheme == .dark, nativeGlassEnabled {
-                        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        selectionShape
                             .stroke(
                                 LinearGradient(
                                     colors: [
@@ -247,9 +251,7 @@ private struct TransientPanelSelectionModifier: ViewModifier {
                             .frame(width: 0.8)
                         }
                         .padding(.vertical, cornerRadius * 0.72)
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        )
+                        .clipShape(selectionShape)
                         .allowsHitTesting(false)
                     }
                     RoundedRectangle(cornerRadius: 1.5, style: .continuous)
@@ -270,6 +272,7 @@ private struct TransientPanelSelectionModifier: ViewModifier {
                             x: colorScheme == .dark ? 0.5 : 0
                         )
                 }
+                .clipShape(selectionShape)
                 .transientPanelGlassSurface(
                     cornerRadius: cornerRadius,
                     variant: .regular,
@@ -293,7 +296,7 @@ private struct TransientPanelSelectionModifier: ViewModifier {
         }
         .overlay {
             if isSelected, visualAccessibility.usesStrongSelectionOutline {
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                selectionShape
                     .stroke(outlineColor, lineWidth: visualAccessibility.selectionOutlineWidth)
             }
         }

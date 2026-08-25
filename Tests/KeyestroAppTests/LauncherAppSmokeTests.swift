@@ -1564,15 +1564,26 @@ func launcherRendersTheApprovedLiquidGlassStateInBothAppearances() async throws 
         try await waitUntil { model.launcherAppearance == appearance }
         let outputURL = outputDirectory?.appendingPathComponent("implementation-\(appearance.rawValue).png")
         try await renderer.render(to: outputURL, focusesSearchField: false)
+        if let outputDirectory, let bottomID = model.displayOrderedResults.last?.id {
+            model.selectItem(bottomID)
+            try await renderer.render(
+                to: outputDirectory.appendingPathComponent(
+                    "implementation-bottom-selection-\(appearance.rawValue).png"
+                ),
+                focusesSearchField: false
+            )
+            model.selectItem(calculatorID)
+        }
     }
 
     #expect(LauncherPanelLayout.windowWidth == 664)
     #expect(LauncherPanelLayout.windowHeight == 414)
-    #expect(LauncherPanelLayout.searchFieldCornerRadius == 22)
+    #expect(LauncherPanelLayout.searchFieldCornerRadius == 16)
     #expect(LauncherPanelLayout.resultRowHeight == 66)
     #expect(LauncherPanelLayout.resultBottomInset == 6)
     #expect(LauncherPanelLayout.resultContentHorizontalInset == 26)
-    #expect(LauncherPanelLayout.selectionCornerRadius == 14)
+    #expect(LauncherPanelLayout.selectionCornerRadius == 28)
+    #expect(LauncherPanelLayout.selectionCornerRadius == LauncherPanelLayout.panelCornerRadius)
     #expect(LauncherPanelLayout.separatorHorizontalInset == 14)
     #expect(model.selectedItem?.title == "Calculator")
     #expect(model.displayOrderedResults.map(\.item.title).count == 5)
