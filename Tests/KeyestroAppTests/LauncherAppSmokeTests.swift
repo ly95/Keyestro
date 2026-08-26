@@ -407,7 +407,31 @@ import Testing
         ) == .deleteSelection
     )
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: true) == nil)
-    #expect(LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: false) == nil)
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(key: "k", commandModified: true, isComposing: false)
+            == .openActions
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(key: "c", commandModified: true, isComposing: false)
+            == .copySelection
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(key: "\r", commandModified: true, isComposing: false)
+            == .submitSecondary
+    )
+    #expect(LauncherKeyInterpreter.shouldSwallowRepeat(.submitSecondary, isRepeat: true))
+    #expect(LauncherKeyInterpreter.shouldSwallowRepeat(.submit, isRepeat: true))
+    #expect(!LauncherKeyInterpreter.shouldSwallowRepeat(.submitSecondary, isRepeat: false))
+    #expect(!LauncherKeyInterpreter.shouldSwallowRepeat(.moveDown, isRepeat: true))
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "K",
+            commandModified: true,
+            optionModified: true,
+            shiftModified: true,
+            isComposing: false
+        ) == .actionShortcut(key: "k", modifiers: [.command, .option, .shift])
+    )
 
     let caretRequest = LauncherSearchFocusRequest.initial.next(selectAll: false)
     let selectAllRequest = caretRequest.next(selectAll: true)
@@ -465,6 +489,48 @@ import Testing
     #expect(forwardedCommands.isEmpty)
 }
 
+@Test @MainActor func launcherSearchFieldSwallowsRepeatedCommandReturn() throws {
+    let field = CommandTextField(frame: NSRect(x: 0, y: 0, width: 320, height: 44))
+    var forwardedCommands: [LauncherCommand] = []
+    field.commandHandler = { command in
+        forwardedCommands.append(command)
+        return true
+    }
+
+    let first = try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: 0,
+            context: nil,
+            characters: "\r",
+            charactersIgnoringModifiers: "\r",
+            isARepeat: false,
+            keyCode: 36
+        )
+    )
+    let repeated = try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [.command],
+            timestamp: ProcessInfo.processInfo.systemUptime,
+            windowNumber: 0,
+            context: nil,
+            characters: "\r",
+            charactersIgnoringModifiers: "\r",
+            isARepeat: true,
+            keyCode: 36
+        )
+    )
+
+    #expect(field.performKeyEquivalent(with: first))
+    #expect(field.performKeyEquivalent(with: repeated))
+    #expect(forwardedCommands == [.submitSecondary])
+}
+
 @Test @MainActor func launcherQuickViewKeepsPrimaryAndSecondaryActionsDistinct() throws {
     let primary = ActionDescriptor(
         id: "open",
@@ -492,6 +558,63 @@ import Testing
         defaultActionID: primary.id
     )
     #expect(LauncherViewModel.secondaryAction(for: primaryOnly) == nil)
+}
+
+@Test @MainActor
+func launcherFiltersActionsAndExecutesFilteredSelectionAndShortcut() async throws {
+    let suiteName = "com.keyestro.actions-filter-tests.\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: suiteName))
+    defaults.removePersistentDomain(forName: suiteName)
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+
+    let providers = LocalLensReferenceProvider.makeProviders()
+    let filesProvider = try #require(
+        providers.compactMap { $0 as? LocalLensReferenceProvider }
+            .first { $0.descriptor.id == "files" }
+    )
+    let model = LauncherViewModel(
+        coordinator: QueryCoordinator(providers: providers),
+        actionRunner: ActionRunner(providers: providers),
+        settings: SettingsStore(defaults: defaults)
+    )
+    defer { model.didDismiss() }
+
+    model.invoke(context: QueryContext())
+    model.queryDidChange("design spec", isComposing: false)
+    try await waitUntil { model.results.count == 4 && !model.isSearching }
+    let itemID = try #require(
+        model.displayOrderedResults.first { $0.item.title == "Product design brief.md" }?.id
+    )
+    model.selectItem(itemID)
+    model.openActions()
+    model.actionQueryDidChange("  FINDER  ")
+
+    #expect(model.visibleActions.map(\.id) == ["show-in-finder"])
+    #expect(model.selectedActionIndex == 0)
+    model.executeSelectedAction()
+    for _ in 0..<1_000 {
+        if !model.isExecuting,
+            await filesProvider.lastExecutedActionID() == "show-in-finder"
+        {
+            break
+        }
+        await Task.yield()
+    }
+    #expect(await filesProvider.lastExecutedActionID() == "show-in-finder")
+
+    if model.layer != .actions { model.openActions() }
+    model.actionQueryDidChange("")
+    #expect(!model.executeActionShortcut(key: "y", modifiers: [.command, .shift]))
+    #expect(model.executeActionShortcut(key: "Y", modifiers: [.command]))
+    for _ in 0..<1_000 {
+        if !model.isExecuting,
+            await filesProvider.lastExecutedActionID() == "quick-look"
+        {
+            break
+        }
+        await Task.yield()
+    }
+    #expect(await filesProvider.lastExecutedActionID() == "quick-look")
 }
 
 @Test @MainActor func launcherKeepsLongActionSelectionVisible() async throws {
@@ -572,6 +695,15 @@ import Testing
         return firstSubview(of: NSScrollView.self, in: contentView) != nil
     }
     let scrollView = try #require(firstSubview(of: NSScrollView.self, in: contentView))
+
+    let resultsFrame = panel.frame
+    model.openActions()
+    await Task.yield()
+    #expect(panel.frame == resultsFrame)
+    #expect(panel.frame.size == NSSize(width: 664, height: 414))
+    model.closeActions()
+    await Task.yield()
+    #expect(panel.frame == resultsFrame)
 
     model.selectItem(model.results[15].id)
     for _ in 0..<10 {
@@ -1492,6 +1624,18 @@ func launcherRendersTheLocalLensReferenceStateWithoutThemeLayoutShift() async th
         let outputURL = outputDirectory?.appendingPathComponent("implementation-\(appearance.rawValue).png")
         try await renderer.render(to: outputURL, focusesSearchField: false)
     }
+
+    model.openActions()
+    #expect(model.visibleActions.count == 5)
+    for appearance in [LauncherAppearancePreference.light, .dark] {
+        settings.launcherAppearance = appearance
+        try await waitUntil { model.launcherAppearance == appearance }
+        let outputURL = outputDirectory?.appendingPathComponent(
+            "actions-implementation-\(appearance.rawValue).png"
+        )
+        try await renderer.render(to: outputURL, focusesSearchField: false)
+    }
+    model.closeActions()
 
     #expect(model.query == "design spec")
     let displayedTitles = model.displayOrderedResults.map(\.item.title)
@@ -2470,18 +2614,40 @@ private actor LocalLensReferenceProvider: LauncherProvider {
     }
 
     nonisolated static func makeProviders() -> [any LauncherProvider] {
-        let openFile = ActionDescriptor(id: "open", title: "Open file")
+        let openFile = ActionDescriptor(
+            id: "open",
+            title: "Open",
+            icon: .systemSymbol("arrow.up.forward.app")
+        )
         let quickLook = ActionDescriptor(
             id: "quick-look",
             title: "Quick Look",
+            icon: .systemSymbol("eye"),
             shortcut: KeyEquivalent(key: "y", modifiers: [.command]),
             behavior: .keepLauncherOpen
         )
         let showInFinder = ActionDescriptor(
             id: "show-in-finder",
             title: "Show in Finder",
+            icon: .systemSymbol("folder"),
             shortcut: KeyEquivalent(key: "return", modifiers: [.command]),
             behavior: .keepLauncherOpen
+        )
+        let copyPath = ActionDescriptor(
+            id: "copy-path",
+            title: "Copy Path",
+            icon: .systemSymbol("doc.on.doc"),
+            shortcut: KeyEquivalent(key: "c", modifiers: [.command]),
+            behavior: .keepLauncherOpen
+        )
+        let moveToTrash = ActionDescriptor(
+            id: "move-to-trash",
+            title: "Move to Trash",
+            icon: .systemSymbol("trash"),
+            shortcut: KeyEquivalent(key: "delete", modifiers: [.command]),
+            behavior: .keepLauncherOpen,
+            risk: .destructive,
+            confirmationTarget: "Product design brief.md"
         )
         let openApplication = ActionDescriptor(id: "open", title: "Open")
         let paste = ActionDescriptor(id: "paste", title: "Paste")
@@ -2502,7 +2668,7 @@ private actor LocalLensReferenceProvider: LauncherProvider {
                         canonicalResource: .file(URL(fileURLWithPath: "/Documents/Product design brief.md")),
                         keywords: ["design spec"],
                         accessories: [.badge("FILE"), .text("24 KB · local")],
-                        actions: [openFile, quickLook, showInFinder],
+                        actions: [openFile, quickLook, showInFinder, copyPath, moveToTrash],
                         defaultActionID: openFile.id,
                         scoreFeatures: ScoreFeatures(context: 1, providerPrior: 1)
                     ),
@@ -2514,7 +2680,7 @@ private actor LocalLensReferenceProvider: LauncherProvider {
                         icon: .systemSymbol("text.alignleft"),
                         canonicalResource: .file(URL(fileURLWithPath: "/Downloads/Keyestro roadmap.pdf")),
                         keywords: ["design spec"],
-                        actions: [openFile, quickLook, showInFinder],
+                        actions: [openFile, quickLook, showInFinder, copyPath, moveToTrash],
                         defaultActionID: openFile.id,
                         scoreFeatures: ScoreFeatures(context: 0.9, providerPrior: 1)
                     ),

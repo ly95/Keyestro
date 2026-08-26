@@ -103,25 +103,33 @@ struct LauncherView: View {
                     .frame(width: 26)
                     .accessibilityHidden(true)
                 LauncherSearchField(
-                    text: $model.query,
+                    text: searchText,
                     focusRequest: model.queryFocusRequest,
-                    placeholder: L10n.text("launcher.search.placeholder"),
+                    placeholder: searchPlaceholder,
                     isEmbedded: true,
                     fontSize: 23,
                     onChange: { text, composing in
-                        model.queryDidChange(text, isComposing: composing)
+                        if model.layer == .actions {
+                            model.actionQueryDidChange(text)
+                        } else {
+                            model.queryDidChange(text, isComposing: composing)
+                        }
                     },
                     onCommand: handle
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 ZStack {
-                    if model.isSearching {
+                    if model.layer == .actions {
+                        Text("Esc")
+                            .font(.system(size: 12, weight: .regular, design: .monospaced))
+                            .foregroundStyle(palette.textSecondary)
+                    } else if model.isSearching {
                         ProgressView()
                             .controlSize(.small)
                             .accessibilityLabel(L10n.text("Searching"))
                     }
                 }
-                .frame(width: 16, height: 16)
+                .frame(width: model.layer == .actions ? 32 : 16, height: 16)
             }
             .padding(.horizontal, 18)
             .frame(height: LauncherPanelLayout.searchFieldHeight)
@@ -142,16 +150,47 @@ struct LauncherView: View {
         .frame(height: LauncherPanelLayout.headerHeight)
     }
 
+    private var searchText: Binding<String> {
+        Binding(
+            get: { model.layer == .actions ? model.actionQuery : model.query },
+            set: { value in
+                if model.layer == .actions {
+                    model.actionQuery = value
+                } else {
+                    model.query = value
+                }
+            }
+        )
+    }
+
+    private var searchPlaceholder: String {
+        guard model.layer == .actions else { return L10n.text("launcher.search.placeholder") }
+        let itemTitle = model.selectedItem.map(localizedTitle) ?? L10n.text("launcher.actions")
+        return L10n.format("Search actions for %@", itemTitle)
+    }
+
     @ViewBuilder
     private var content: some View {
-        if model.layer == .parameters {
-            parameterForm
-        } else if model.layer == .actions {
-            actionList
-        } else if model.results.isEmpty {
-            emptyState
-        } else {
-            resultWorkspace
+        ZStack {
+            switch model.layer {
+            case .results:
+                EmptyView()
+            case .actions:
+                actionList
+            case .parameters:
+                parameterForm
+            }
+
+            Group {
+                if model.results.isEmpty {
+                    emptyState
+                } else {
+                    resultWorkspace
+                }
+            }
+            .opacity(model.layer == .results ? 1 : 0)
+            .allowsHitTesting(model.layer == .results)
+            .accessibilityHidden(model.layer != .results)
         }
     }
 
@@ -246,64 +285,180 @@ struct LauncherView: View {
     }
 
     private var actionList: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 0) {
             HStack {
-                Text(model.selectedItem.map(localizedTitle) ?? L10n.text("launcher.actions"))
-                    .font(.headline)
+                Text(
+                    L10n.format(
+                        "Actions for %@",
+                        model.selectedItem.map(localizedTitle) ?? L10n.text("launcher.actions")
+                    )
+                )
+                .font(.system(size: 16, weight: .semibold))
                 Spacer()
-                Text("Esc")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
+                Text(model.visibleActions.count, format: .number)
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundStyle(palette.textSecondary)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(spacing: 4) {
-                        ForEach(Array(model.visibleActions.enumerated()), id: \.element.id) { index, action in
-                            HStack(spacing: 12) {
-                                Image(systemName: symbol(for: action.icon) ?? "bolt")
-                                    .frame(width: 24)
-                                Text(L10n.text(action.title))
-                                Spacer()
-                                if action.risk != .safe {
-                                    Image(
-                                        systemName: action.risk == .destructive
-                                            ? "exclamationmark.triangle.fill"
-                                            : "exclamationmark.circle"
-                                    )
-                                    .foregroundStyle(action.risk == .destructive ? .red : .orange)
-                                    .accessibilityLabel(
-                                        L10n.text(action.risk == .destructive ? "Destructive" : "Confirmation required")
-                                    )
-                                }
+            .padding(.horizontal, 24)
+            .frame(height: 40)
+
+            if model.visibleActions.isEmpty {
+                Text(L10n.text("No matching actions"))
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundStyle(palette.textSecondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 0) {
+                            ForEach(Array(model.visibleActions.enumerated()), id: \.element.id) { index, action in
+                                actionRow(
+                                    action,
+                                    at: index,
+                                    separatesDangerGroup: action.risk == .destructive
+                                        && model.visibleActions.firstIndex(where: { $0.risk == .destructive }) == index
+                                )
+                                .id(action.id)
                             }
-                            .padding(.horizontal, 14)
-                            .frame(height: 48)
-                            .transientPanelSelectionStyle(
-                                isSelected: index == model.selectedActionIndex,
-                                cornerRadius: 9
-                            )
-                            .contentShape(Rectangle())
-                            .accessibilityElement(children: .combine)
-                            .accessibilityLabel(L10n.text(action.title))
-                            .accessibilityAddTraits(.isButton)
-                            .onTapGesture {
-                                model.selectedActionIndex = index
-                                model.executeSelectedAction()
-                            }
-                            .accessibilityAddTraits(index == model.selectedActionIndex ? [.isSelected] : [])
-                            .id(action.id)
                         }
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 8)
                     }
-                }
-                .onChange(of: model.selectedActionIndex) { _, index in
-                    guard model.visibleActions.indices.contains(index) else { return }
-                    proxy.scrollTo(model.visibleActions[index].id, anchor: .center)
+                    .scrollIndicators(.hidden)
+                    .onChange(of: model.selectedActionIndex) { _, index in
+                        guard model.visibleActions.indices.contains(index) else { return }
+                        proxy.scrollTo(model.visibleActions[index].id, anchor: .center)
+                    }
                 }
             }
         }
-        .padding(8)
+    }
+
+    private func actionRow(
+        _ action: ActionDescriptor,
+        at index: Int,
+        separatesDangerGroup: Bool
+    ) -> some View {
+        let selected = index == model.selectedActionIndex
+        let destructive = action.risk == .destructive
+        let row = HStack(spacing: 16) {
+            Image(systemName: actionSymbol(for: action))
+                .font(.system(size: 24, weight: .regular))
+                .foregroundStyle(destructive ? Color.red : palette.textPrimary)
+                .frame(width: 28, height: 28)
+                .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(L10n.text(action.title))
+                    .font(.system(size: 16, weight: .medium))
+                    .lineLimit(1)
+                Text(model.actionDetail(for: action))
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(palette.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 12)
+            actionShortcut(for: action)
+                .foregroundStyle(selected ? palette.accent.opacity(0.82) : palette.textSecondary)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 54)
+        .transientPanelSelectionStyle(
+            isSelected: selected,
+            cornerRadius: 16,
+            showsLeadingIndicator: false
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture(count: 2) {
+            model.selectedActionIndex = index
+            model.executeSelectedAction()
+        }
+        .onTapGesture { model.selectedActionIndex = index }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(L10n.text(action.title) + ", " + model.actionDetail(for: action))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+        .accessibilityAction(.default) {
+            model.selectedActionIndex = index
+            model.executeSelectedAction()
+        }
+
+        return Group {
+            if separatesDangerGroup {
+                row
+                    .padding(.top, 12)
+                    .overlay(alignment: .top) {
+                        Rectangle()
+                            .fill(palette.border.opacity(0.66))
+                            .frame(height: 1)
+                            .padding(.horizontal, 8)
+                            .padding(.top, 2)
+                    }
+                    .frame(height: 66, alignment: .bottom)
+            } else {
+                row
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func actionShortcut(for action: ActionDescriptor) -> some View {
+        let isDefault = action.id == model.selectedItem?.defaultActionID
+        if isDefault {
+            HStack(spacing: 8) {
+                Text("↩")
+                    .font(.system(size: 17, weight: .regular))
+                Text(
+                    action.shortcut.map {
+                        actionShortcutLabel($0, spellsOutReturn: true)
+                    } ?? "Return"
+                )
+                .font(.system(size: 12, weight: .regular, design: .monospaced))
+            }
+        } else if let shortcut = action.shortcut {
+            Text(actionShortcutLabel(shortcut))
+                .font(.system(size: 12, weight: .regular, design: .monospaced))
+        }
+    }
+
+    private func actionSymbol(for action: ActionDescriptor) -> String {
+        switch action.id.rawValue.lowercased() {
+        case "open":
+            return "bolt"
+        case "reveal", "show-in-finder":
+            return "folder"
+        case "copypath", "copy-path", "copybundleidentifier":
+            return "square.on.square"
+        case "togglepin", "toggle-pin":
+            return "star"
+        default:
+            break
+        }
+        if let symbol = symbol(for: action.icon) { return symbol }
+        return action.risk == .destructive ? "exclamationmark.triangle" : "bolt"
+    }
+
+    private func actionShortcutLabel(
+        _ shortcut: KeyestroDomain.KeyEquivalent,
+        spellsOutReturn: Bool = false
+    ) -> String {
+        let modifiers: [(KeyModifier, String)] = [
+            (.control, "⌃"),
+            (.option, "⌥"),
+            (.shift, "⇧"),
+            (.command, "⌘"),
+        ]
+        let prefix = modifiers.compactMap { shortcut.modifiers.contains($0.0) ? $0.1 : nil }.joined()
+        let key: String
+        switch shortcut.key.lowercased() {
+        case "return", "enter": key = spellsOutReturn ? "Return" : "↩"
+        case "escape": key = "⎋"
+        case "delete", "backspace": key = "⌫"
+        case "space": key = "Space"
+        default: key = shortcut.key.uppercased()
+        }
+        return prefix.isEmpty ? key : "\(prefix) \(key)"
     }
 
     private var emptyState: some View {
@@ -752,6 +907,11 @@ struct LauncherView: View {
         case .escape: model.handleEscape()
         case .selectAll: model.requestQueryFocus(selectAll: true)
         case .openSettings: model.onOpenSettings?()
+        case .openActions: model.openActions()
+        case .copySelection:
+            return model.executeActionShortcut(key: "c", modifiers: [.command])
+        case let .actionShortcut(key, modifiers):
+            return model.executeActionShortcut(key: key, modifiers: modifiers)
         case .openFilters, .deleteSelection: return false
         case let .executeIndex(index): model.executeVisibleResult(at: index)
         case .tab: model.enterParameterForm()

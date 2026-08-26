@@ -1,4 +1,5 @@
 import AppKit
+import KeyestroDomain
 import SwiftUI
 
 enum LauncherCommand: Equatable {
@@ -10,6 +11,9 @@ enum LauncherCommand: Equatable {
     case selectAll
     case openSettings
     case openFilters
+    case openActions
+    case copySelection
+    case actionShortcut(key: String, modifiers: Set<KeyModifier>)
     case deleteSelection
     case executeIndex(Int)
     case tab
@@ -37,20 +41,50 @@ enum LauncherKeyInterpreter {
         key: String,
         commandModified: Bool,
         controlModified: Bool = false,
+        optionModified: Bool = false,
+        shiftModified: Bool = false,
         isComposing: Bool
     ) -> LauncherCommand? {
         guard !isComposing else { return nil }
-        if commandModified {
-            switch key.lowercased() {
+        let normalizedKey = normalizedKey(key)
+        var modifiers = Set<KeyModifier>()
+        if commandModified { modifiers.insert(.command) }
+        if controlModified { modifiers.insert(.control) }
+        if optionModified { modifiers.insert(.option) }
+        if shiftModified { modifiers.insert(.shift) }
+
+        if modifiers == [.command] {
+            switch normalizedKey {
+            case "return": return .submitSecondary
             case "a", "l": return .selectAll
+            case "c": return .copySelection
+            case "k": return .openActions
             case "p": return .openFilters
             case ",": return .openSettings
-            case "1"..."9": return key.first?.wholeNumberValue.map { .executeIndex($0 - 1) }
+            case "1"..."9": return normalizedKey.first?.wholeNumberValue.map { .executeIndex($0 - 1) }
             default: break
             }
         }
-        if controlModified, key.lowercased() == "x" { return .deleteSelection }
+        if modifiers == [.control], normalizedKey == "x" { return .deleteSelection }
+        if !modifiers.isEmpty {
+            return .actionShortcut(key: normalizedKey, modifiers: modifiers)
+        }
         return nil
+    }
+
+    static func normalizedKey(_ key: String) -> String {
+        switch key.lowercased() {
+        case "\r", "\n", "return", "enter": "return"
+        case "\u{1b}", "escape": "escape"
+        case "\u{7f}", "\u{8}", "delete", "backspace": "delete"
+        case " ", "space": "space"
+        case let normalized: normalized
+        }
+    }
+
+    static func shouldSwallowRepeat(_ command: LauncherCommand, isRepeat: Bool) -> Bool {
+        guard isRepeat else { return false }
+        return command == .submit || command == .submitSecondary
     }
 
     static func interpret(
@@ -93,6 +127,8 @@ final class CommandFieldEditor: NSTextView {
                 key: key,
                 commandModified: modifiers.contains(.command),
                 controlModified: modifiers.contains(.control),
+                optionModified: modifiers.contains(.option),
+                shiftModified: modifiers.contains(.shift),
                 isComposing: false
             ) == .selectAll
         else { return false }
@@ -138,15 +174,27 @@ final class CommandTextField: NSTextField {
                 key: key,
                 commandModified: modifiers.contains(.command),
                 controlModified: modifiers.contains(.control),
+                optionModified: modifiers.contains(.option),
+                shiftModified: modifiers.contains(.shift),
                 isComposing: false
             )
         else {
             return super.performKeyEquivalent(with: event)
         }
+        if LauncherKeyInterpreter.shouldSwallowRepeat(command, isRepeat: event.isARepeat) {
+            return true
+        }
         if command == .selectAll,
             let editor = currentEditor() as? NSTextView
         {
             editor.selectAll(nil)
+            return true
+        }
+        if command == .copySelection,
+            let editor = currentEditor() as? NSTextView,
+            editor.selectedRange().length > 0
+        {
+            editor.copy(nil)
             return true
         }
         if commandHandler?(command) == true { return true }
@@ -229,6 +277,8 @@ private struct LauncherSearchTextField: NSViewRepresentable {
         field.drawsBackground = false
         field.focusRingType = .none
         field.font = .systemFont(ofSize: fontSize, weight: .regular)
+        field.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         field.isAutomaticTextCompletionEnabled = false
         field.placeholderString = placeholder
         field.lineBreakMode = .byTruncatingTail
@@ -288,11 +338,20 @@ private struct LauncherSearchTextField: NSViewRepresentable {
                     key: key,
                     commandModified: event.modifierFlags.contains(.command),
                     controlModified: event.modifierFlags.contains(.control),
+                    optionModified: event.modifierFlags.contains(.option),
+                    shiftModified: event.modifierFlags.contains(.shift),
                     isComposing: false
                 )
             {
+                if LauncherKeyInterpreter.shouldSwallowRepeat(command, isRepeat: event.isARepeat) {
+                    return true
+                }
                 if command == .selectAll {
                     textView.selectAll(nil)
+                    return true
+                }
+                if command == .copySelection, textView.selectedRange().length > 0 {
+                    textView.copy(nil)
                     return true
                 }
                 return parent.onCommand(command)

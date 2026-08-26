@@ -26,6 +26,7 @@ final class LauncherViewModel: ObservableObject {
     }
 
     @Published var query = ""
+    @Published var actionQuery = ""
     @Published private(set) var results: [RankedItem] = []
     @Published private(set) var statuses: [ProviderID: ProviderStatus] = [:]
     @Published var selectedItemID: ItemID?
@@ -75,7 +76,20 @@ final class LauncherViewModel: ObservableObject {
     }
 
     var visibleActions: [ActionDescriptor] {
-        selectedItem?.actions ?? []
+        guard let actions = selectedItem?.actions else { return [] }
+        let normalizedQuery = actionQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let matches = actions.filter { action in
+            guard !normalizedQuery.isEmpty else { return true }
+            let searchable = [
+                L10n.text(action.title),
+                actionDetail(for: action),
+                action.confirmationTarget ?? "",
+                action.id.rawValue,
+            ].joined(separator: " ").lowercased()
+            return searchable.contains(normalizedQuery)
+        }
+        return matches.filter { $0.risk != .destructive }
+            + matches.filter { $0.risk == .destructive }
     }
 
     var selectedPrimaryAction: ActionDescriptor? {
@@ -110,6 +124,7 @@ final class LauncherViewModel: ObservableObject {
     func invoke(context: QueryContext) {
         self.context = context
         layer = .results
+        actionQuery = ""
         pendingConfirmation = nil
         parameterForm = nil
         message = nil
@@ -124,6 +139,7 @@ final class LauncherViewModel: ObservableObject {
         Task { await coordinator.cancelCurrentSearch() }
         isSearching = false
         layer = .results
+        actionQuery = ""
         pendingConfirmation = nil
         parameterForm = nil
         revealedSensitiveItemIDs.removeAll()
@@ -164,13 +180,39 @@ final class LauncherViewModel: ObservableObject {
     func openActions() {
         guard canExecuteSelectedResult else { return }
         layer = .actions
+        actionQuery = ""
         selectedActionIndex = 0
+        requestQueryFocus(selectAll: false)
     }
 
     func closeActions() {
         layer = .results
+        actionQuery = ""
         selectedActionIndex = 0
         requestQueryFocus(selectAll: false)
+    }
+
+    func actionQueryDidChange(_ value: String) {
+        actionQuery = value.limitedToUnicodeScalars(DomainLimits.queryUnicodeScalars)
+        selectedActionIndex = 0
+    }
+
+    func actionDetail(for action: ActionDescriptor) -> String {
+        let itemTitle = selectedItem.map { L10n.text($0.title) } ?? L10n.text("selected item")
+        switch action.id.rawValue {
+        case "open": return L10n.format("Open %@", itemTitle)
+        case "reveal", "show-in-finder": return L10n.text("Reveal in Finder")
+        case "quickLook", "quick-look": return L10n.text("Preview without opening")
+        case "copyPath", "copy-path": return L10n.text("Copy full file path")
+        case "copyURL", "copy-url": return L10n.text("Copy file URL")
+        case "copyBundleIdentifier", "copy-bundle-identifier":
+            return L10n.text("Copy bundle identifier")
+        case "togglePin", "toggle-pin": return L10n.text("Keep near the top of results")
+        case "quit": return L10n.format("Close %@", itemTitle)
+        case "delete", "move-to-trash": return L10n.format("Remove %@", itemTitle)
+        default:
+            return action.confirmationTarget ?? L10n.format("Run %@", L10n.text(action.title))
+        }
     }
 
     func handleEscape() {
@@ -225,16 +267,32 @@ final class LauncherViewModel: ObservableObject {
     func executeSelectedAction() {
         guard canExecuteSelectedResult,
             let item = selectedItem,
-            item.actions.indices.contains(selectedActionIndex)
+            visibleActions.indices.contains(selectedActionIndex)
         else { return }
-        execute(itemID: item.id, actionID: item.actions[selectedActionIndex].id)
+        execute(itemID: item.id, actionID: visibleActions[selectedActionIndex].id)
+    }
+
+    @discardableResult
+    func executeActionShortcut(key: String, modifiers: Set<KeyModifier>) -> Bool {
+        let normalizedKey = LauncherKeyInterpreter.normalizedKey(key)
+        guard layer == .actions,
+            let index = visibleActions.firstIndex(where: { action in
+                guard let shortcut = action.shortcut else { return false }
+                return LauncherKeyInterpreter.normalizedKey(shortcut.key) == normalizedKey
+                    && shortcut.modifiers == modifiers
+            })
+        else { return false }
+
+        selectedActionIndex = index
+        executeSelectedAction()
+        return true
     }
 
     func enterParameterForm() {
         guard canExecuteSelectedResult, let item = selectedItem else { return }
         let action: ActionDescriptor?
-        if layer == .actions, item.actions.indices.contains(selectedActionIndex) {
-            action = item.actions[selectedActionIndex]
+        if layer == .actions, visibleActions.indices.contains(selectedActionIndex) {
+            action = visibleActions[selectedActionIndex]
         } else {
             action = item.actions.first(where: { $0.id == item.defaultActionID })
         }

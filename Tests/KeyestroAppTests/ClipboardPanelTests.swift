@@ -323,6 +323,69 @@ func clipboardPanelUsesTheLocalLensAppearanceAndFixedGeometry() async throws {
     )
     #expect(frame.width == ClipboardPanelLayout.windowWidth)
     #expect(frame.height == ClipboardPanelLayout.windowHeight)
+    #expect(ClipboardPanelLayout.windowWidth == 800)
+    #expect(ClipboardPanelLayout.windowHeight == 620)
+    #expect(ClipboardPanelLayout.headerHeight == 72)
+    #expect(ClipboardPanelLayout.contentHeight == 496)
+    #expect(ClipboardPanelLayout.footerHeight == 52)
+    #expect(ClipboardPanelLayout.rowHeight == 60)
+    #expect(ClipboardPanelLayout.quickViewWidth == 320)
+    #expect(ClipboardPanelLayout.quickViewHeight == 464)
+    #expect(ClipboardPanelLayout.quickViewTop == 140)
+    #expect(
+        ClipboardPanelLayout.headerHeight
+            + ClipboardPanelLayout.contentHeight
+            + ClipboardPanelLayout.footerHeight
+            == ClipboardPanelLayout.windowHeight
+    )
+    #expect(
+        ClipboardPanelLayout.windowHeight
+            - ClipboardPanelLayout.quickViewTop
+            - ClipboardPanelLayout.quickViewHeight
+            == 16
+    )
+}
+
+@Test @MainActor
+func clipboardEscapeClosesQuickViewBeforeClearingQueryOrDismissing() async throws {
+    let fixture = try ClipboardPanelFixture()
+    defer { fixture.remove() }
+    fixture.settings.clipboardEnabled = true
+    await fixture.store.initialize(enabled: true)
+    let itemID = try #require(
+        (await fixture.store.capture(
+            .text("quick-view-escape"),
+            sourceBundleIdentifier: nil
+        )).successValue
+    )
+    let model = fixture.makeModel()
+    defer { model.didDismiss() }
+
+    var dismissalCount = 0
+    model.onDismiss = { dismissalCount += 1 }
+    model.invoke(context: QueryContext())
+    try await waitForClipboardPanel { model.selectedItemID == itemID && !model.isSearching }
+
+    #expect(model.isQuickViewPresented)
+    model.openActions()
+    #expect(!model.isQuickViewPresented)
+    model.handleEscape()
+    #expect(model.layer == .results)
+    #expect(!model.isQuickViewPresented)
+
+    model.selectItem(itemID)
+    model.queryDidChange("quick-view", isComposing: false)
+    try await waitForClipboardPanel { !model.isSearching }
+    model.handleEscape()
+    #expect(!model.isQuickViewPresented)
+    #expect(model.query == "quick-view")
+    #expect(dismissalCount == 0)
+
+    model.handleEscape()
+    #expect(model.query.isEmpty)
+    try await waitForClipboardPanel { !model.isSearching }
+    model.handleEscape()
+    #expect(dismissalCount == 1)
 }
 
 @Test @MainActor
@@ -373,29 +436,56 @@ func clipboardPanelRendersEveryStateAndInteractionLayerAsAComponentStory() async
         (await fixture.store.capture(
             .text("password=component-story-sensitive"),
             sourceBundleIdentifier: "com.example.unknown-component-story",
-            at: now.addingTimeInterval(-90_000)
+            at: now.addingTimeInterval(-900)
         )).successValue
     )
-    let storyURL = try #require(URL(string: "https://example.invalid/component-story"))
+    let storyURL = try #require(URL(string: "https://platform.openai.com/docs"))
     _ = try #require(
         (await fixture.store.capture(
             .url(storyURL),
             sourceBundleIdentifier: nil,
-            at: now.addingTimeInterval(-3_600)
+            at: now.addingTimeInterval(-300)
         )).successValue
     )
     _ = try #require(
         (await fixture.store.capture(
-            .files([URL(fileURLWithPath: "/tmp/component-story.txt")]),
-            sourceBundleIdentifier: "com.apple.finder",
-            at: now.addingTimeInterval(-1_200)
+            .text("Meeting notes and follow-ups\nReview the launcher action flow and clipboard privacy states."),
+            sourceBundleIdentifier: "com.apple.Notes",
+            at: now.addingTimeInterval(-3_600)
         )).successValue
     )
     _ = try #require(
         (await fixture.store.capture(
             .imagePNG(try clipboardPanelStoryPNG()),
             sourceBundleIdentifier: nil,
-            at: now.addingTimeInterval(-60)
+            at: now.addingTimeInterval(-600)
+        )).successValue
+    )
+    let referenceTextID = try #require(
+        (await fixture.store.capture(
+            .text(
+                """
+                Product brief — Keyestro
+
+                Keyestro is a native macOS productivity tool that keeps commands, clipboard history, and shortcuts at your fingertips.
+
+                • Fast launcher
+                • Clipboard history with quick paste
+                • Secure, local-first
+
+                — End of brief —
+                """
+            ),
+            sourceBundleIdentifier: "com.apple.TextEdit",
+            at: now.addingTimeInterval(-120)
+        )).successValue
+    )
+    let keyestroURL = try #require(URL(string: "https://keyestro.app"))
+    _ = try #require(
+        (await fixture.store.capture(
+            .url(keyestroURL),
+            sourceBundleIdentifier: nil,
+            at: now.addingTimeInterval(-90_000)
         )).successValue
     )
     model.invoke(
@@ -404,7 +494,9 @@ func clipboardPanelRendersEveryStateAndInteractionLayerAsAComponentStory() async
             frontmostApplicationName: "Previous App"
         )
     )
-    try await waitForClipboardPanel { model.entries.count == 4 && !model.isSearching }
+    try await waitForClipboardPanel { model.entries.count == 6 && !model.isSearching }
+    model.selectItem(referenceTextID)
+    try await waitForClipboardPanel { model.quickViewContent != nil }
     for appearance in [LauncherAppearancePreference.light, .dark] {
         fixture.settings.launcherAppearance = appearance
         try await waitForClipboardPanel { model.launcherAppearance == appearance }
@@ -439,7 +531,7 @@ func clipboardPanelRendersEveryStateAndInteractionLayerAsAComponentStory() async
 
     model.queryDidChange("", isComposing: false)
     model.applyFilter(.all)
-    try await waitForClipboardPanel { model.entries.count == 4 && !model.isSearching }
+    try await waitForClipboardPanel { model.entries.count == 6 && !model.isSearching }
     model.selectItem(textID)
     model.requestDeleteSelected()
     try await renderer.render()
@@ -518,10 +610,19 @@ func clipboardPanelControllerPresentsResizesAndDismissesItsComponent() async thr
     try await waitForClipboardPanel { !model.entries.isEmpty }
     #expect(controller.frame.width == ClipboardPanelLayout.windowWidth)
     #expect(controller.frame.height == ClipboardPanelLayout.windowHeight)
+    let resultsFrame = controller.frame
+    let backdrop = try #require(
+        NSApplication.shared.windows
+            .first { $0.identifier == ClipboardPanelController.panelWindowIdentifier }?
+            .contentView as? LauncherPanelBackdropView
+    )
+    #expect(backdrop.layer?.cornerRadius == ClipboardPanelLayout.panelCornerRadius)
     model.openActions()
     await Task.yield()
+    #expect(controller.frame == resultsFrame)
     model.openFilters()
     await Task.yield()
+    #expect(controller.frame == resultsFrame)
     controller.dismiss(restoringFocus: false)
     #expect(!controller.isVisible)
 
@@ -685,12 +786,12 @@ private final class ClipboardPanelStoryRenderer {
     // that work with NSHostingView teardown between adjacent component tests.
     private static var retainedRenderers: [ClipboardPanelStoryRenderer] = []
 
-    private let hosting: NSHostingView<ClipboardPanelView>
+    private let hosting: NSHostingView<ClipboardPanelStoryRenderRoot>
     private let window: NSWindow
     private var isRetained = false
 
     init(model: ClipboardPanelViewModel) {
-        hosting = NSHostingView(rootView: ClipboardPanelView(model: model))
+        hosting = NSHostingView(rootView: ClipboardPanelStoryRenderRoot(model: model))
         hosting.frame = NSRect(
             x: 0,
             y: 0,
@@ -703,6 +804,9 @@ private final class ClipboardPanelStoryRenderer {
             backing: .buffered,
             defer: false
         )
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
         window.contentView = hosting
     }
 
@@ -741,6 +845,37 @@ private final class ClipboardPanelStoryRenderer {
         guard !isRetained else { return }
         isRetained = true
         Self.retainedRenderers.append(self)
+    }
+}
+
+private struct ClipboardPanelStoryRenderRoot: View {
+    @ObservedObject var model: ClipboardPanelViewModel
+
+    var body: some View {
+        ZStack {
+            if model.launcherAppearance == .light {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.83, green: 0.90, blue: 0.97),
+                        Color(red: 0.97, green: 0.92, blue: 0.90),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.03, green: 0.07, blue: 0.13),
+                        Color(red: 0.08, green: 0.16, blue: 0.29),
+                        Color(red: 0.02, green: 0.04, blue: 0.08),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+            ClipboardPanelView(model: model)
+                .environment(\.launcherNativeGlassEnabled, false)
+        }
     }
 }
 

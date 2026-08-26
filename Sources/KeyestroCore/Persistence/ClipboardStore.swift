@@ -340,7 +340,12 @@ public actor ClipboardStore {
     private var stateContinuations: [UUID: AsyncStream<ClipboardStoreState>.Continuation] = [:]
     private var initializationGeneration: UInt64 = 0
     private var operationInProgress = false
-    private var operationWaiters: [CheckedContinuation<Void, Never>] = []
+    private struct OperationWaiter {
+        let id: UUID
+        let continuation: CheckedContinuation<Bool, Never>
+    }
+
+    private var operationWaiters: [OperationWaiter] = []
 
     public init(
         database: LauncherDatabase,
@@ -653,10 +658,15 @@ public actor ClipboardStore {
     }
 
     public func content(id: String) async -> Result<ClipboardContent, ErrorDescriptor> {
-        await acquireOperation()
+        do {
+            try await acquireCancellableOperation()
+        } catch {
+            return .failure(Self.cancelledReadError)
+        }
         defer { releaseOperation() }
         let generation = initializationGeneration
         do {
+            try Task.checkCancellation()
             try ensureCaptureIsCurrent(generation)
             guard case .ready = state, let keys else {
                 return .failure(Self.error(for: state))
@@ -667,6 +677,7 @@ public actor ClipboardStore {
             }
             try ensureCaptureIsCurrent(generation)
             let content = try decrypt(stored, keys: keys)
+            try Task.checkCancellation()
             if stored.contentType == .image,
                 memory[id]?.thumbnailPNG == nil,
                 let thumbnailPNG = try Self.makeThumbnail(for: content)
@@ -694,7 +705,7 @@ public actor ClipboardStore {
             }
             return .success(content)
         } catch is CancellationError {
-            return .failure(ErrorDescriptor(code: "clipboard.readCancelled", message: "Clipboard reading was cancelled."))
+            return .failure(Self.cancelledReadError)
         } catch let error as ClipboardCryptoError {
             return .failure(error.descriptor)
         } catch let error as DatabaseError {
@@ -868,7 +879,41 @@ public actor ClipboardStore {
             operationInProgress = true
             return
         }
-        await withCheckedContinuation { operationWaiters.append($0) }
+        let waiterID = UUID()
+        let acquired = await withCheckedContinuation { continuation in
+            operationWaiters.append(OperationWaiter(id: waiterID, continuation: continuation))
+        }
+        precondition(acquired)
+    }
+
+    private func acquireCancellableOperation() async throws {
+        try Task.checkCancellation()
+        guard operationInProgress else {
+            operationInProgress = true
+            do {
+                try Task.checkCancellation()
+            } catch {
+                releaseOperation()
+                throw error
+            }
+            return
+        }
+
+        let waiterID = UUID()
+        let acquired = await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                operationWaiters.append(OperationWaiter(id: waiterID, continuation: continuation))
+            }
+        } onCancel: {
+            Task { await self.cancelOperationWaiter(id: waiterID) }
+        }
+        guard acquired else { throw CancellationError() }
+        do {
+            try Task.checkCancellation()
+        } catch {
+            releaseOperation()
+            throw error
+        }
     }
 
     private func releaseOperation() {
@@ -876,7 +921,12 @@ public actor ClipboardStore {
             operationInProgress = false
             return
         }
-        operationWaiters.removeFirst().resume()
+        operationWaiters.removeFirst().continuation.resume(returning: true)
+    }
+
+    private func cancelOperationWaiter(id: UUID) {
+        guard let index = operationWaiters.firstIndex(where: { $0.id == id }) else { return }
+        operationWaiters.remove(at: index).continuation.resume(returning: false)
     }
 
     private func updateState(_ newState: ClipboardStoreState) {
@@ -1037,7 +1087,14 @@ public actor ClipboardStore {
         let subtitle: String?
         switch memory.content {
         case let .text(text):
-            title = text.replacingOccurrences(of: "\n", with: " ").limitedToUnicodeScalars(180)
+            let firstLine =
+                text
+                .split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .first { !$0.isEmpty }
+            title = (firstLine ?? text)
+                .replacingOccurrences(of: "\n", with: " ")
+                .limitedToUnicodeScalars(180)
             subtitle = "Text"
         case let .url(url):
             title = url.absoluteString.limitedToUnicodeScalars(180)
@@ -1078,4 +1135,9 @@ public actor ClipboardStore {
         case let .failed(error): error
         }
     }
+
+    private static let cancelledReadError = ErrorDescriptor(
+        code: "clipboard.readCancelled",
+        message: "Clipboard reading was cancelled."
+    )
 }

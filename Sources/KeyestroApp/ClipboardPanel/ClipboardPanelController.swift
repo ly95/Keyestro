@@ -40,7 +40,7 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
 
         panel.delegate = self
         TransientPanelPresentation.configure(panel, identifier: Self.panelWindowIdentifier)
-        panel.contentView = NSHostingView(rootView: ClipboardPanelView(model: viewModel))
+        panel.contentView = ClipboardPanelVisualHost.makeView(model: viewModel)
         panel.contentView?.layoutSubtreeIfNeeded()
         panel.contentView?.needsDisplay = true
         panel.contentView?.displayIfNeeded()
@@ -183,8 +183,26 @@ final class ClipboardPanelController: NSObject, NSWindowDelegate {
 enum ClipboardPanelLayout {
     static let windowWidth: CGFloat = 800
     static let windowHeight: CGFloat = 620
-    static let headerHeight: CGFloat = 80
+    static let headerHeight: CGFloat = 72
     static let footerHeight: CGFloat = 52
-    static let quickViewWidth: CGFloat = 260
-    static let contentHeight = windowHeight - headerHeight - footerHeight - 2
+    static let panelCornerRadius: CGFloat = 24
+    static let toolbarHeight: CGFloat = 44
+    static let rowHeight: CGFloat = 60
+    static let sectionHeaderHeight: CGFloat = 40
+    static let quickViewWidth: CGFloat = 320
+    static let quickViewHeight: CGFloat = 464
+    static let quickViewTop: CGFloat = 140
+    static let quickViewTrailing: CGFloat = 16
+    static let contentHeight = windowHeight - headerHeight - footerHeight
+}
+
+@MainActor
+private enum ClipboardPanelVisualHost {
+    static func makeView(model: ClipboardPanelViewModel) -> NSView {
+        let backdrop = LauncherPanelBackdropView()
+        backdrop.setCornerRadius(ClipboardPanelLayout.panelCornerRadius)
+        let hosting = NSHostingView(rootView: ClipboardPanelView(model: model))
+        backdrop.install(contentView: hosting)
+        return backdrop
+    }
 }

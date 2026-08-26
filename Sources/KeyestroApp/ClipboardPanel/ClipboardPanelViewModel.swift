@@ -71,6 +71,8 @@ final class ClipboardPanelViewModel: ObservableObject {
     @Published private(set) var filter: ClipboardPanelFilter = .all
     @Published private(set) var state: ClipboardStoreState = .disabled
     @Published private(set) var layer: Layer = .results
+    @Published private(set) var isQuickViewPresented = true
+    @Published private(set) var quickViewContent: ClipboardContent?
     @Published var selectedActionIndex = 0
     @Published var selectedFilterIndex = 0
     @Published private(set) var pendingConfirmation: PendingConfirmation?
@@ -97,6 +99,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     private var searchTask: Task<Void, Never>?
     private var stateTask: Task<Void, Never>?
     private var executionTask: Task<Void, Never>?
+    private var quickViewContentTask: Task<Void, Never>?
     private var messageTask: Task<Void, Never>?
     private var searchGeneration: UInt64 = 0
     private var isComposing = false
@@ -190,6 +193,8 @@ final class ClipboardPanelViewModel: ObservableObject {
     }
 
     func invoke(context: QueryContext) {
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
         self.context = context
         query = ""
         filter = .all
@@ -197,6 +202,8 @@ final class ClipboardPanelViewModel: ObservableObject {
         selectedActionIndex = 0
         selectedFilterIndex = 0
         layer = .results
+        isQuickViewPresented = true
+        quickViewContent = nil
         pendingConfirmation = nil
         message = nil
         messageDetail = nil
@@ -216,20 +223,27 @@ final class ClipboardPanelViewModel: ObservableObject {
         stateTask = nil
         executionTask?.cancel()
         executionTask = nil
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
         messageTask?.cancel()
         messageTask = nil
         isSearching = false
         isExecuting = false
         isAutoPasting = false
         layer = .results
+        isQuickViewPresented = true
+        quickViewContent = nil
         pendingConfirmation = nil
         revealedSensitiveItemIDs.removeAll()
     }
 
     func queryDidChange(_ value: String, isComposing: Bool) {
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
         query = value.limitedToUnicodeScalars(DomainLimits.queryUnicodeScalars)
         self.isComposing = isComposing
         revealedSensitiveItemIDs.removeAll()
+        quickViewContent = nil
         guard !isComposing else {
             searchTask?.cancel()
             searchTask = nil
@@ -246,7 +260,7 @@ final class ClipboardPanelViewModel: ObservableObject {
             guard !entries.isEmpty else { return }
             let current = selectedItemID.flatMap { id in entries.firstIndex(where: { $0.id == id }) } ?? 0
             let next = min(entries.count - 1, max(0, current + delta))
-            selectedItemID = entries[next].id
+            selectItem(entries[next].id)
         case .actions:
             guard !visibleActions.isEmpty else { return }
             selectedActionIndex = min(visibleActions.count - 1, max(0, selectedActionIndex + delta))
@@ -257,23 +271,45 @@ final class ClipboardPanelViewModel: ObservableObject {
 
     func selectItem(_ id: String) {
         selectedItemID = id
+        isQuickViewPresented = true
+        loadQuickViewContent()
+    }
+
+    func closeQuickView() {
+        isQuickViewPresented = false
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
+        quickViewContent = nil
+        requestQueryFocus(selectAll: false)
     }
 
     func openActions() {
         guard canExecuteSelectedEntry else { return }
         layer = .actions
+        isQuickViewPresented = false
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
+        quickViewContent = nil
         selectedActionIndex = 0
     }
 
     func openFilters() {
         guard canBrowse else { return }
         layer = .filters
+        isQuickViewPresented = false
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
+        quickViewContent = nil
         selectedFilterIndex = filters.firstIndex(of: filter) ?? 0
     }
 
     func applyFilter(_ newFilter: ClipboardPanelFilter) {
         filter = newFilter
         layer = .results
+        isQuickViewPresented = false
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
+        quickViewContent = nil
         revealedSensitiveItemIDs.removeAll()
         performSearch()
         requestQueryFocus(selectAll: false)
@@ -337,6 +373,8 @@ final class ClipboardPanelViewModel: ObservableObject {
         } else if layer != .results {
             layer = .results
             requestQueryFocus(selectAll: false)
+        } else if isQuickViewPresented {
+            closeQuickView()
         } else if !query.isEmpty {
             queryDidChange("", isComposing: false)
             requestQueryFocus(selectAll: false)
@@ -348,6 +386,7 @@ final class ClipboardPanelViewModel: ObservableObject {
     func toggleSensitivePreview(_ id: String) {
         guard entries.first(where: { $0.id == id })?.isSensitive == true else { return }
         if revealedSensitiveItemIDs.remove(id) == nil { revealedSensitiveItemIDs.insert(id) }
+        loadQuickViewContent()
     }
 
     func isSensitivePreviewRevealed(_ id: String) -> Bool {
@@ -412,6 +451,9 @@ final class ClipboardPanelViewModel: ObservableObject {
         }
         guard case .ready = state else {
             searchTask?.cancel()
+            quickViewContentTask?.cancel()
+            quickViewContentTask = nil
+            quickViewContent = nil
             isSearching = false
             entries = []
             selectedItemID = nil
@@ -443,6 +485,9 @@ final class ClipboardPanelViewModel: ObservableObject {
             case let .success(newEntries):
                 applyEntries(newEntries)
             case let .failure(error):
+                quickViewContentTask?.cancel()
+                quickViewContentTask = nil
+                quickViewContent = nil
                 state = .failed(error)
                 entries = []
                 selectedItemID = nil
@@ -453,8 +498,37 @@ final class ClipboardPanelViewModel: ObservableObject {
     private func applyEntries(_ newEntries: [ClipboardSearchEntry]) {
         let oldIndex = selectedItemID.flatMap { id in entries.firstIndex(where: { $0.id == id }) } ?? 0
         entries = newEntries
-        if let selectedItemID, entries.contains(where: { $0.id == selectedItemID }) { return }
+        if let selectedItemID, entries.contains(where: { $0.id == selectedItemID }) {
+            loadQuickViewContent()
+            return
+        }
         selectedItemID = entries.isEmpty ? nil : entries[min(oldIndex, entries.count - 1)].id
+        loadQuickViewContent()
+    }
+
+    private func loadQuickViewContent() {
+        quickViewContentTask?.cancel()
+        quickViewContentTask = nil
+        quickViewContent = nil
+        guard isQuickViewPresented,
+            let entry = selectedEntry,
+            !entry.isSensitive || revealedSensitiveItemIDs.contains(entry.id),
+            let store
+        else { return }
+
+        let entryID = entry.id
+        quickViewContentTask = Task { [weak self] in
+            guard !Task.isCancelled else { return }
+            let result = await store.content(id: entryID)
+            guard !Task.isCancelled,
+                let self,
+                isQuickViewPresented,
+                selectedEntry?.id == entryID
+            else { return }
+            if case let .success(content) = result {
+                quickViewContent = content
+            }
+        }
     }
 
     private func requestAction(_ action: ClipboardActionKind) {

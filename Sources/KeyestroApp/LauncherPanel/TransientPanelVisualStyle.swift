@@ -181,6 +181,7 @@ extension EnvironmentValues {
 private struct TransientPanelSelectionModifier: ViewModifier {
     let isSelected: Bool
     let cornerRadius: CGFloat
+    let showsLeadingIndicator: Bool
 
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -220,10 +221,12 @@ private struct TransientPanelSelectionModifier: ViewModifier {
             if isSelected {
                 ZStack(alignment: .leading) {
                     content
-                    RoundedRectangle(cornerRadius: 1.5, style: .continuous)
-                        .fill(palette.accent)
-                        .frame(width: visualAccessibility.selectionIndicatorWidth)
-                        .frame(maxHeight: .infinity)
+                    if showsLeadingIndicator {
+                        RoundedRectangle(cornerRadius: 1.5, style: .continuous)
+                            .fill(palette.accent)
+                            .frame(width: visualAccessibility.selectionIndicatorWidth)
+                            .frame(maxHeight: .infinity)
+                    }
                 }
                 .clipShape(selectionShape)
                 .transientPanelGlassSurface(
@@ -305,8 +308,18 @@ private struct TransientPanelGlassSurfaceModifier: ViewModifier {
 }
 
 extension View {
-    func transientPanelSelectionStyle(isSelected: Bool, cornerRadius: CGFloat) -> some View {
-        modifier(TransientPanelSelectionModifier(isSelected: isSelected, cornerRadius: cornerRadius))
+    func transientPanelSelectionStyle(
+        isSelected: Bool,
+        cornerRadius: CGFloat,
+        showsLeadingIndicator: Bool = true
+    ) -> some View {
+        modifier(
+            TransientPanelSelectionModifier(
+                isSelected: isSelected,
+                cornerRadius: cornerRadius,
+                showsLeadingIndicator: showsLeadingIndicator
+            )
+        )
     }
 
     func transientPanelGlassSurface(
@@ -392,6 +405,7 @@ final class LauncherPanelBackdropView: NSView {
     }()
     private var hostedContentView: NSView?
     private var directContentConstraints: [NSLayoutConstraint] = []
+    private var currentCornerRadius = LauncherPanelLayout.panelCornerRadius
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -444,6 +458,20 @@ final class LauncherPanelBackdropView: NSView {
         return NSColor.white.withAlphaComponent(0.66)
     }
 
+    func setCornerRadius(_ cornerRadius: CGFloat) {
+        currentCornerRadius = cornerRadius
+        layer?.cornerRadius = cornerRadius
+        if #available(macOS 26.0, *),
+            let glassView = adaptiveGlassView as? NSGlassEffectView
+        {
+            glassView.cornerRadius = cornerRadius
+        } else if let materialView = adaptiveGlassView as? NSVisualEffectView {
+            materialView.maskImage = LauncherPanelVisualHost.roundedMaterialMask(
+                cornerRadius: cornerRadius
+            )
+        }
+    }
+
     func install(contentView: NSView) {
         hostedContentView = contentView
         updateMaterialAppearance()
@@ -451,7 +479,7 @@ final class LauncherPanelBackdropView: NSView {
 
     private func configure() {
         wantsLayer = true
-        layer?.cornerRadius = LauncherPanelLayout.panelCornerRadius
+        layer?.cornerRadius = currentCornerRadius
         layer?.cornerCurve = .continuous
         layer?.masksToBounds = true
 

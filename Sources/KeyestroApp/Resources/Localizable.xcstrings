@@ -115,6 +115,16 @@
         }
       }
     },
+    "%lld matching items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 个匹配项目"
+          }
+        }
+      }
+    },
     "%lld results": {
       "localizations": {
         "en": {
@@ -417,6 +427,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "操作"
+          }
+        }
+      }
+    },
+    "Actions for %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的操作"
           }
         }
       }
@@ -1427,6 +1447,16 @@
         }
       }
     },
+    "Clipboard history is off": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史已关闭"
+          }
+        }
+      }
+    },
     "Clipboard history is off by default and will be encrypted before persistence.": {
       "localizations": {
         "zh-Hans": {
@@ -1483,6 +1513,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板历史存储不可用。"
+          }
+        }
+      }
+    },
+    "Clipboard history unavailable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板历史不可用"
           }
         }
       }
@@ -1563,6 +1603,26 @@
           "stringUnit": {
             "state": "translated",
             "value": "剪贴板警告"
+          }
+        }
+      }
+    },
+    "Close %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭 %@"
+          }
+        }
+      }
+    },
+    "Close Quick View": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭快速预览"
           }
         }
       }
@@ -1697,6 +1757,16 @@
         }
       }
     },
+    "Copied %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制 · %@"
+          }
+        }
+      }
+    },
     "Copied items matching the current type will appear here.": {
       "localizations": {
         "zh-Hans": {
@@ -1773,6 +1843,36 @@
           "stringUnit": {
             "state": "translated",
             "value": "复制文本"
+          }
+        }
+      }
+    },
+    "Copy bundle identifier": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制 Bundle Identifier"
+          }
+        }
+      }
+    },
+    "Copy file URL": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制文件 URL"
+          }
+        }
+      }
+    },
+    "Copy full file path": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "复制完整文件路径"
           }
         }
       }
@@ -2817,6 +2917,16 @@
         }
       }
     },
+    "Keep near the top of results": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留在结果列表靠前位置"
+          }
+        }
+      }
+    },
     "Keep the destination application and field frontmost, then try again.": {
       "localizations": {
         "zh-Hans": {
@@ -3037,6 +3147,16 @@
         }
       }
     },
+    "Loading clipboard history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在加载剪贴板历史"
+          }
+        }
+      }
+    },
     "Local": {
       "localizations": {
         "zh-Hans": {
@@ -3247,6 +3367,16 @@
         }
       }
     },
+    "No matching actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有匹配的操作"
+          }
+        }
+      }
+    },
     "No timing samples yet. Open and use the launcher, then run the diagnostic again.": {
       "localizations": {
         "zh-Hans": {
@@ -3353,6 +3483,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "打开"
+          }
+        }
+      }
+    },
+    "Open %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 %@"
           }
         }
       }
@@ -3807,6 +3947,16 @@
         }
       }
     },
+    "Preview without opening": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不打开直接预览"
+          }
+        }
+      }
+    },
     "Previous application (currently unavailable)": {
       "localizations": {
         "zh-Hans": {
@@ -4187,6 +4337,16 @@
         }
       }
     },
+    "Remove %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "移除 %@"
+          }
+        }
+      }
+    },
     "Remove %arg": {
       "localizations": {
         "zh-Hans": {
@@ -4377,6 +4537,16 @@
         }
       }
     },
+    "Reveal in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Finder 中显示"
+          }
+        }
+      }
+    },
     "Reveal only after explicit permission": {
       "localizations": {
         "zh-Hans": {
@@ -4553,6 +4723,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "运行"
+          }
+        }
+      }
+    },
+    "Run %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行 %@"
           }
         }
       }
@@ -4777,6 +4957,16 @@
         }
       }
     },
+    "Search actions for %@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索 %@ 的操作"
+          }
+        }
+      }
+    },
     "Search and act locally": {
       "localizations": {
         "zh-Hans": {
@@ -4933,6 +5123,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "敏感项目"
+          }
+        }
+      }
+    },
+    "Sensitive preview is hidden": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "敏感内容预览已隐藏"
           }
         }
       }
@@ -6427,6 +6627,16 @@
         }
       }
     },
+    "The search results are still refreshing.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索结果仍在刷新。"
+          }
+        }
+      }
+    },
     "The selected action is no longer available": {
       "localizations": {
         "zh-Hans": {
@@ -7157,6 +7367,16 @@
         }
       }
     },
+    "Wait for the current search to finish and try again.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请等待当前搜索完成后重试。"
+          }
+        }
+      }
+    },
     "Welcome to Keyestro": {
       "localizations": {
         "zh-Hans": {
@@ -7449,6 +7669,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "图片"
+          }
+        }
+      }
+    },
+    "just now": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刚刚"
           }
         }
       }
@@ -7863,6 +8093,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "脚本被信号 %lld 终止。"
+          }
+        }
+      }
+    },
+    "selected item": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选项目"
           }
         }
       }

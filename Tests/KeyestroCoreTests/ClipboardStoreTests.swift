@@ -19,7 +19,7 @@ import Testing
     let keys = InstallationKeyManager(keychain: keychain, service: "com.keyestro.clipboard-tests")
     let store = ClipboardStore(database: database, keyManager: keys)
     await store.initialize(enabled: true)
-    let secret = "clipboard super-secret-value"
+    let secret = "clipboard super-secret-value\nprivate body"
     let first = await store.capture(.text(secret), sourceBundleIdentifier: "com.example.source", at: Date(timeIntervalSince1970: 100))
     let firstID = try #require(first.successValue)
     let duplicate = await store.capture(.text(secret), sourceBundleIdentifier: nil, at: Date(timeIntervalSince1970: 200))
@@ -29,6 +29,7 @@ import Testing
     let matches = try #require(await store.search("super-secret").successValue)
     #expect(matches.count == 1)
     #expect(matches[0].id == firstID)
+    #expect(matches[0].title == "clipboard super-secret-value")
     #expect(await store.content(id: firstID).successValue == .text(secret))
 
     let databaseBytes = try Data(contentsOf: paths.database)
