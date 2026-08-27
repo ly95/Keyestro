@@ -26,6 +26,8 @@
     <true/>
     <key>KeyestroRuntimeStorageMode</key>
     <string>ephemeral</string>
+    <key>KeyestroCodeSignatureKind</key>
+    <string>unknown</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSScreenCaptureUsageDescription</key>

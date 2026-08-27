@@ -105,6 +105,16 @@
         }
       }
     },
+    "%lld items": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 项"
+          }
+        }
+      }
+    },
     "%lld items · grouped by date": {
       "localizations": {
         "zh-Hans": {
@@ -2093,6 +2103,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "破坏性操作"
+          }
+        }
+      }
+    },
+    "Development build permissions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开发构建权限"
           }
         }
       }
@@ -5187,6 +5207,16 @@
         }
       }
     },
+    "Show This Copy in Finder": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在访达中显示此副本"
+          }
+        }
+      }
+    },
     "Show in Finder": {
       "localizations": {
         "zh-Hans": {
@@ -6887,6 +6917,16 @@
         }
       }
     },
+    "This ad-hoc development build gets a new macOS identity after every rebuild. If System Settings is enabled but this page says Not allowed, remove the old Keyestro entry and add this exact copy again, or use a stably signed local build. Refreshing or restarting cannot repair an identity mismatch.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此临时签名的开发构建每次重新构建后都会获得新的 macOS 身份。如果系统设置已开启，但此页面仍显示未允许，请移除旧的 Keyestro 条目并重新添加当前这个副本，或改用稳定签名的本地构建。刷新或重启无法修复身份不匹配。"
+          }
+        }
+      }
+    },
     "This application has no bundle identifier.": {
       "localizations": {
         "zh-Hans": {
@@ -8283,6 +8323,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "↩"
+          }
+        }
+      }
+    },
+    "⌘ C": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "⌘ C"
           }
         }
       }

@@ -2535,6 +2535,21 @@ private struct PermissionsView: View {
             request: requestScreenCapture,
             settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
         )
+        if isAdHocDevelopmentBuild {
+            Divider()
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Development build permissions", systemImage: "hammer.circle")
+                    .font(.callout.weight(.semibold))
+                Text(
+                    "This ad-hoc development build gets a new macOS identity after every rebuild. If System Settings is enabled but this page says Not allowed, remove the old Keyestro entry and add this exact copy again, or use a stably signed local build. Refreshing or restarting cannot repair an identity mismatch."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                Button("Show This Copy in Finder") {
+                    NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                }
+            }
+        }
         Button("Refresh status") {
             refresh()
         }
@@ -2558,7 +2573,7 @@ private struct PermissionsView: View {
                 Label(title, systemImage: granted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(granted ? .green : .primary)
                 Spacer()
-                Text(granted ? "Allowed" : "Not allowed").foregroundStyle(.secondary)
+                Text(L10n.text(granted ? "Allowed" : "Not Allowed")).foregroundStyle(.secondary)
             }
             Text(detail).font(.callout).foregroundStyle(.secondary)
             HStack {
@@ -2568,6 +2583,10 @@ private struct PermissionsView: View {
                 }
             }
         }
+    }
+
+    private var isAdHocDevelopmentBuild: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "KeyestroCodeSignatureKind") as? String == "adhoc"
     }
 
     private func requestAccessibility() {

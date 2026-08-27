@@ -21,13 +21,35 @@ validates localization and the dependency allowlist, builds Debug and Release,
 runs the unit/contract suite and extension examples, and verifies the assembled
 app's nested code signatures.
 
-Ad-hoc development packages use the isolated bundle identifier
+Ordinary ad-hoc development packages use the isolated bundle identifier
 `com.keyestro.launcher.local`. Their database and credential material are
 ephemeral, so rebuilding or UI testing cannot read the production app's
 Keychain items or Application Support data. A Developer ID Application build
 uses the configured production bundle identifier and macOS Keychain. Signing,
 website, and update-feed values are centralized in `Config/Project.xcconfig`;
 production values are intentionally not committed.
+
+macOS privacy grants are bound to the app's code-signing identity. An ad-hoc
+identity changes whenever the executable is rebuilt, so Accessibility and
+Screen Recording grants cannot survive normal development rebuilds. Use a
+stable local signature when testing those permissions:
+
+Quit any running Keyestro copy first, then explicitly select a certificate
+belonging to the intended developer or organization:
+
+```bash
+KEYESTRO_LOCAL_CODE_SIGN_IDENTITY='Apple Development: Your Name (TEAMID)' \
+  ./scripts/build-local-signed-app.sh debug
+open build/Keyestro.app
+```
+
+The helper deliberately never selects the first available certificate because
+that identity may belong to an unrelated organization. It keeps the local
+bundle identifier and ephemeral storage profile. The first signing may require
+Keychain approval. When switching from an older ad-hoc copy, remove the stale
+Keyestro entries from the relevant Privacy & Security panes and grant
+the newly built copy once; subsequent builds made with the same certificate
+retain the grant.
 
 ## Architecture
 
