@@ -162,6 +162,7 @@ public struct ConfigurationImportPreview: Equatable, Sendable {
 public struct ValidatedConfigurationImport: Sendable {
     public let document: ConfigurationDocument
     public let quicklinks: [QuicklinkDefinition]
+    public let quicklinkExpectations: [QuicklinkMergeExpectation]
     public let preview: ConfigurationImportPreview
 }
 
@@ -170,34 +171,46 @@ public enum ConfigurationError: Error, Equatable, Sendable {
     case unsupportedSchema
     case invalidChecksum
     case invalidPayload
+    case conflictingChanges
 }
 
 public actor ConfigurationService {
     public static let maximumDocumentBytes = 10 * 1_024 * 1_024
+    /// Settings that are safe to move between installations. Capability grants and
+    /// local safety acknowledgements are intentionally absent from this list.
     public static let supportedSettingKeys: Set<String> = [
         "general.showDockIcon",
         "appearance.launcher",
         "search.prefixesEnabled",
-        "ranking.learningEnabled",
         "shortcuts.numberShortcutsEnabled",
         "shortcuts.launcher.keyCode",
         "shortcuts.launcher.modifiers",
         "shortcuts.clipboardHistory.keyCode",
         "shortcuts.clipboardHistory.modifiers",
         "shortcuts.quickPaste.combined",
-        "clipboard.enabled",
-        "clipboard.paused",
-        "clipboard.quickPaste.enabled",
-        "clipboard.quickPaste.allowsSensitiveContent",
         "clipboard.retentionPreset",
         "clipboard.excludedApplications",
         "capture.ocrLanguagePreset",
-        "files.contentSearchEnabled",
-        "files.hiddenFilesEnabled",
-        "files.systemLocationsEnabled",
-        "files.trashEnabled",
-        "system.confirmSleepEveryTime",
     ]
+    /// These keys remain valid when reading schema-v1 documents so existing backups
+    /// continue to open, but they are stripped on export and ignored on import. Each
+    /// one requires a decision on the Mac where the capability will run.
+    public static let locallyAuthorizedSettingReasons: [String: String] = [
+        "clipboard.enabled": "Enables continuous clipboard monitoring.",
+        "clipboard.paused": "Importing false could resume clipboard monitoring.",
+        "clipboard.quickPaste.enabled": "Enables cross-application synthetic paste.",
+        "clipboard.quickPaste.allowsSensitiveContent":
+            "Allows content marked sensitive to be injected into another application.",
+        "files.searchEnabled": "Enables file search on this Mac.",
+        "files.contentSearchEnabled": "Opts in to searching indexed file contents.",
+        "files.hiddenFilesEnabled": "Opts in to returning hidden files.",
+        "files.systemLocationsEnabled": "Opts in to returning files from system locations.",
+        "files.trashEnabled": "Opts in to returning files from the Trash.",
+        "ranking.learningEnabled": "Controls persistence of local action-usage history.",
+        "system.confirmSleepEveryTime":
+            "Disabling this guard relies on a local acknowledgement before putting the Mac to sleep.",
+    ]
+    public static let locallyAuthorizedSettingKeys = Set(locallyAuthorizedSettingReasons.keys)
     private let quicklinks: any QuicklinkBatchStoring
     private let scripts: any ScriptStoring
     private let extensions: any ExtensionStoring
@@ -220,8 +233,9 @@ public actor ConfigurationService {
 
     public func export(settings: [String: JSONValue]) async throws -> Data {
         try Self.validateSettings(settings)
+        let portableSettings = settings.filter { !Self.locallyAuthorizedSettingKeys.contains($0.key) }
         let payload = ConfigurationPayload(
-            settings: settings,
+            settings: portableSettings,
             quicklinks: try await quicklinks.allQuicklinks().map(ExportedQuicklink.init),
             scripts: try await scripts.allScripts().map(ExportedScriptRegistration.init),
             extensions: try await extensions.allExtensions().map(ExportedExtensionRegistration.init)
@@ -263,7 +277,9 @@ public actor ConfigurationService {
         guard Set(document.payload.scripts.map(\.id)).count == document.payload.scripts.count,
             Set(document.payload.extensions.map(\.manifest.id)).count == document.payload.extensions.count
         else { throw ConfigurationError.invalidPayload }
-        let currentIDs = Set(try await quicklinks.allQuicklinks().map(\.id))
+        let currentQuicklinks = try await quicklinks.allQuicklinks()
+        let currentByID = Dictionary(uniqueKeysWithValues: currentQuicklinks.map { ($0.id, $0) })
+        let currentIDs = Set(currentByID.keys)
         let importedIDs = Set(importedQuicklinks.map(\.id))
         let preview = ConfigurationImportPreview(
             addedQuicklinks: importedIDs.subtracting(currentIDs).count,
@@ -273,7 +289,15 @@ public actor ConfigurationService {
             scriptsRequiringReconnection: document.payload.scripts.count,
             extensionsRequiringReinstallation: document.payload.extensions.count
         )
-        return ValidatedConfigurationImport(document: document, quicklinks: importedQuicklinks, preview: preview)
+        let expectations = importedQuicklinks.map {
+            QuicklinkMergeExpectation(id: $0.id, existingDefinition: currentByID[$0.id])
+        }
+        return ValidatedConfigurationImport(
+            document: document,
+            quicklinks: importedQuicklinks,
+            quicklinkExpectations: expectations,
+            preview: preview
+        )
     }
 
     @discardableResult
@@ -293,12 +317,20 @@ public actor ConfigurationService {
     }
 
     public func merge(_ validated: ValidatedConfigurationImport) async throws {
-        try await quicklinks.mergeQuicklinksAtomically(validated.quicklinks)
+        try await quicklinks.mergeQuicklinksAtomically(
+            validated.quicklinks,
+            transactionID: UUID().uuidString.lowercased(),
+            expecting: validated.quicklinkExpectations
+        )
     }
 
     public func merge(_ validated: ValidatedConfigurationImport, transactionID: String) async throws {
         guard UUID(uuidString: transactionID) != nil else { throw ConfigurationError.invalidPayload }
-        try await quicklinks.mergeQuicklinksAtomically(validated.quicklinks, transactionID: transactionID)
+        try await quicklinks.mergeQuicklinksAtomically(
+            validated.quicklinks,
+            transactionID: transactionID,
+            expecting: validated.quicklinkExpectations
+        )
     }
 
     public func hasCommittedTransaction(_ transactionID: String) async throws -> Bool {
@@ -336,6 +368,7 @@ public actor ConfigurationService {
             "clipboard.paused",
             "clipboard.quickPaste.enabled",
             "clipboard.quickPaste.allowsSensitiveContent",
+            "files.searchEnabled",
             "files.contentSearchEnabled",
             "files.hiddenFilesEnabled",
             "files.systemLocationsEnabled",

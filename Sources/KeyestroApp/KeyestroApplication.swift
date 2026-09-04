@@ -171,6 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var isRecordingHotKey = false
     private var hotKeyRegistrationTask: Task<Void, Never>?
     private var bootstrapTask: Task<Void, Never>?
+    private var configurationImportCoordinator: ConfigurationImportCoordinator?
     private var settingsCancellables = Set<AnyCancellable>()
 
     init(settings: SettingsStore = SettingsStore()) {
@@ -179,7 +180,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        settings.applyActivationPolicy()
+        bootstrapTask = Task { [weak self] in
+            await self?.finishLaunching()
+        }
+    }
+
+    private func finishLaunching() async {
 
         let quicklinks: any QuicklinkBatchStoring
         let rankingStore: (any RankingServicing)?
@@ -255,6 +261,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
             )
         }
+        if let database {
+            do {
+                try await database.prepare()
+                if let report = await database.latestRecoveryReport() {
+                    presentDatabaseRecovery(report)
+                }
+            } catch let error as DatabaseError {
+                presentDatabaseFailure(error.descriptor)
+            } catch {
+                presentDatabaseFailure(
+                    ErrorDescriptor(
+                        code: "database.prepareFailed",
+                        message: "The local database could not be prepared.",
+                        recoverySuggestion: "Review the Backups folder and export diagnostics before changing local data."
+                    )
+                )
+            }
+        }
+        let importCoordinator = configurationService.map {
+            ConfigurationImportCoordinator(service: $0, settings: settings)
+        }
+        configurationImportCoordinator = importCoordinator
+        if let importCoordinator {
+            do {
+                _ = try await importCoordinator.recoverIfNeeded()
+            } catch ConfigurationImportTransactionError.invalidJournal {
+                // The coordinator quarantined the malformed file, so normal startup
+                // can continue without replaying untrusted transaction state.
+                presentConfigurationImportRecoveryFailure(ConfigurationImportTransactionError.invalidJournal)
+            } catch is CancellationError {
+                return
+            } catch {
+                presentConfigurationImportRecoveryFailure(error)
+                return
+            }
+        }
+        try? Task.checkCancellation()
+        guard !Task.isCancelled else { return }
+        settings.applyActivationPolicy()
         let diagnosticsService = appPaths.map {
             DiagnosticsService(
                 paths: $0,
@@ -306,28 +351,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             rankingStore: rankingStore,
             rankingLearning: settings.rankingLearningPreferences
         )
-        bootstrapTask = Task { [weak self] in
-            async let providerWarmup: Void = coordinator.prewarm()
-            if let database {
-                do {
-                    try await database.prepare()
-                    if let report = await database.latestRecoveryReport() {
-                        self?.presentDatabaseRecovery(report)
-                    }
-                } catch let error as DatabaseError {
-                    self?.presentDatabaseFailure(error.descriptor)
-                } catch {
-                    self?.presentDatabaseFailure(
-                        ErrorDescriptor(
-                            code: "database.prepareFailed",
-                            message: "The local database could not be prepared.",
-                            recoverySuggestion: "Review the Backups folder and export diagnostics before changing local data."
-                        )
-                    )
-                }
-            }
-            await providerWarmup
-        }
+        async let providerWarmup: Void = coordinator.prewarm()
         let runner = ActionRunner(
             providers: providers,
             rankingStore: rankingStore,
@@ -572,6 +596,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self.onboardingController = onboardingController
             onboardingController.show()
         }
+        await providerWarmup
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -807,6 +832,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         alert.alertStyle = .critical
         alert.messageText = L10n.errorMessage(error)
         alert.informativeText = L10n.recoverySuggestion(error) ?? L10n.text("Export diagnostics before changing local data.")
+        alert.addButton(withTitle: L10n.text("OK"))
+        alert.runModal()
+    }
+
+    private func presentConfigurationImportRecoveryFailure(_ error: Error) {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        if case ConfigurationImportTransactionError.invalidJournal = error {
+            alert.messageText = L10n.text("An invalid configuration recovery file was quarantined")
+            alert.informativeText = L10n.text(
+                "Keyestro did not replay the file. Normal startup can continue, and the quarantined copy remains in Backups for diagnostics."
+            )
+        } else {
+            alert.messageText = L10n.text("Configuration recovery could not be completed")
+            alert.informativeText = L10n.text(
+                "Keyestro paused startup before enabling settings-dependent services. Restart to retry, or restore the pre-import backup."
+            )
+        }
         alert.addButton(withTitle: L10n.text("OK"))
         alert.runModal()
     }

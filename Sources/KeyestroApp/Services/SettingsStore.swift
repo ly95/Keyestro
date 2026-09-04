@@ -440,13 +440,12 @@ final class SettingsStore: ObservableObject {
     }
 
     func restoreDefaults() throws {
-        var original = exportedConfiguration()
-        original[Key.fileSearchEnabled] = .bool(fileSearchEnabled)
+        let original = localConfigurationSnapshot()
         do {
-            try applyImportedValues(Self.defaultConfiguration, includeFileSearchConsent: true)
+            try applyImportedValues(Self.defaultConfiguration, includeLocallyAuthorizedSettings: true)
         } catch {
             do {
-                try applyImportedValues(original, includeFileSearchConsent: true)
+                try applyImportedValues(original, includeLocallyAuthorizedSettings: true)
             } catch {
                 persistenceError =
                     "Default settings could not be restored, and automatic rollback was incomplete. Restore a configuration backup."
@@ -458,6 +457,14 @@ final class SettingsStore: ObservableObject {
     }
 
     func exportedConfiguration() -> [String: JSONValue] {
+        localConfigurationSnapshot().filter {
+            !ConfigurationService.locallyAuthorizedSettingKeys.contains($0.key)
+        }
+    }
+
+    /// An exact, same-installation snapshot used for local restore operations and
+    /// legacy transaction recovery. Portable exports filter local capability grants.
+    func localConfigurationSnapshot() -> [String: JSONValue] {
         [
             Key.showDockIcon: .bool(showDockIcon),
             Key.launcherAppearance: .string(launcherAppearance.rawValue),
@@ -478,6 +485,7 @@ final class SettingsStore: ObservableObject {
             Key.clipboardRetentionPreset: .string(clipboardRetentionPreset),
             Key.clipboardExcludedApplications: .string(clipboardExcludedApplications),
             Key.ocrLanguagePreset: .string(ocrLanguagePreset),
+            Key.fileSearchEnabled: .bool(fileSearchEnabled),
             Key.fileContentSearchEnabled: .bool(fileContentSearchEnabled),
             Key.fileHiddenFilesEnabled: .bool(fileHiddenFilesEnabled),
             Key.fileSystemLocationsEnabled: .bool(fileSystemLocationsEnabled),
@@ -487,12 +495,12 @@ final class SettingsStore: ObservableObject {
     }
 
     func applyImportedConfiguration(_ values: [String: JSONValue]) throws {
-        let original = exportedConfiguration()
+        let original = localConfigurationSnapshot()
         do {
             try applyImportedValues(values)
         } catch {
             do {
-                try applyImportedValues(original)
+                try applyImportedValues(original, includeLocallyAuthorizedSettings: true)
             } catch {
                 persistenceError = "The imported settings could not be rolled back. Restore the pre-import configuration backup."
                 throw SettingsImportError.rollbackFailed
@@ -502,9 +510,27 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    /// Restores an internal transaction snapshot. Never use this for data read from
+    /// an imported configuration document.
+    func restoreLocalConfigurationSnapshot(_ values: [String: JSONValue]) throws {
+        let original = localConfigurationSnapshot()
+        do {
+            try applyImportedValues(values, includeLocallyAuthorizedSettings: true)
+        } catch {
+            do {
+                try applyImportedValues(original, includeLocallyAuthorizedSettings: true)
+            } catch {
+                persistenceError = "The local settings snapshot could not be rolled back."
+                throw SettingsImportError.rollbackFailed
+            }
+            persistenceError = "The local settings snapshot could not be restored."
+            throw SettingsImportError.persistenceFailed
+        }
+    }
+
     private func applyImportedValues(
         _ values: [String: JSONValue],
-        includeFileSearchConsent: Bool = false
+        includeLocallyAuthorizedSettings: Bool = false
     ) throws {
         let importedLauncherShortcut = Self.importedShortcut(
             from: values,
@@ -549,7 +575,10 @@ final class SettingsStore: ObservableObject {
             prefixesEnabled = value
             guard prefixesEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.rankingLearningEnabled], value != rankingLearningEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.rankingLearningEnabled],
+            value != rankingLearningEnabled
+        {
             rankingLearningEnabled = value
             guard rankingLearningEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
@@ -562,21 +591,31 @@ final class SettingsStore: ObservableObject {
             numberShortcutsEnabled = value
             guard numberShortcutsEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.quickPasteEnabled], value != quickPasteEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.quickPasteEnabled],
+            value != quickPasteEnabled
+        {
             quickPasteEnabled = value
             guard quickPasteEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.quickPasteAllowsSensitiveContent],
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.quickPasteAllowsSensitiveContent],
             value != quickPasteAllowsSensitiveContent
         {
             quickPasteAllowsSensitiveContent = value
             guard quickPasteAllowsSensitiveContent == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.clipboardEnabled], value != clipboardEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.clipboardEnabled],
+            value != clipboardEnabled
+        {
             clipboardEnabled = value
             guard clipboardEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.clipboardPaused], value != clipboardPaused {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.clipboardPaused],
+            value != clipboardPaused
+        {
             clipboardPaused = value
             guard clipboardPaused == value else { throw SettingsImportError.persistenceFailed }
         }
@@ -587,7 +626,8 @@ final class SettingsStore: ObservableObject {
             clipboardRetentionPreset = value
             guard clipboardRetentionPreset == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .string(value) = values[Key.clipboardExcludedApplications], value.utf8.count <= 16_384,
+        if case let .string(value) = values[Key.clipboardExcludedApplications],
+            value.utf8.count <= 16_384,
             value != clipboardExcludedApplications
         {
             clipboardExcludedApplications = value
@@ -600,30 +640,45 @@ final class SettingsStore: ObservableObject {
             ocrLanguagePreset = value
             guard ocrLanguagePreset == value else { throw SettingsImportError.persistenceFailed }
         }
-        if includeFileSearchConsent,
+        if includeLocallyAuthorizedSettings,
             case let .bool(value) = values[Key.fileSearchEnabled],
             value != fileSearchEnabled
         {
             fileSearchEnabled = value
             guard fileSearchEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.fileContentSearchEnabled], value != fileContentSearchEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.fileContentSearchEnabled],
+            value != fileContentSearchEnabled
+        {
             fileContentSearchEnabled = value
             guard fileContentSearchEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.fileHiddenFilesEnabled], value != fileHiddenFilesEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.fileHiddenFilesEnabled],
+            value != fileHiddenFilesEnabled
+        {
             fileHiddenFilesEnabled = value
             guard fileHiddenFilesEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.fileSystemLocationsEnabled], value != fileSystemLocationsEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.fileSystemLocationsEnabled],
+            value != fileSystemLocationsEnabled
+        {
             fileSystemLocationsEnabled = value
             guard fileSystemLocationsEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.fileTrashEnabled], value != fileTrashEnabled {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.fileTrashEnabled],
+            value != fileTrashEnabled
+        {
             fileTrashEnabled = value
             guard fileTrashEnabled == value else { throw SettingsImportError.persistenceFailed }
         }
-        if case let .bool(value) = values[Key.confirmSleepEveryTime], value != confirmSleepEveryTime {
+        if includeLocallyAuthorizedSettings,
+            case let .bool(value) = values[Key.confirmSleepEveryTime],
+            value != confirmSleepEveryTime
+        {
             confirmSleepEveryTime = value
             guard confirmSleepEveryTime == value else { throw SettingsImportError.persistenceFailed }
         }

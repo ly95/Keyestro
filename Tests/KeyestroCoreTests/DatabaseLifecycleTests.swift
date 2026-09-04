@@ -371,6 +371,42 @@ private func expectSameScript(_ actual: ScriptDefinition, _ expected: ScriptDefi
     #expect(try await reopened.quicklink(id: link.id)?.title == link.title)
 }
 
+@Test func conditionalConfigurationMergeRejectsAChangedQuicklinkAtomically() async throws {
+    let (root, paths) = try databaseTestPaths("configuration-conflict")
+    defer { try? FileManager.default.removeItem(at: root) }
+    let original = try QuicklinkDefinition.inferred(
+        id: "shared",
+        title: "Original",
+        urlTemplate: "https://original.example"
+    )
+    let edited = try QuicklinkDefinition.inferred(
+        id: "shared",
+        title: "User Edit",
+        urlTemplate: "https://edited.example"
+    )
+    let imported = try QuicklinkDefinition.inferred(
+        id: "shared",
+        title: "Imported",
+        urlTemplate: "https://imported.example"
+    )
+    let database = LauncherDatabase(paths: paths)
+    try await database.saveQuicklink(original)
+    try await database.saveQuicklink(edited)
+    let transactionID = UUID().uuidString.lowercased()
+
+    await #expect(throws: ConfigurationError.conflictingChanges) {
+        try await database.mergeQuicklinksAtomically(
+            [imported],
+            transactionID: transactionID,
+            expecting: [QuicklinkMergeExpectation(id: original.id, existingDefinition: original)]
+        )
+    }
+    let preserved = try #require(try await database.quicklink(id: edited.id))
+    #expect(preserved.title == edited.title)
+    #expect(preserved.urlTemplate == edited.urlTemplate)
+    #expect(try await database.hasCommittedConfigurationTransaction(transactionID) == false)
+}
+
 private func configurationTransactionIDs(at url: URL) throws -> [String] {
     var raw: OpaquePointer?
     guard sqlite3_open_v2(url.path, &raw, SQLITE_OPEN_READONLY, nil) == SQLITE_OK, let raw else { return [] }

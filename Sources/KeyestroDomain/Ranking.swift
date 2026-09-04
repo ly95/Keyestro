@@ -32,13 +32,23 @@ public struct Ranker: Sendable {
         locale: Locale = .current
     ) -> [RankedItem] {
         let ranked = items.compactMap { item -> RankedItem? in
-            let match = FuzzyMatcher.evaluate(
-                query: request.normalizedText,
-                title: item.title,
-                subtitle: item.subtitle,
-                keywords: item.keywords,
-                locale: locale
-            )
+            let match: MatchEvaluation
+            if item.searchAliases.isEmpty {
+                match = FuzzyMatcher.evaluate(
+                    query: request.normalizedText,
+                    title: item.title,
+                    subtitle: item.subtitle,
+                    keywords: item.keywords,
+                    locale: locale
+                )
+            } else {
+                match = FuzzyMatcher.evaluate(
+                    query: request.normalizedText,
+                    title: item.title,
+                    aliases: item.searchAliases,
+                    locale: locale
+                )
+            }
             guard match.tier != .none, request.normalizedText.isEmpty || match.textMatch >= configuration.minimumTextMatch else {
                 return nil
             }
@@ -54,7 +64,7 @@ public struct Ranker: Sendable {
             return RankedItem(item: item, score: score, matchTier: match.tier)
         }
 
-        return ranked.sorted(by: isOrderedBefore)
+        return ranked.sorted(by: Self.isOrderedBefore)
     }
 
     private func recency(lastUsedAt: Date?, now: Date) -> Double {
@@ -67,15 +77,23 @@ public struct Ranker: Sendable {
         min(1, log1p(Double(max(0, count))) / log1p(Double(configuration.maximumFrequencyCount)))
     }
 
-    private func isOrderedBefore(_ lhs: RankedItem, _ rhs: RankedItem) -> Bool {
-        if lhs.item.providerID == rhs.item.providerID,
-            lhs.item.scoreFeatures.isPinned != rhs.item.scoreFeatures.isPinned
-        {
-            return lhs.item.scoreFeatures.isPinned
-        }
-        if abs(lhs.score - rhs.score) > 0.000_000_1 {
-            return lhs.score > rhs.score
-        }
+    /// A single lexicographic order keeps sorting transitive while preserving explicit intent.
+    /// Pins are global user intent; among equally pinned results, exact matches form the
+    /// firewall that bounded recency and frequency learning cannot cross.
+    fileprivate static func isOrderedBefore(_ lhs: RankedItem, _ rhs: RankedItem) -> Bool {
+        let lhsPinned = lhs.item.scoreFeatures.isPinned
+        let rhsPinned = rhs.item.scoreFeatures.isPinned
+        if lhsPinned != rhsPinned { return lhsPinned }
+
+        let lhsExact = lhs.matchTier == .exact
+        let rhsExact = rhs.matchTier == .exact
+        if lhsExact != rhsExact { return lhsExact }
+
+        // Ranker-produced scores are finite. Treat externally constructed NaNs as the
+        // weakest score so this public comparison remains deterministic as well.
+        let lhsScore = lhs.score.isNaN ? -Double.infinity : lhs.score
+        let rhsScore = rhs.score.isNaN ? -Double.infinity : rhs.score
+        if lhsScore != rhsScore { return lhsScore > rhsScore }
         if lhs.matchTier != rhs.matchTier {
             return lhs.matchTier < rhs.matchTier
         }
@@ -89,10 +107,13 @@ public struct Ranker: Sendable {
 /// Merges compatible actions for items that identify the same canonical resource.
 public enum ItemDeduplicator {
     public static func deduplicate(_ rankedItems: [RankedItem]) -> [RankedItem] {
+        // Callers normally pass Ranker output, but sorting here also makes winner and
+        // merged-action selection deterministic for independently constructed input.
+        let orderedItems = rankedItems.sorted(by: Ranker.isOrderedBefore)
         var output: [RankedItem] = []
         var canonicalIndices: [CanonicalResource: Int] = [:]
 
-        for candidate in rankedItems {
+        for candidate in orderedItems {
             guard let canonical = candidate.item.canonicalResource else {
                 output.append(candidate)
                 continue
@@ -104,20 +125,10 @@ public enum ItemDeduplicator {
                 continue
             }
 
-            let existing = output[existingIndex]
-            if candidate.score > existing.score {
-                output[existingIndex] = merge(winner: candidate, duplicate: existing)
-            } else {
-                output[existingIndex] = merge(winner: existing, duplicate: candidate)
-            }
+            output[existingIndex] = merge(winner: output[existingIndex], duplicate: candidate)
         }
 
-        return output.sorted { lhs, rhs in
-            if abs(lhs.score - rhs.score) > 0.000_000_1 { return lhs.score > rhs.score }
-            if lhs.matchTier != rhs.matchTier { return lhs.matchTier < rhs.matchTier }
-            if lhs.item.providerID != rhs.item.providerID { return lhs.item.providerID < rhs.item.providerID }
-            return lhs.id < rhs.id
-        }
+        return output
     }
 
     private static func merge(winner: RankedItem, duplicate: RankedItem) -> RankedItem {
@@ -125,12 +136,20 @@ public enum ItemDeduplicator {
         var actionIDs = Set(actions.map(\.id))
 
         for action in duplicate.item.actions {
-            var displayedID = action.id
-            if actionIDs.contains(displayedID) {
+            guard actions.count < DomainLimits.actionsPerItem else { break }
+
+            let displayedID: ActionID
+            if actionIDs.contains(action.id) {
                 guard !actions.contains(where: { $0 == action }) else { continue }
-                displayedID = ActionID("\(duplicate.item.providerID.rawValue).\(action.id.rawValue)")
+                displayedID = uniqueRoutedActionID(
+                    providerID: duplicate.item.providerID,
+                    actionID: action.id,
+                    occupiedIDs: actionIDs
+                )
+            } else {
+                displayedID = action.id
             }
-            guard actionIDs.insert(displayedID).inserted else { continue }
+            actionIDs.insert(displayedID)
             actions.append(
                 action.routed(
                     from: duplicate.item.providerID,
@@ -145,5 +164,21 @@ public enum ItemDeduplicator {
             score: winner.score,
             matchTier: winner.matchTier
         )
+    }
+
+    private static func uniqueRoutedActionID(
+        providerID: ProviderID,
+        actionID: ActionID,
+        occupiedIDs: Set<ActionID>
+    ) -> ActionID {
+        let base = "\(providerID.rawValue).\(actionID.rawValue)"
+        let first = ActionID(base)
+        guard occupiedIDs.contains(first) else { return first }
+
+        var suffix = 2
+        while occupiedIDs.contains(ActionID("\(base).\(suffix)")) {
+            suffix += 1
+        }
+        return ActionID("\(base).\(suffix)")
     }
 }

@@ -59,6 +59,16 @@
         }
       }
     },
+    "%arg unsupported or locally authorized settings ignored": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已忽略 %arg 项不支持或需在本机授权的设置"
+          }
+        }
+      }
+    },
     "%arg unsupported settings ignored": {
       "localizations": {
         "zh-Hans": {
@@ -101,6 +111,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 种剪贴板类型"
+          }
+        }
+      }
+    },
+    "%lld installed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装 %lld 个"
           }
         }
       }
@@ -371,12 +391,32 @@
         }
       }
     },
+    "Access & Privacy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "权限与隐私"
+          }
+        }
+      }
+    },
     "Accessibility": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "辅助功能"
+          }
+        }
+      }
+    },
+    "Accessibility permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辅助功能权限"
           }
         }
       }
@@ -407,6 +447,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "需要辅助功能权限。请打开 Keyestro 设置 → 权限，授权后重试。"
+          }
+        }
+      }
+    },
+    "Accurate mode runs on this Mac and never sends screenshots to a network service.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "精确模式在本机运行，绝不会将截图发送到网络服务。"
           }
         }
       }
@@ -481,6 +531,16 @@
         }
       }
     },
+    "Add and manage explicitly trusted local workflows.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加并管理明确受信任的本地工作流。"
+          }
+        }
+      }
+    },
     "All": {
       "localizations": {
         "zh-Hans": {
@@ -517,6 +577,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "允许疑似敏感文本"
+          }
+        }
+      }
+    },
+    "Allow this extension to run its declared local commands.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许此扩展运行其声明的本地命令。"
           }
         }
       }
@@ -591,6 +661,36 @@
         }
       }
     },
+    "An invalid configuration recovery file was quarantined": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无效的配置恢复文件已被隔离"
+          }
+        }
+      }
+    },
+    "Apache-2.0 licensed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "采用 Apache-2.0 许可证。"
+          }
+        }
+      }
+    },
+    "App behavior": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用行为"
+          }
+        }
+      }
+    },
     "Appearance": {
       "localizations": {
         "zh-Hans": {
@@ -661,6 +761,16 @@
         }
       }
     },
+    "Auto follows macOS. Light and Dark overrides stay on this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动跟随 macOS；浅色和深色覆盖设置只保存在这台 Mac 上。"
+          }
+        }
+      }
+    },
     "Auto follows the macOS appearance. A Light or Dark override is saved on this Mac.": {
       "localizations": {
         "zh-Hans": {
@@ -677,6 +787,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "自动"
+          }
+        }
+      }
+    },
+    "Automatic updates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动更新"
           }
         }
       }
@@ -707,6 +827,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "返回"
+          }
+        }
+      }
+    },
+    "Basics": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "基础"
           }
         }
       }
@@ -901,6 +1031,16 @@
         }
       }
     },
+    "Capture & OCR": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "截取与 OCR"
+          }
+        }
+      }
+    },
     "Capture Area and Recognize Text": {
       "localizations": {
         "zh-Hans": {
@@ -967,6 +1107,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "请检查 Spotlight 状态后重试。"
+          }
+        }
+      }
+    },
+    "Check for a newer Keyestro version now.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即检查是否有较新的 Keyestro 版本。"
           }
         }
       }
@@ -1061,12 +1211,52 @@
         }
       }
     },
+    "Choose how Keyestro checks for and installs new versions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 Keyestro 检查和安装新版本的方式。"
+          }
+        }
+      }
+    },
+    "Choose how Keyestro looks and behaves on this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 Keyestro 在这台 Mac 上的外观与行为方式。"
+          }
+        }
+      }
+    },
     "Choose the original script, or install this file as a new script.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "请选择原始脚本，或将此文件作为新脚本安装。"
+          }
+        }
+      }
+    },
+    "Choose where Keyestro appears and when it starts.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 Keyestro 的显示位置和启动时机。"
+          }
+        }
+      }
+    },
+    "Choose which Spotlight-indexed content can appear in results.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择哪些 Spotlight 已索引内容可出现在结果中。"
           }
         }
       }
@@ -1223,6 +1413,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "按类型清除剪贴板历史？"
+          }
+        }
+      }
+    },
+    "Clear derived local data; your settings and saved items remain intact.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "清除派生的本地数据；你的设置和已保存项目不会受到影响。"
           }
         }
       }
@@ -1567,6 +1767,16 @@
         }
       }
     },
+    "Clipboard privacy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "剪贴板隐私"
+          }
+        }
+      }
+    },
     "Clipboard reading was cancelled.": {
       "localizations": {
         "zh-Hans": {
@@ -1687,12 +1897,32 @@
         }
       }
     },
+    "Configuration recovery could not be completed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成配置恢复"
+          }
+        }
+      }
+    },
     "Configure Script": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "配置脚本"
+          }
+        }
+      }
+    },
+    "Configure local search, clipboard, capture, quick links, and scripts.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置本地搜索、剪贴板、截取、快捷链接和脚本。"
           }
         }
       }
@@ -1753,6 +1983,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "继续"
+          }
+        }
+      }
+    },
+    "Control whether successful actions improve future ordering.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "控制成功操作是否用于改进后续排序。"
           }
         }
       }
@@ -1903,6 +2143,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "当前启动器快捷键：%@"
+          }
+        }
+      }
+    },
+    "Database, caches, clipboard history, managed code, keys, and preferences are removed.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将移除数据库、缓存、剪贴板历史、托管代码、密钥和偏好设置。"
           }
         }
       }
@@ -2097,6 +2347,26 @@
         }
       }
     },
+    "Delete local data": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除本地数据"
+          }
+        }
+      }
+    },
+    "Delete…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除…"
+          }
+        }
+      }
+    },
     "Destructive": {
       "localizations": {
         "zh-Hans": {
@@ -2123,6 +2393,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "诊断"
+          }
+        }
+      }
+    },
+    "Diagnostics, backups, performance, and maintenance.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "诊断、备份、性能与维护。"
           }
         }
       }
@@ -2173,6 +2453,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成"
+          }
+        }
+      }
+    },
+    "Download new versions in the background when available.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有新版本时在后台下载。"
           }
         }
       }
@@ -2317,6 +2607,16 @@
         }
       }
     },
+    "Encrypted history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加密历史"
+          }
+        }
+      }
+    },
     "Encrypted on this Mac": {
       "localizations": {
         "zh-Hans": {
@@ -2393,6 +2693,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "输入参数"
+          }
+        }
+      }
+    },
+    "Entries stay on this Mac and are encrypted before persistence.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "项目保存在这台 Mac 上，并在持久化前加密。"
           }
         }
       }
@@ -2523,6 +2833,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "导出内容包含非敏感设置、快捷链接、脚本注册元数据和扩展清单；绝不包含钥匙串值、剪贴板内容、脚本正文或私有环境变量。"
+          }
+        }
+      }
+    },
+    "Exports contain portable, non-secret preferences, quick links, script registration metadata, and extension manifests. They never contain local capability approvals, safety consent, Keychain values, clipboard payloads, script bodies, or private environment values.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出内容包括可移植的非敏感偏好设置、快捷链接、脚本注册元数据和扩展清单；不包含本机能力授权、安全同意、钥匙串值、剪贴板内容、脚本正文或私有环境变量。"
           }
         }
       }
@@ -2727,6 +3047,16 @@
         }
       }
     },
+    "Global shortcuts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全局快捷键"
+          }
+        }
+      }
+    },
     "Hide sensitive preview": {
       "localizations": {
         "zh-Hans": {
@@ -2737,12 +3067,32 @@
         }
       }
     },
+    "History is off by default and encrypted before persistence.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "历史默认关闭，持久化前会先加密。"
+          }
+        }
+      }
+    },
     "Home": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "个人文件夹"
+          }
+        }
+      }
+    },
+    "If System Settings is enabled but this page says Not Allowed, remove the old Keyestro entry and add this exact copy again, or use a stably signed local build.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如果“系统设置”已启用权限，但此页面仍显示“未允许”，请移除旧的 Keyestro 条目并重新添加当前这个副本，或使用具有稳定签名的本地构建。"
           }
         }
       }
@@ -2867,6 +3217,16 @@
         }
       }
     },
+    "Inspect or remove encrypted clipboard history stored on this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看或删除存储在这台 Mac 上的加密剪贴板历史。"
+          }
+        }
+      }
+    },
     "Install Local Extension…": {
       "localizations": {
         "zh-Hans": {
@@ -2912,7 +3272,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已安装扩展"
+            "value": "已安装的扩展"
           }
         }
       }
@@ -2937,12 +3297,62 @@
         }
       }
     },
+    "Jump directly to files, commands, calculations, or extensions.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "直接跳转到文件、命令、计算或扩展。"
+          }
+        }
+      }
+    },
+    "Keep consequential actions deliberate.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "对有影响的操作保持审慎。"
+          }
+        }
+      }
+    },
+    "Keep existing history without recording new clipboard changes.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保留现有历史，但不再记录新的剪贴板变化。"
+          }
+        }
+      }
+    },
+    "Keep local data, learning, and cleanup under your control.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自主管理本地数据、学习和清理。"
+          }
+        }
+      }
+    },
     "Keep near the top of results": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "保留在结果列表靠前位置"
+          }
+        }
+      }
+    },
+    "Keep recent clipboard items encrypted and available locally.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在本机加密保存近期剪贴板项目，方便随时使用。"
           }
         }
       }
@@ -2967,6 +3377,16 @@
         }
       }
     },
+    "Keep the launcher comfortable in every workspace.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "让启动器在各种工作空间中都舒适易用。"
+          }
+        }
+      }
+    },
     "Keychain could not complete the request.": {
       "localizations": {
         "zh-Hans": {
@@ -2987,6 +3407,26 @@
         }
       }
     },
+    "Keyestro": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro"
+          }
+        }
+      }
+    },
+    "Keyestro did not replay the file. Normal startup can continue, and the quarantined copy remains in Backups for diagnostics.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 未重放该文件。应用可以正常启动，隔离副本会保留在 Backups 中供诊断使用。"
+          }
+        }
+      }
+    },
     "Keyestro does not request Accessibility or Screen Recording during setup.": {
       "localizations": {
         "zh-Hans": {
@@ -2997,12 +3437,42 @@
         }
       }
     },
+    "Keyestro explains why access is needed before macOS asks. You can review or revoke access at any time.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 会在 macOS 请求授权前说明原因。你可以随时查看或撤销权限。"
+          }
+        }
+      }
+    },
     "Keyestro keeps only bounded timing samples in memory. Queries, result titles, clipboard content, and file paths are never recorded.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "Keyestro 只在内存中保留有界的计时样本，绝不记录查询、结果标题、剪贴板内容或文件路径。"
+          }
+        }
+      }
+    },
+    "Keyestro paused startup before enabling settings-dependent services. Restart to retry, or restore the pre-import backup.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 已在启用依赖设置的服务前暂停启动。请重启以重试，或恢复导入前的备份。"
+          }
+        }
+      }
+    },
+    "Keyestro periodically checks the selected channel.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 会定期检查所选更新通道。"
           }
         }
       }
@@ -3023,6 +3493,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "Keyestro 的快捷键必须互不相同。"
+          }
+        }
+      }
+    },
+    "Keyestro version and license": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keyestro 版本与许可证"
           }
         }
       }
@@ -3097,12 +3577,32 @@
         }
       }
     },
+    "Launcher behavior": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动器行为"
+          }
+        }
+      }
+    },
     "Learn from successful actions": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "从成功操作中学习"
+          }
+        }
+      }
+    },
+    "Learned ranking history": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排序学习历史"
           }
         }
       }
@@ -3197,6 +3697,26 @@
         }
       }
     },
+    "Local by default": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认保存在本机"
+          }
+        }
+      }
+    },
+    "Local data and query privacy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地数据与查询隐私"
+          }
+        }
+      }
+    },
     "Local performance report updated.": {
       "localizations": {
         "zh-Hans": {
@@ -3223,6 +3743,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "登录项注册"
+          }
+        }
+      }
+    },
+    "Maintenance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "维护"
           }
         }
       }
@@ -3287,6 +3817,16 @@
         }
       }
     },
+    "Measure launcher responsiveness without recording private content.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "测量启动器响应速度，且不记录私密内容。"
+          }
+        }
+      }
+    },
     "Method not found": {
       "localizations": {
         "zh-Hans": {
@@ -3303,6 +3843,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "已最小化"
+          }
+        }
+      }
+    },
+    "Move portable preferences and registrations between Macs.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Mac 之间迁移可移植的偏好设置和注册信息。"
           }
         }
       }
@@ -3333,6 +3883,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "原生扩展以你的用户权限运行。进程隔离可保护 Keyestro 不受扩展崩溃影响，但并非安全沙箱。请仅安装你信任的代码。"
+          }
+        }
+      }
+    },
+    "Native, open source, and local-first.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原生、开源、本地优先。"
           }
         }
       }
@@ -3477,6 +4037,16 @@
         }
       }
     },
+    "Off by default. macOS may ask for folder access on your first search.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "默认关闭。首次搜索时，macOS 可能会请求文件夹访问权限。"
+          }
+        }
+      }
+    },
     "Onboarding step %lld of %lld": {
       "localizations": {
         "zh-Hans": {
@@ -3597,12 +4167,32 @@
         }
       }
     },
+    "Open Keyestro automatically after you sign in to this Mac.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "登录这台 Mac 后自动打开 Keyestro。"
+          }
+        }
+      }
+    },
     "Open Keyestro shortcut": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "打开 Keyestro 的快捷键"
+          }
+        }
+      }
+    },
+    "Open Keyestro workflows without leaving the current app.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无需离开当前应用即可打开 Keyestro 工作流。"
           }
         }
       }
@@ -3807,6 +4397,16 @@
         }
       }
     },
+    "Paste the latest eligible clipboard item into the active app.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将最新的可用剪贴板项目粘贴到当前应用。"
+          }
+        }
+      }
+    },
     "Paste to Active App": {
       "localizations": {
         "zh-Hans": {
@@ -3953,6 +4553,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "请按下快捷键…"
+          }
+        }
+      }
+    },
+    "Preview exactly what will be included before creating an archive.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "创建归档前，准确预览将包含的内容。"
           }
         }
       }
@@ -4137,6 +4747,16 @@
         }
       }
     },
+    "Ranking & learning": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排序与学习"
+          }
+        }
+      }
+    },
     "Ranking history cleared.": {
       "localizations": {
         "zh-Hans": {
@@ -4193,6 +4813,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "最近的 p50 / p95"
+          }
+        }
+      }
+    },
+    "Recognize text locally with Apple Vision.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用 Apple Vision 在本机识别文本。"
           }
         }
       }
@@ -4287,6 +4917,16 @@
         }
       }
     },
+    "Refresh Status": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刷新状态"
+          }
+        }
+      }
+    },
     "Refresh status": {
       "localizations": {
         "zh-Hans": {
@@ -4357,6 +4997,16 @@
         }
       }
     },
+    "Release channel": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "发布通道"
+          }
+        }
+      }
+    },
     "Remove %@": {
       "localizations": {
         "zh-Hans": {
@@ -4407,12 +5057,32 @@
         }
       }
     },
+    "Remove local usage events while keeping your manual pins.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除本地使用记录，同时保留手动固定项。"
+          }
+        }
+      }
+    },
     "Remove…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "移除…"
+          }
+        }
+      }
+    },
+    "Repair local caches or return preferences to their defaults.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "修复本地缓存，或将偏好设置恢复为默认值。"
           }
         }
       }
@@ -4427,12 +5097,42 @@
         }
       }
     },
+    "Requested only when needed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅在需要时请求"
+          }
+        }
+      }
+    },
     "Required": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "必填"
+          }
+        }
+      }
+    },
+    "Requires Accessibility access and a unique global shortcut.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要辅助功能权限和一个唯一的全局快捷键。"
+          }
+        }
+      }
+    },
+    "Reset preferences while keeping quick links, scripts, extensions, and saved data.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重置偏好设置，同时保留快捷链接、脚本、扩展和已保存数据。"
           }
         }
       }
@@ -4493,6 +5193,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "恢复默认设置…"
+          }
+        }
+      }
+    },
+    "Restore…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复…"
           }
         }
       }
@@ -4607,6 +5317,26 @@
         }
       }
     },
+    "Review Permission": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查权限"
+          }
+        }
+      }
+    },
+    "Review and manage the local extensions you trust.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看并管理你信任的本地扩展。"
+          }
+        }
+      }
+    },
     "Review and reinstall the script before running it.": {
       "localizations": {
         "zh-Hans": {
@@ -4703,6 +5433,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "复制前请检查本机 Vision 的识别结果。"
+          }
+        }
+      }
+    },
+    "Review the macOS access used to send Command-V to the frontmost app.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查用于向前台应用发送 Command-V 的 macOS 权限。"
           }
         }
       }
@@ -4977,6 +5717,16 @@
         }
       }
     },
+    "Search Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索设置"
+          }
+        }
+      }
+    },
     "Search actions for %@": {
       "localizations": {
         "zh-Hans": {
@@ -5047,6 +5797,16 @@
         }
       }
     },
+    "See why access is needed and control it in macOS.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "了解权限用途，并在 macOS 中进行管理。"
+          }
+        }
+      }
+    },
     "Select Package…": {
       "localizations": {
         "zh-Hans": {
@@ -5103,6 +5863,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "请选择并检查导出时对应的软件包；其标识符、版本和 SHA-256 必须全部匹配。"
+          }
+        }
+      }
+    },
+    "Select the exact exported package. Its identifier, version, and SHA-256 must all match.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择导出时的原始软件包；其标识符、版本和 SHA-256 必须全部匹配。"
           }
         }
       }
@@ -5187,6 +5957,36 @@
         }
       }
     },
+    "Set the shortcuts and query gestures you use every day.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置日常使用的快捷键和查询手势。"
+          }
+        }
+      }
+    },
+    "Settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置"
+          }
+        }
+      }
+    },
+    "Settings could not be saved": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "设置无法保存"
+          }
+        }
+      }
+    },
     "Share global query text with this extension": {
       "localizations": {
         "zh-Hans": {
@@ -5202,7 +6002,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在程序坞中显示 Keyestro"
+            "value": "在 Dock 中显示 Keyestro"
           }
         }
       }
@@ -5307,12 +6107,32 @@
         }
       }
     },
+    "Stable is recommended; Beta receives previews earlier.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建议使用稳定版；Beta 版可更早获得预览功能。"
+          }
+        }
+      }
+    },
     "Start typing to search enabled providers.": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "开始输入以搜索已启用的提供器。"
+          }
+        }
+      }
+    },
+    "Stay current while keeping control of downloads.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保持最新，同时自主控制下载。"
           }
         }
       }
@@ -5357,12 +6177,32 @@
         }
       }
     },
+    "System": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统"
+          }
+        }
+      }
+    },
     "System Commands": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
             "value": "系统命令"
+          }
+        }
+      }
+    },
+    "System actions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统操作"
           }
         }
       }
@@ -6207,6 +7047,16 @@
         }
       }
     },
+    "The first sleep action always explains its effect.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次执行睡眠操作时始终说明其影响。"
+          }
+        }
+      }
+    },
     "The first sleep action always explains its effect. You can keep confirmation enabled for every use.": {
       "localizations": {
         "zh-Hans": {
@@ -6313,6 +7163,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "macOS 应用数据目录不可用。"
+          }
+        }
+      }
+    },
+    "The menu bar remains available when the Dock icon is hidden.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隐藏 Dock 图标后，仍可从菜单栏使用 Keyestro。"
           }
         }
       }
@@ -6797,6 +7657,16 @@
         }
       }
     },
+    "The source app is inferred best-effort. Exclusions are a privacy convenience, not a security boundary.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源应用为尽力推断；排除项仅提供隐私便利，并非安全边界。"
+          }
+        }
+      }
+    },
     "The source application is inferred best-effort when the clipboard changes; exclusions are a privacy convenience, not a security boundary.": {
       "localizations": {
         "zh-Hans": {
@@ -6957,6 +7827,16 @@
         }
       }
     },
+    "This copy receives a new macOS identity after each rebuild, so an older permission entry may no longer apply.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此副本每次重新构建后都会获得新的 macOS 身份，因此旧的权限条目可能不再适用。"
+          }
+        }
+      }
+    },
     "This database was created by a newer Keyestro version.": {
       "localizations": {
         "zh-Hans": {
@@ -7033,6 +7913,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "这会从钥匙串永久移除此扩展保存的秘密；确认内容绝不会显示秘密值。"
+          }
+        }
+      }
+    },
+    "This removes all Keyestro data from this Mac and cannot be undone.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这会从这台 Mac 移除 Keyestro 的全部数据，且无法撤销。"
           }
         }
       }
@@ -7257,6 +8147,16 @@
         }
       }
     },
+    "Tune the keyboard gestures available while searching.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "调整搜索期间可用的键盘手势。"
+          }
+        }
+      }
+    },
     "Type": {
       "localizations": {
         "zh-Hans": {
@@ -7317,6 +8217,16 @@
         }
       }
     },
+    "Update service is unavailable in this build.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此构建不提供更新服务。"
+          }
+        }
+      }
+    },
     "Use Command, Option, or Control with another key. Conflicts remain visible and the menu bar stays available.": {
       "localizations": {
         "zh-Hans": {
@@ -7353,6 +8263,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "使用 {query} 等占位符；值会进行百分号编码。"
+          }
+        }
+      }
+    },
+    "Use the physical number row; Command-0 opens the tenth result.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用实体数字键行；Command-0 打开第十个结果。"
           }
         }
       }
@@ -7397,6 +8317,26 @@
         }
       }
     },
+    "Verify the package identity and system security checks before enabling it.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用前验证软件包身份和系统安全检查结果。"
+          }
+        }
+      }
+    },
+    "Version, license, and the local-first principles behind Keyestro.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本、许可证以及 Keyestro 的本地优先理念。"
+          }
+        }
+      }
+    },
     "Vision OCR runs entirely on this Mac": {
       "localizations": {
         "zh-Hans": {
@@ -7433,6 +8373,16 @@
           "stringUnit": {
             "state": "translated",
             "value": "停用后，已保存的使用历史既不会用于排序，也不会更新；手动固定仍会影响排序。"
+          }
+        }
+      }
+    },
+    "When off, sensitive-looking items open Clipboard History instead.": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，疑似敏感项目将改为打开剪贴板历史。"
           }
         }
       }

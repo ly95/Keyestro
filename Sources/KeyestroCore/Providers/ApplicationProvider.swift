@@ -114,12 +114,45 @@ public actor ApplicationCatalog {
         }
     }
 
-    private func finishRefresh(id: UUID, payload: RefreshPayload) {
+    private func finishRefresh(id: UUID, payload: RefreshPayload) async {
         guard refreshID == id else { return }
-        var merged = payload.rootRecords
+
+        var rootRecords = payload.rootRecords
+        if payload.indexedUpdateRevision != indexedUpdateRevision {
+            // A live Spotlight update raced the background root scan. Revalidate off
+            // the actor so stale bundles captured by that scan cannot be committed
+            // after a same-path replacement or removal.
+            var foundStableRevision = false
+            for _ in 0..<3 {
+                let validationRevision = indexedUpdateRevision
+                let recordsToValidate = payload.rootRecords
+                rootRecords = await Task.detached(priority: .utility) {
+                    Self.revalidatedApplicationRecords(recordsToValidate)
+                }.value
+                guard refreshID == id else { return }
+                if validationRevision == indexedUpdateRevision {
+                    foundStableRevision = true
+                    break
+                }
+            }
+            // Do not let a continuously changing live index starve refresh waiters or
+            // turn an unverified root snapshot into an authoritative empty snapshot.
+            // Preserve the last coherent catalog and leave it stale so the next request retries.
+            guard
+                Self.rootRecordsForCommit(
+                    rootRecords,
+                    foundStableRevision: foundStableRevision
+                ) != nil
+            else {
+                abandonRefresh(id: id)
+                return
+            }
+        }
+
         if payload.indexedUpdateRevision == indexedUpdateRevision {
             indexedRecordsByPath = Self.indexedRecords(for: payload.indexedURLs)
         }
+        var merged = rootRecords
         for record in indexedRecordsByPath.values { Self.merge(record, into: &merged) }
         recordsByID = merged
         rebuildCachedRecords()
@@ -130,6 +163,17 @@ public actor ApplicationCatalog {
         let waiters = Array(refreshWaiters.values)
         refreshWaiters.removeAll(keepingCapacity: true)
         for waiter in waiters { waiter.resume(returning: refreshedRecords) }
+    }
+
+    private func abandonRefresh(id: UUID) {
+        guard refreshID == id else { return }
+        loadedAt = nil
+        refreshTask = nil
+        refreshID = nil
+        let preservedRecords = cachedRecords
+        let waiters = Array(refreshWaiters.values)
+        refreshWaiters.removeAll(keepingCapacity: true)
+        for waiter in waiters { waiter.resume(returning: preservedRecords) }
     }
 
     private func waitForRefresh() async -> [ApplicationRecord] {
@@ -276,6 +320,28 @@ public actor ApplicationCatalog {
         return output
     }
 
+    /// Re-reads root-scan results before committing across a concurrent live-index update.
+    /// Internal visibility keeps the race-closing transformation directly testable.
+    static func revalidatedApplicationRecords(
+        _ records: [String: ApplicationRecord]
+    ) -> [String: ApplicationRecord] {
+        var output: [String: ApplicationRecord] = [:]
+        for record in records.values {
+            guard !Task.isCancelled, let current = applicationRecord(for: record.url) else { continue }
+            merge(current, into: &output)
+        }
+        return output
+    }
+
+    /// `nil` means the refresh must be abandoned; an empty dictionary is a valid,
+    /// authoritative scan only when it was observed against a stable live revision.
+    static func rootRecordsForCommit(
+        _ records: [String: ApplicationRecord],
+        foundStableRevision: Bool
+    ) -> [String: ApplicationRecord]? {
+        foundStableRevision ? records : nil
+    }
+
     private static func applicationRecord(for url: URL) -> ApplicationRecord? {
         let canonicalURL = url.resolvingSymlinksInPath().standardizedFileURL
         let infoURL = canonicalURL.appendingPathComponent("Contents/Info.plist", isDirectory: false)
@@ -336,10 +402,13 @@ public actor ApplicationCatalog {
         )
     }
 
-    private static func merge(_ record: ApplicationRecord, into discovered: inout [String: ApplicationRecord]) {
+    static func merge(_ record: ApplicationRecord, into discovered: inout [String: ApplicationRecord]) {
         if let existing = discovered[record.stableID] {
+            let recordPriority = locationPriority(record.url)
+            let existingPriority = locationPriority(existing.url)
             if existing.url.path == record.url.path
-                || locationPriority(record.url) < locationPriority(existing.url)
+                || recordPriority < existingPriority
+                || (recordPriority == existingPriority && record.url.path < existing.url.path)
             {
                 discovered[record.stableID] = record
             }
@@ -393,11 +462,11 @@ public struct ApplicationProvider: LauncherProvider, LauncherProviderPrewarming 
             try Task.checkCancellation()
 
             let candidates = records.compactMap { record -> (ApplicationRecord, MatchEvaluation)? in
+                let aliases = Self.searchAliases(for: record)
                 let evaluation = FuzzyMatcher.evaluate(
                     query: request.normalizedText,
                     title: record.displayName,
-                    subtitle: record.url.path,
-                    keywords: [record.bundleName, record.bundleIdentifier].compactMap { $0 } + record.aliases
+                    aliases: aliases
                 )
                 guard evaluation.tier != .none else { return nil }
                 return (record, evaluation)
@@ -416,6 +485,7 @@ public struct ApplicationProvider: LauncherProvider, LauncherProviderPrewarming 
             for (record, _) in candidates {
                 try Task.checkCancellation()
                 let itemID = ItemID(providerID: descriptor.id, providerStableID: record.stableID)
+                let searchAliases = Self.searchAliases(for: record)
                 let open = ActionDescriptor(id: "open", title: "Open", icon: .systemSymbol("arrow.up.forward.app"))
                 var actions = [
                     open,
@@ -455,6 +525,7 @@ public struct ApplicationProvider: LauncherProvider, LauncherProviderPrewarming 
                         canonicalResource: record.bundleIdentifier.map(CanonicalResource.application)
                             ?? .file(record.url),
                         keywords: [record.bundleName, record.bundleIdentifier].compactMap { $0 } + record.aliases,
+                        searchAliases: searchAliases,
                         actions: actions,
                         defaultActionID: open.id,
                         scoreFeatures: ScoreFeatures(
@@ -465,11 +536,38 @@ public struct ApplicationProvider: LauncherProvider, LauncherProviderPrewarming 
                 )
             }
 
-            continuation.yield(.items(items, isFinal: true))
+            if items.isEmpty {
+                continuation.yield(.items([], isFinal: true))
+            } else {
+                for offset in stride(from: 0, to: items.count, by: DomainLimits.itemsPerBatch) {
+                    try Task.checkCancellation()
+                    let end = min(offset + DomainLimits.itemsPerBatch, items.count)
+                    continuation.yield(.items(Array(items[offset..<end]), isFinal: end == items.count))
+                }
+            }
             continuation.finish()
         }
         continuation.onTermination = { @Sendable _ in task.cancel() }
         return stream
+    }
+
+    static func searchAliases(for record: ApplicationRecord) -> [SearchAlias] {
+        // Reserve bounded slots for stable technical identifiers before optional
+        // alternate names. The same already-sanitized collection is used for both
+        // provider prefiltering and the host's final Ranker pass.
+        var candidates = [SearchAlias(value: record.bundleName, role: .name)]
+        if let bundleIdentifier = record.bundleIdentifier {
+            candidates.append(SearchAlias(value: bundleIdentifier, role: .technical))
+        }
+        candidates.append(SearchAlias(value: record.url.path, role: .technical))
+        candidates.append(contentsOf: record.aliases.map { SearchAlias(value: $0, role: .name) })
+
+        let sanitized = candidates.compactMap { alias -> SearchAlias? in
+            let value = alias.value.limitedToUnicodeScalars(DomainLimits.keywordUnicodeScalars)
+            guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return SearchAlias(value: value, role: alias.role, matchPolicy: alias.matchPolicy)
+        }
+        return Array(sanitized.prefix(DomainLimits.keywordCount))
     }
 
     public func prewarm() async {

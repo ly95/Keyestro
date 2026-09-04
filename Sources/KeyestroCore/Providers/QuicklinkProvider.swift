@@ -158,9 +158,24 @@ public protocol QuicklinkStoring: Sendable {
     func deleteQuicklink(ifUnchanged definition: QuicklinkDefinition) async throws -> Bool
 }
 
+public struct QuicklinkMergeExpectation: Equatable, Sendable {
+    public let id: String
+    public let existingDefinition: QuicklinkDefinition?
+
+    public init(id: String, existingDefinition: QuicklinkDefinition?) {
+        self.id = id
+        self.existingDefinition = existingDefinition
+    }
+}
+
 public protocol QuicklinkBatchStoring: QuicklinkStoring {
     func mergeQuicklinksAtomically(_ definitions: [QuicklinkDefinition]) async throws
     func mergeQuicklinksAtomically(_ definitions: [QuicklinkDefinition], transactionID: String) async throws
+    func mergeQuicklinksAtomically(
+        _ definitions: [QuicklinkDefinition],
+        transactionID: String,
+        expecting expectations: [QuicklinkMergeExpectation]
+    ) async throws
     func hasCommittedConfigurationTransaction(_ transactionID: String) async throws -> Bool
 }
 
@@ -206,6 +221,17 @@ public actor InMemoryQuicklinkStore: QuicklinkBatchStoring {
     public func mergeQuicklinksAtomically(_ definitions: [QuicklinkDefinition], transactionID: String) {
         mergeQuicklinksAtomically(definitions)
         committedConfigurationTransactions.insert(transactionID)
+    }
+
+    public func mergeQuicklinksAtomically(
+        _ definitions: [QuicklinkDefinition],
+        transactionID: String,
+        expecting expectations: [QuicklinkMergeExpectation]
+    ) throws {
+        guard expectations.allSatisfy({ self.definitions[$0.id] == $0.existingDefinition }) else {
+            throw ConfigurationError.conflictingChanges
+        }
+        mergeQuicklinksAtomically(definitions, transactionID: transactionID)
     }
 
     public func hasCommittedConfigurationTransaction(_ transactionID: String) -> Bool {
@@ -325,6 +351,21 @@ extension LauncherDatabase: QuicklinkBatchStoring {
         try performQuicklinkMerge(definitions, transactionID: transactionID)
     }
 
+    public func mergeQuicklinksAtomically(
+        _ definitions: [QuicklinkDefinition],
+        transactionID: String,
+        expecting expectations: [QuicklinkMergeExpectation]
+    ) throws {
+        guard UUID(uuidString: transactionID) != nil else {
+            throw DatabaseError.corruptData(table: "configuration_transactions")
+        }
+        try performQuicklinkMerge(
+            definitions,
+            transactionID: transactionID,
+            expectations: expectations
+        )
+    }
+
     public func hasCommittedConfigurationTransaction(_ transactionID: String) throws -> Bool {
         guard UUID(uuidString: transactionID) != nil else { return false }
         let database = try databaseHandle()
@@ -339,12 +380,16 @@ extension LauncherDatabase: QuicklinkBatchStoring {
 
     private func performQuicklinkMerge(
         _ definitions: [QuicklinkDefinition],
-        transactionID: String?
+        transactionID: String?,
+        expectations: [QuicklinkMergeExpectation] = []
     ) throws {
         let database = try databaseHandle()
         let encoder = JSONEncoder()
         do {
             try execute(database: database, sql: "BEGIN IMMEDIATE;")
+            guard try expectations.allSatisfy({ try quicklink(id: $0.id) == $0.existingDefinition }) else {
+                throw ConfigurationError.conflictingChanges
+            }
             for definition in definitions {
                 try withStatement(
                     database: database,

@@ -9,7 +9,13 @@ enum ConfigurationImportTransactionError: Error, Equatable {
 }
 
 private struct ConfigurationImportJournal: Codable {
+    enum State: String, Codable {
+        case prepared
+        case completed
+    }
+
     let schemaVersion: Int
+    let state: State?
     let transactionID: String
     let backupURL: URL
     let originalSettings: [String: JSONValue]
@@ -17,6 +23,20 @@ private struct ConfigurationImportJournal: Codable {
     let importedSettings: [String: JSONValue]
     let importedScripts: [ExportedScriptRegistration]
     let importedExtensions: [ExportedExtensionRegistration]
+
+    func markingCompleted() -> Self {
+        Self(
+            schemaVersion: schemaVersion,
+            state: .completed,
+            transactionID: transactionID,
+            backupURL: backupURL,
+            originalSettings: originalSettings,
+            originalPending: originalPending,
+            importedSettings: importedSettings,
+            importedScripts: importedScripts,
+            importedExtensions: importedExtensions
+        )
+    }
 }
 
 private actor ConfigurationImportOperationGate {
@@ -40,15 +60,18 @@ private actor ConfigurationImportOperationGate {
     }
 }
 
-/// Coordinates the SQLite merge and the two UserDefaults-backed stores as one compensating transaction.
-/// The durable backup is created before the first mutation, and the SQLite merge is the final atomic commit.
+/// Coordinates the SQLite merge and the two UserDefaults-backed stores as one recoverable transaction.
+/// The durable backup and journal are written first. UserDefaults are published only after SQLite commits,
+/// so observers cannot perform irreversible work for an import that never reached its commit point.
 @MainActor
 final class ConfigurationImportCoordinator {
     private let service: ConfigurationService
     private let settings: SettingsStore
     private let pendingImports: PendingConfigurationImportStore
     private let removeJournal: @MainActor (URL) throws -> Void
-    private let operationGate = ConfigurationImportOperationGate()
+    /// Configuration UI models and startup recovery can briefly coexist. A process-wide
+    /// gate prevents two coordinator instances from operating on the single journal.
+    private static let operationGate = ConfigurationImportOperationGate()
 
     init(
         service: ConfigurationService,
@@ -64,14 +87,14 @@ final class ConfigurationImportCoordinator {
 
     @discardableResult
     func apply(_ validated: ValidatedConfigurationImport) async throws -> URL {
-        await operationGate.acquire()
+        await Self.operationGate.acquire()
         do {
             try Task.checkCancellation()
             let backupURL = try await applyExclusively(validated)
-            await operationGate.release()
+            await Self.operationGate.release()
             return backupURL
         } catch {
-            await operationGate.release()
+            await Self.operationGate.release()
             throw error
         }
     }
@@ -83,7 +106,8 @@ final class ConfigurationImportCoordinator {
         let backupURL = try await service.createBackup(currentSettings: originalSettings)
         let transactionID = UUID().uuidString.lowercased()
         let journal = ConfigurationImportJournal(
-            schemaVersion: 1,
+            schemaVersion: 2,
+            state: .prepared,
             transactionID: transactionID,
             backupURL: backupURL,
             originalSettings: originalSettings,
@@ -96,8 +120,9 @@ final class ConfigurationImportCoordinator {
         try write(journal, to: journalURL)
 
         do {
-            try applyImportedState(from: journal)
             try await service.merge(validated, transactionID: transactionID)
+            try applyImportedState(from: journal)
+            try write(journal.markingCompleted(), to: journalURL)
             try? removeJournal(journalURL)
             return backupURL
         } catch {
@@ -110,33 +135,31 @@ final class ConfigurationImportCoordinator {
             if committed {
                 do {
                     try applyImportedState(from: journal)
+                    try write(journal.markingCompleted(), to: journalURL)
                     try? removeJournal(journalURL)
                     return backupURL
                 } catch {
                     throw ConfigurationImportTransactionError.completionFailed(backupURL: backupURL)
                 }
             }
-            var rollbackSucceeded = true
-            do { try settings.applyImportedConfiguration(originalSettings) } catch { rollbackSucceeded = false }
-            do { try pendingImports.restore(originalPending) } catch { rollbackSucceeded = false }
-            if rollbackSucceeded { try? removeJournal(journalURL) }
-            guard rollbackSucceeded else {
-                throw ConfigurationImportTransactionError.rollbackFailed(backupURL: backupURL)
-            }
+            // Schema-v2 imports do not touch UserDefaults until the SQLite commit
+            // succeeds. In particular, do not restore a snapshot here: the user may
+            // have changed a local capability while the merge was awaiting I/O.
+            try? removeJournal(journalURL)
             throw ConfigurationImportTransactionError.applyFailed(backupURL: backupURL)
         }
     }
 
     @discardableResult
     func recoverIfNeeded() async throws -> Bool {
-        await operationGate.acquire()
+        await Self.operationGate.acquire()
         do {
             try Task.checkCancellation()
             let recovered = try await recoverIfNeededExclusively()
-            await operationGate.release()
+            await Self.operationGate.release()
             return recovered
         } catch {
-            await operationGate.release()
+            await Self.operationGate.release()
             throw error
         }
     }
@@ -144,22 +167,51 @@ final class ConfigurationImportCoordinator {
     private func recoverIfNeededExclusively() async throws -> Bool {
         let journalURL = try await service.importJournalURL()
         guard FileManager.default.fileExists(atPath: journalURL.path) else { return false }
-        let journal = try readJournal(from: journalURL)
-        if try await service.hasCommittedTransaction(journal.transactionID) {
+        let journal: ConfigurationImportJournal
+        do {
+            journal = try readJournal(from: journalURL)
+        } catch {
+            quarantineInvalidJournal(at: journalURL)
+            throw ConfigurationImportTransactionError.invalidJournal
+        }
+        if journal.state == .completed {
+            try? removeJournal(journalURL)
+            return true
+        }
+        let committed = try await service.hasCommittedTransaction(journal.transactionID)
+        if committed {
             do {
+                if journal.schemaVersion == 1 {
+                    // Version 1 could import capability grants before committing the
+                    // database. Restore the same-installation grants captured by that
+                    // journal before applying its portable settings under v2 rules.
+                    try restoreLegacyLocalSettings(from: journal)
+                }
                 try applyImportedState(from: journal)
             } catch {
                 throw ConfigurationImportTransactionError.completionFailed(backupURL: journal.backupURL)
             }
-        } else {
+        } else if journal.schemaVersion == 1 {
+            // Version 1 applied settings before the database commit. Restore its
+            // same-installation capability snapshot, then its portable settings and
+            // pending registrations. Version 2 never needs this compensating path.
             do {
+                try restoreLegacyLocalSettings(from: journal)
                 try settings.applyImportedConfiguration(journal.originalSettings)
                 try pendingImports.restore(journal.originalPending)
             } catch {
                 throw ConfigurationImportTransactionError.rollbackFailed(backupURL: journal.backupURL)
             }
         }
-        try removeJournal(journalURL)
+        do {
+            try write(journal.markingCompleted(), to: journalURL)
+        } catch {
+            if committed {
+                throw ConfigurationImportTransactionError.completionFailed(backupURL: journal.backupURL)
+            }
+            throw ConfigurationImportTransactionError.rollbackFailed(backupURL: journal.backupURL)
+        }
+        try? removeJournal(journalURL)
         return true
     }
 
@@ -169,6 +221,13 @@ final class ConfigurationImportCoordinator {
             scripts: journal.importedScripts,
             extensions: journal.importedExtensions
         )
+    }
+
+    private func restoreLegacyLocalSettings(from journal: ConfigurationImportJournal) throws {
+        let originalLocalSettings = journal.originalSettings.filter {
+            ConfigurationService.locallyAuthorizedSettingKeys.contains($0.key)
+        }
+        try settings.restoreLocalConfigurationSnapshot(originalLocalSettings)
     }
 
     private func write(_ journal: ConfigurationImportJournal, to url: URL) throws {
@@ -184,15 +243,17 @@ final class ConfigurationImportCoordinator {
     }
 
     private func readJournal(from url: URL) throws -> ConfigurationImportJournal {
-        let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
+        let values = try url.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
         guard values.isRegularFile == true,
+            values.isSymbolicLink != true,
             (values.fileSize ?? Int.max) <= ConfigurationService.maximumDocumentBytes
         else { throw ConfigurationImportTransactionError.invalidJournal }
         let data = try Data(contentsOf: url, options: .mappedIfSafe)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .millisecondsSince1970
         guard let journal = try? decoder.decode(ConfigurationImportJournal.self, from: data),
-            journal.schemaVersion == 1,
+            [1, 2].contains(journal.schemaVersion),
+            (journal.schemaVersion == 1 || journal.state != nil),
             UUID(uuidString: journal.transactionID) != nil,
             journal.backupURL.isFileURL,
             journal.backupURL.deletingLastPathComponent().standardizedFileURL
@@ -209,5 +270,26 @@ final class ConfigurationImportCoordinator {
         try journal.importedScripts.forEach { try $0.validate() }
         try journal.importedExtensions.forEach { try $0.validate() }
         return journal
+    }
+
+    /// Preserve a malformed journal for diagnostics when possible, but never leave it
+    /// at the live transaction path where it would block every future import.
+    private func quarantineInvalidJournal(at url: URL) {
+        if (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true {
+            try? FileManager.default.removeItem(at: url)
+            return
+        }
+        let quarantinedURL = url.deletingLastPathComponent().appendingPathComponent(
+            "ConfigurationImportTransaction.invalid-\(UUID().uuidString.lowercased()).json",
+            isDirectory: false
+        )
+        do {
+            try FileManager.default.moveItem(at: url, to: quarantinedURL)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: quarantinedURL.path)
+        } catch {
+            // The journal has already failed strict validation and cannot safely be
+            // replayed. Removing it is safer than permanently blocking recovery.
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }

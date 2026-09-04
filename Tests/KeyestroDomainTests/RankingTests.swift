@@ -74,6 +74,66 @@ import Testing
     #expect(mergedItem.actions.last?.route?.providerID == "b")
 }
 
+@Test func rankingAndDeduplicationShareOneTransitiveIntentOrder() throws {
+    let action = ActionDescriptor(id: "open", title: "Open")
+    let now = Date(timeIntervalSince1970: 10_000_000)
+    let canonical = CanonicalResource.command("mail")
+    let pinnedPrefix = LauncherItem(
+        id: ItemID(providerID: "mail", providerStableID: "pinned-prefix"),
+        providerID: "mail",
+        title: "Mailroom",
+        actions: [action],
+        defaultActionID: action.id,
+        scoreFeatures: ScoreFeatures(isPinned: true)
+    )
+    let exact = LauncherItem(
+        id: ItemID(providerID: "mail", providerStableID: "exact"),
+        providerID: "mail",
+        title: "Mail",
+        canonicalResource: canonical,
+        actions: [action],
+        defaultActionID: action.id
+    )
+    let learnedPrefix = LauncherItem(
+        id: ItemID(providerID: "other", providerStableID: "learned-prefix"),
+        providerID: "other",
+        title: "Mail Helper",
+        canonicalResource: canonical,
+        actions: [action],
+        defaultActionID: action.id,
+        scoreFeatures: ScoreFeatures(
+            lastUsedAt: now,
+            executionCount90Days: 100,
+            context: 1,
+            providerPrior: 1
+        )
+    )
+    let permutations = [
+        [pinnedPrefix, exact, learnedPrefix],
+        [pinnedPrefix, learnedPrefix, exact],
+        [exact, pinnedPrefix, learnedPrefix],
+        [exact, learnedPrefix, pinnedPrefix],
+        [learnedPrefix, pinnedPrefix, exact],
+        [learnedPrefix, exact, pinnedPrefix],
+    ]
+    let request = QueryRequest(
+        generation: 1,
+        rawText: "mail",
+        normalizedText: "mail",
+        mode: .all
+    )
+
+    for items in permutations {
+        let ranked = Ranker().rank(items, for: request, now: now)
+        #expect(ranked.map(\.id) == [pinnedPrefix.id, exact.id, learnedPrefix.id])
+
+        let deduplicated = ItemDeduplicator.deduplicate(ranked)
+        #expect(deduplicated.map(\.id) == [pinnedPrefix.id, exact.id])
+        #expect(deduplicated.last?.item.title == "Mail")
+        #expect(try #require(ranked.last).score > ranked[1].score)
+    }
+}
+
 @Test func actionConfirmationTargetIsBackwardCompatibleBoundedAndPreservedByRouting() throws {
     let legacy = ActionDescriptor(id: "legacy", title: "Legacy", risk: .destructive)
     let decodedLegacy = try JSONDecoder().decode(

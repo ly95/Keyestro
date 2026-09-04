@@ -197,7 +197,10 @@ import Testing
         score: 0,
         matchTier: .fuzzy
     )
-    #expect(ItemDeduplicator.deduplicate([winner, duplicate]).first?.item.actions.count == 2)
+    let collisionMerged = try #require(ItemDeduplicator.deduplicate([winner, duplicate]).first)
+    #expect(collisionMerged.item.actions.count == 3)
+    #expect(collisionMerged.item.actions.last?.id == "duplicate.open.2")
+    #expect(collisionMerged.item.actions.last?.route?.providerID == "duplicate")
 
     let identical = RankedItem(
         item: item(provider: "duplicate", stableID: "identical", canonical: canonical),

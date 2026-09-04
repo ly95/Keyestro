@@ -1,4 +1,5 @@
 import AppKit
+import Carbon
 import KeyestroDomain
 import SwiftUI
 
@@ -37,8 +38,25 @@ struct LauncherSearchFocusRequest: Equatable {
 }
 
 enum LauncherKeyInterpreter {
+    /// ANSI number-row key codes in visual shortcut order: 1...9, then 0.
+    /// Matching the physical keys keeps command-number shortcuts independent of
+    /// the active keyboard layout and input source.
+    private static let physicalNumberRowKeyCodes: [UInt16] = [
+        UInt16(kVK_ANSI_1),
+        UInt16(kVK_ANSI_2),
+        UInt16(kVK_ANSI_3),
+        UInt16(kVK_ANSI_4),
+        UInt16(kVK_ANSI_5),
+        UInt16(kVK_ANSI_6),
+        UInt16(kVK_ANSI_7),
+        UInt16(kVK_ANSI_8),
+        UInt16(kVK_ANSI_9),
+        UInt16(kVK_ANSI_0),
+    ]
+
     static func commandEquivalent(
-        key: String,
+        key: String?,
+        keyCode: UInt16? = nil,
         commandModified: Bool,
         controlModified: Bool = false,
         optionModified: Bool = false,
@@ -46,7 +64,7 @@ enum LauncherKeyInterpreter {
         isComposing: Bool
     ) -> LauncherCommand? {
         guard !isComposing else { return nil }
-        let normalizedKey = normalizedKey(key)
+        let normalizedKey = key.map(Self.normalizedKey)
         var modifiers = Set<KeyModifier>()
         if commandModified { modifiers.insert(.command) }
         if controlModified { modifiers.insert(.control) }
@@ -54,6 +72,19 @@ enum LauncherKeyInterpreter {
         if shiftModified { modifiers.insert(.shift) }
 
         if modifiers == [.command] {
+            if let keyCode,
+                let index = numberShortcutIndex(forKeyCode: keyCode)
+            {
+                return .executeIndex(index)
+            }
+            // Preserve the former character-based behavior for callers that do
+            // not have an NSEvent key code, including older synthetic tests.
+            if keyCode == nil,
+                let normalizedKey,
+                let index = numberShortcutIndex(forLegacyKey: normalizedKey)
+            {
+                return .executeIndex(index)
+            }
             switch normalizedKey {
             case "return": return .submitSecondary
             case "a", "l": return .selectAll
@@ -61,15 +92,26 @@ enum LauncherKeyInterpreter {
             case "k": return .openActions
             case "p": return .openFilters
             case ",": return .openSettings
-            case "1"..."9": return normalizedKey.first?.wholeNumberValue.map { .executeIndex($0 - 1) }
             default: break
             }
         }
         if modifiers == [.control], normalizedKey == "x" { return .deleteSelection }
-        if !modifiers.isEmpty {
+        if !modifiers.isEmpty, let normalizedKey {
             return .actionShortcut(key: normalizedKey, modifiers: modifiers)
         }
         return nil
+    }
+
+    static func numberShortcutIndex(forKeyCode keyCode: UInt16) -> Int? {
+        physicalNumberRowKeyCodes.firstIndex(of: keyCode)
+    }
+
+    private static func numberShortcutIndex(forLegacyKey key: String) -> Int? {
+        switch key {
+        case "1"..."9": key.first?.wholeNumberValue.map { $0 - 1 }
+        case "0": 9
+        default: nil
+        }
     }
 
     static func normalizedKey(_ key: String) -> String {
@@ -118,13 +160,12 @@ final class CommandFieldEditor: NSTextView {
     }
 
     private func selectAllIfRequested(by event: NSEvent) -> Bool {
-        guard !hasMarkedText(),
-            let key = event.charactersIgnoringModifiers
-        else { return false }
+        guard !hasMarkedText() else { return false }
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard
             LauncherKeyInterpreter.commandEquivalent(
-                key: key,
+                key: event.charactersIgnoringModifiers,
+                keyCode: event.keyCode,
                 commandModified: modifiers.contains(.command),
                 controlModified: modifiers.contains(.control),
                 optionModified: modifiers.contains(.option),
@@ -169,9 +210,10 @@ final class CommandTextField: NSTextField {
             return super.performKeyEquivalent(with: event)
         }
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        guard let key = event.charactersIgnoringModifiers,
+        guard
             let command = LauncherKeyInterpreter.commandEquivalent(
-                key: key,
+                key: event.charactersIgnoringModifiers,
+                keyCode: event.keyCode,
                 commandModified: modifiers.contains(.command),
                 controlModified: modifiers.contains(.control),
                 optionModified: modifiers.contains(.option),
@@ -333,9 +375,9 @@ private struct LauncherSearchTextField: NSViewRepresentable {
             let event = NSApplication.shared.currentEvent
             if !textView.hasMarkedText(),
                 let event,
-                let key = event.charactersIgnoringModifiers,
                 let command = LauncherKeyInterpreter.commandEquivalent(
-                    key: key,
+                    key: event.charactersIgnoringModifiers,
+                    keyCode: event.keyCode,
                     commandModified: event.modifierFlags.contains(.command),
                     controlModified: event.modifierFlags.contains(.control),
                     optionModified: event.modifierFlags.contains(.option),

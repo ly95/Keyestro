@@ -57,12 +57,15 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
             rankingStore: rankingStore
         )
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 780, height: 540),
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 620),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.title = L10n.text("settings.title")
+        let localizedWindowTitle = L10n.text("settings.title")
+        window.title = localizedWindowTitle == "settings.title" ? "Keyestro Settings" : localizedWindowTitle
+        window.minSize = NSSize(width: 720, height: 480)
+        window.titlebarSeparatorStyle = .none
         window.contentView = NSHostingView(rootView: root)
         window.center()
         window.isReleasedWhenClosed = false
@@ -82,51 +85,6 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
     }
 }
 
-@MainActor
-final class SettingsNavigationModel: ObservableObject {
-    @Published var selection: SettingsSection? = .general
-}
-
-enum SettingsSection: String, CaseIterable, Identifiable {
-    case general = "General"
-    case shortcuts = "Shortcuts"
-    case features = "Features"
-    case extensions = "Extensions"
-    case permissions = "Permissions"
-    case privacy = "Privacy"
-    case updates = "Updates"
-    case advanced = "Advanced"
-    case about = "About"
-
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .general: L10n.text("settings.section.general")
-        case .shortcuts: L10n.text("settings.section.shortcuts")
-        case .features: L10n.text("settings.section.features")
-        case .extensions: L10n.text("settings.section.extensions")
-        case .permissions: L10n.text("settings.section.permissions")
-        case .privacy: L10n.text("settings.section.privacy")
-        case .updates: L10n.text("settings.section.updates")
-        case .advanced: L10n.text("settings.section.advanced")
-        case .about: L10n.text("settings.section.about")
-        }
-    }
-    var symbol: String {
-        switch self {
-        case .general: "gear"
-        case .shortcuts: "keyboard"
-        case .features: "square.grid.2x2"
-        case .extensions: "puzzlepiece.extension"
-        case .permissions: "hand.raised"
-        case .privacy: "lock.shield"
-        case .updates: "arrow.triangle.2.circlepath"
-        case .advanced: "slider.horizontal.3"
-        case .about: "info.circle"
-        }
-    }
-}
-
 enum AboutVersionLabel {
     static var current: String {
         text(
@@ -142,8 +100,10 @@ enum AboutVersionLabel {
     ) -> String {
         let version = marketingVersion.flatMap { $0.isEmpty ? nil : $0 } ?? "0.1.0"
         let build = buildNumber.flatMap { $0.isEmpty ? nil : $0 } ?? "1"
+        let candidateFormat = localizedFormat ?? L10n.text("about.version.format")
+        let format = candidateFormat == "about.version.format" ? "Keyestro %@ (%@)" : candidateFormat
         return String(
-            format: localizedFormat ?? L10n.text("about.version.format"),
+            format: format,
             locale: Locale.current,
             arguments: [version, build]
         )
@@ -151,6 +111,10 @@ enum AboutVersionLabel {
 }
 
 private struct SettingsView: View {
+    private enum PageAnchor: Hashable {
+        case top
+    }
+
     private enum DestructiveSettingsAction: String, Identifiable {
         case clearRankingHistory
         case restoreDefaults
@@ -212,30 +176,85 @@ private struct SettingsView: View {
     @State private var isClearingRanking = false
     @State private var defaultSettingsMessage: String?
     @State private var destructiveSettingsAction: DestructiveSettingsAction?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
+
+    private var palette: LauncherThemePalette {
+        LauncherThemePalette.resolved(
+            for: colorScheme,
+            increasedContrast: colorSchemeContrast == .increased
+        )
+    }
+
+    private var selectedSection: SettingsSection {
+        navigation.selection ?? .general
+    }
 
     var body: some View {
         NavigationSplitView {
-            List(SettingsSection.allCases, selection: $navigation.selection) { section in
-                Label(section.title, systemImage: section.symbol).tag(section)
-            }
-            .navigationSplitViewColumnWidth(min: 180, ideal: 200)
+            SettingsSidebar(navigation: navigation)
         } detail: {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    Text(navigation.selection?.title ?? L10n.text("settings.title")).font(.largeTitle.bold())
-                    if let error = settings.persistenceError {
-                        Label(L10n.text(error), systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.red)
-                            .accessibilityElement(children: .combine)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Color.clear
+                            .frame(height: SettingsLayout.Spacing.xxLarge)
+                            .id(PageAnchor.top)
+                            .accessibilityHidden(true)
+
+                        VStack(alignment: .leading, spacing: SettingsLayout.pageSpacing) {
+                            SettingsPageHeader(section: selectedSection)
+                            if let error = settings.persistenceError {
+                                SettingsNotice(
+                                    title: L10n.text("Settings could not be saved"),
+                                    message: L10n.text(error),
+                                    systemImage: "exclamationmark.triangle.fill",
+                                    tone: .danger
+                                )
+                            }
+                            detail(for: selectedSection)
+                        }
                     }
-                    detail(for: navigation.selection ?? .general)
-                    Spacer(minLength: 20)
+                    .frame(maxWidth: SettingsLayout.contentMaxWidth, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .top)
+                    .padding(.horizontal, SettingsLayout.pagePadding)
+                    .padding(.bottom, SettingsLayout.Spacing.xxxLarge)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(28)
+                .accessibilityIdentifier("settings.detail.scroll")
+                .background(palette.surfaceBase)
+                .onChange(of: selectedSection) { _, _ in
+                    DispatchQueue.main.async {
+                        guard navigation.pendingScrollRequest == nil else { return }
+                        if reduceMotion {
+                            proxy.scrollTo(PageAnchor.top, anchor: .top)
+                        } else {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo(PageAnchor.top, anchor: .top)
+                            }
+                        }
+                    }
+                }
+                .onChange(of: navigation.pendingScrollRequest) { _, request in
+                    guard let request else { return }
+                    DispatchQueue.main.async {
+                        guard navigation.pendingScrollRequest == request else { return }
+                        if reduceMotion {
+                            proxy.scrollTo(request.anchor, anchor: .top)
+                        } else {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo(request.anchor, anchor: .top)
+                            }
+                        }
+                        navigation.consumePendingScrollRequest(request)
+                    }
+                }
             }
         }
+        .navigationSplitViewStyle(.balanced)
         .frame(minWidth: 720, minHeight: 480)
+        .background(palette.surfaceBase)
+        .tint(palette.accent)
         .confirmationDialog(
             "Delete all local Keyestro data and quit?",
             isPresented: $confirmsDeleteAllData,
@@ -272,93 +291,21 @@ private struct SettingsView: View {
     private func detail(for section: SettingsSection) -> some View {
         switch section {
         case .general:
-            GroupBox("Appearance") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Picker("Launcher appearance", selection: $settings.launcherAppearance) {
-                        ForEach(LauncherAppearancePreference.allCases) { appearance in
-                            Text(L10n.text(appearance.title)).tag(appearance)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    Text("Auto follows the macOS appearance. A Light or Dark override is saved on this Mac.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Toggle("Show Keyestro in the Dock", isOn: $settings.showDockIcon)
-            Text("Keyestro remains available from the menu bar when the Dock icon is hidden.")
-                .foregroundStyle(.secondary)
-            LoginItemSettingsView()
+            GeneralSettingsSection(settings: settings)
         case .shortcuts:
-            ShortcutRecorder(
+            ShortcutSettingsSection(
                 settings: settings,
                 beginRecording: beginHotKeyRecording,
                 endRecording: endHotKeyRecording
             )
-            Toggle("Command-number opens visible results", isOn: $settings.numberShortcutsEnabled)
-            Toggle("Enable /, >, =, and @ query prefixes", isOn: $settings.prefixesEnabled)
         case .features:
-            GroupBox("File Search") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Toggle("Enable file search", isOn: $settings.fileSearchEnabled)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Search indexed file contents", isOn: $settings.fileContentSearchEnabled)
-                        Toggle("Include hidden files", isOn: $settings.fileHiddenFilesEnabled)
-                        Toggle("Include system locations", isOn: $settings.fileSystemLocationsEnabled)
-                        Toggle("Include the Trash", isOn: $settings.fileTrashEnabled)
-                    }
-                    .disabled(!settings.fileSearchEnabled)
-                    Text(
-                        "Off by default. Keyestro does not inspect Desktop, Documents, Downloads, or other file-search folders until you enable this setting. macOS may ask for folder access on your first file search."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            Toggle("Always confirm before putting this Mac to sleep", isOn: $settings.confirmSleepEveryTime)
-            Text("The first sleep action always explains its effect. You can keep confirmation enabled for every use.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Toggle("Clipboard history", isOn: $settings.clipboardEnabled)
-            Toggle("Pause clipboard monitoring", isOn: $settings.clipboardPaused)
-                .disabled(!settings.clipboardEnabled)
-            Text("Clipboard history is off by default and will be encrypted before persistence.")
-                .foregroundStyle(.secondary)
-            QuickPasteSettingsView(
+            FeatureSettingsSection(
                 settings: settings,
+                quicklinks: quicklinks,
+                scripts: scripts,
+                scriptInstaller: scriptInstaller,
                 openPermissions: { navigation.selection = .permissions }
             )
-            Picker("Clipboard retention", selection: $settings.clipboardRetentionPreset) {
-                Text("1 day").tag("1-day")
-                Text("7 days").tag("7-days")
-                Text("30 days or 1,000 items").tag("30-days")
-                Text("90 days").tag("90-days")
-                Text("Unlimited items (500 MiB quota)").tag("unlimited")
-            }
-            Text("Excluded application Bundle IDs (one per line)").font(.callout.weight(.medium))
-            TextEditor(text: $settings.clipboardExcludedApplications)
-                .font(.body.monospaced())
-                .frame(minHeight: 64, maxHeight: 100)
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(.separator))
-            Text(
-                "The source application is inferred best-effort when the clipboard changes; exclusions are a privacy convenience, not a security boundary."
-            )
-            .font(.caption).foregroundStyle(.secondary)
-            Picker("OCR recognition languages", selection: $settings.ocrLanguagePreset) {
-                Text("Automatic").tag("automatic")
-                Text("English + 简体中文").tag("en-zh")
-                Text("English").tag("en-US")
-                Text("简体中文").tag("zh-Hans")
-                Text("日本語").tag("ja-JP")
-            }
-            Text("Screenshot OCR uses Vision accurate mode on this Mac and never sends images to a network service.")
-                .font(.caption).foregroundStyle(.secondary)
-            Divider()
-            QuicklinkSettingsView(store: quicklinks)
-            Divider()
-            ScriptSettingsView(store: scripts, installer: scriptInstaller)
         case .extensions:
             ExtensionSettingsView(
                 store: extensions,
@@ -367,96 +314,230 @@ private struct SettingsView: View {
                 authorization: extensionAuthorization,
                 preferences: extensionPreferences
             )
+            .id(SettingsAnchor.extensionsInstalled)
         case .permissions:
             PermissionsView()
         case .privacy:
-            Text("Raw queries are never persisted. Clipboard, screenshots, and diagnostics remain local unless you explicitly export them.")
-            Toggle("Learn from successful actions", isOn: $settings.rankingLearningEnabled)
-            Text("When disabled, saved usage history is neither applied nor updated. Manual pins still affect ranking.")
-                .font(.caption).foregroundStyle(.secondary)
-            ClipboardPrivacyView(store: clipboardStore)
-            HStack {
-                Button("Clear ranking history…", role: .destructive) {
-                    destructiveSettingsAction = .clearRankingHistory
-                }
-                .disabled(rankingStore == nil || isClearingRanking)
-            }
-            if let rankingMessage {
-                Text(L10n.text(rankingMessage)).font(.caption).foregroundStyle(.secondary)
-            }
-            Divider()
-            Button("Delete All Local Data and Quit…", role: .destructive) {
-                confirmsDeleteAllData = true
-            }
-        case .updates:
-            Toggle(
-                "Automatically check for updates",
-                isOn: Binding(
-                    get: { updateService.automaticallyChecksForUpdates },
-                    set: { updateService.setAutomaticallyChecksForUpdates($0) }
-                )
+            SettingsNotice(
+                title: L10n.text("Local by default"),
+                message: L10n.text(
+                    "Raw queries are never persisted. Clipboard, screenshots, and diagnostics remain local unless you explicitly export them."
+                ),
+                systemImage: "checkmark.shield.fill",
+                tone: .local
             )
-            .disabled(!updateService.isConfigured)
-            Toggle(
-                "Automatically download updates",
-                isOn: Binding(
-                    get: { updateService.automaticallyDownloadsUpdates },
-                    set: { updateService.setAutomaticallyDownloadsUpdates($0) }
-                )
-            )
-            .disabled(!updateService.isConfigured)
-            Picker(
-                "Update channel",
-                selection: Binding(
-                    get: { updateService.channel },
-                    set: { updateService.setChannel($0) }
-                )
+            .id(SettingsAnchor.privacySummary)
+
+            SettingsCard(
+                title: L10n.text("Ranking & learning"),
+                subtitle: L10n.text("Control whether successful actions improve future ordering."),
+                systemImage: "chart.line.uptrend.xyaxis"
             ) {
-                Text("Stable").tag("stable")
-                Text("Beta").tag("beta")
+                SettingsToggleRow(
+                    title: L10n.text("Learn from successful actions"),
+                    detail: L10n.text(
+                        "When disabled, saved usage history is neither applied nor updated. Manual pins still affect ranking."
+                    ),
+                    isOn: $settings.rankingLearningEnabled
+                )
+                .id(SettingsAnchor.privacyRanking)
+
+                Divider()
+
+                SettingsRow(
+                    title: L10n.text("Learned ranking history"),
+                    detail: L10n.text("Remove local usage events while keeping your manual pins.")
+                ) {
+                    Button("Clear History…", role: .destructive) {
+                        destructiveSettingsAction = .clearRankingHistory
+                    }
+                    .disabled(rankingStore == nil || isClearingRanking)
+                }
+
+                if let rankingMessage {
+                    SettingsNotice(message: L10n.text(rankingMessage))
+                }
             }
-            .disabled(!updateService.isConfigured)
-            Button("Check Now") { updateService.checkForUpdates() }
-                .disabled(!updateService.canCheckForUpdates)
-            if let error = updateService.lastErrorMessage {
-                Text(L10n.text(error)).font(.caption).foregroundStyle(.secondary)
+
+            SettingsCard(
+                title: L10n.text("Clipboard privacy"),
+                subtitle: L10n.text("Inspect or remove encrypted clipboard history stored on this Mac."),
+                systemImage: "lock.doc",
+                tone: .private
+            ) {
+                ClipboardPrivacyView(store: clipboardStore)
+            }
+            .id(SettingsAnchor.privacyClipboard)
+
+            SettingsDangerZone(
+                title: L10n.text("Delete local data"),
+                subtitle: L10n.text("This removes all Keyestro data from this Mac and cannot be undone.")
+            ) {
+                SettingsRow(
+                    title: L10n.text("Delete All Local Data and Quit"),
+                    detail: L10n.text("Database, caches, clipboard history, managed code, keys, and preferences are removed.")
+                ) {
+                    Button("Delete…", role: .destructive) {
+                        confirmsDeleteAllData = true
+                    }
+                }
+            }
+            .id(SettingsAnchor.privacyDelete)
+        case .updates:
+            SettingsCard(
+                title: L10n.text("Automatic updates"),
+                subtitle: L10n.text("Stay current while keeping control of downloads."),
+                systemImage: "arrow.triangle.2.circlepath"
+            ) {
+                SettingsToggleRow(
+                    title: L10n.text("Automatically check for updates"),
+                    detail: L10n.text("Keyestro periodically checks the selected channel."),
+                    isOn: Binding(
+                        get: { updateService.automaticallyChecksForUpdates },
+                        set: { updateService.setAutomaticallyChecksForUpdates($0) }
+                    ),
+                    isEnabled: updateService.isConfigured
+                )
+                .id(SettingsAnchor.updatesAutomatic)
+
+                Divider()
+
+                SettingsToggleRow(
+                    title: L10n.text("Automatically download updates"),
+                    detail: L10n.text("Download new versions in the background when available."),
+                    isOn: Binding(
+                        get: { updateService.automaticallyDownloadsUpdates },
+                        set: { updateService.setAutomaticallyDownloadsUpdates($0) }
+                    ),
+                    isEnabled: updateService.isConfigured
+                )
+            }
+
+            SettingsCard(
+                title: L10n.text("Update channel"),
+                subtitle: L10n.text("Stable is recommended; Beta receives previews earlier."),
+                systemImage: "shippingbox"
+            ) {
+                SettingsRow(title: L10n.text("Release channel")) {
+                    Picker(
+                        "Update channel",
+                        selection: Binding(
+                            get: { updateService.channel },
+                            set: { updateService.setChannel($0) }
+                        )
+                    ) {
+                        Text("Stable").tag("stable")
+                        Text("Beta").tag("beta")
+                    }
+                    .labelsHidden()
+                    .frame(width: 150)
+                    .disabled(!updateService.isConfigured)
+                }
+                .id(SettingsAnchor.updatesChannel)
+
+                Divider()
+
+                SettingsRow(
+                    title: AboutVersionLabel.current,
+                    detail: updateService.isConfigured
+                        ? L10n.text("Check for a newer Keyestro version now.")
+                        : L10n.text("Update service is unavailable in this build.")
+                ) {
+                    Button("Check Now") { updateService.checkForUpdates() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(!updateService.canCheckForUpdates)
+                }
+                .id(SettingsAnchor.updatesCheck)
+
+                if let error = updateService.lastErrorMessage {
+                    SettingsNotice(
+                        message: L10n.text(error),
+                        systemImage: "exclamationmark.triangle.fill",
+                        tone: .danger
+                    )
+                }
             }
         case .advanced:
             PerformanceSettingsView(pasteboard: pasteboard)
+                .id(SettingsAnchor.advancedPerformance)
             DiagnosticsSettingsView(service: diagnosticsService, settings: settings)
+                .id(SettingsAnchor.advancedDiagnostics)
             ConfigurationSettingsView(
                 service: configurationService,
                 settings: settings,
                 navigation: navigation
             )
-            Divider()
-            Button("Clear Caches") {
-                isClearingCaches = true
-                cacheMessage = nil
-                Task {
-                    cacheMessage = await clearCaches()
-                    isClearingCaches = false
+            .id(SettingsAnchor.advancedConfiguration)
+
+            SettingsCard(
+                title: L10n.text("Maintenance"),
+                subtitle: L10n.text("Repair local caches or return preferences to their defaults."),
+                systemImage: "wrench.and.screwdriver"
+            ) {
+                SettingsRow(
+                    title: L10n.text("Caches"),
+                    detail: L10n.text("Clear derived local data; your settings and saved items remain intact.")
+                ) {
+                    Button("Clear Caches") {
+                        isClearingCaches = true
+                        cacheMessage = nil
+                        Task {
+                            cacheMessage = await clearCaches()
+                            isClearingCaches = false
+                        }
+                    }
+                    .disabled(isClearingCaches)
+                }
+                .id(SettingsAnchor.advancedCaches)
+
+                if let cacheMessage {
+                    SettingsNotice(message: L10n.text(cacheMessage))
+                }
+
+                Divider()
+
+                SettingsRow(
+                    title: L10n.text("Restore default settings"),
+                    detail: L10n.text("Reset preferences while keeping quick links, scripts, extensions, and saved data.")
+                ) {
+                    Button("Restore…", role: .destructive) {
+                        destructiveSettingsAction = .restoreDefaults
+                    }
+                }
+                .id(SettingsAnchor.advancedDefaults)
+
+                if let defaultSettingsMessage {
+                    SettingsNotice(message: L10n.text(defaultSettingsMessage))
                 }
             }
-            .disabled(isClearingCaches)
-            if let cacheMessage {
-                Text(L10n.text(cacheMessage)).font(.caption).foregroundStyle(.secondary)
-            }
-            Button("Restore default settings…", role: .destructive) {
-                destructiveSettingsAction = .restoreDefaults
-            }
-            if let defaultSettingsMessage {
-                Text(L10n.text(defaultSettingsMessage)).font(.caption).foregroundStyle(.secondary)
-            }
         case .about:
-            Label {
-                Text(verbatim: AboutVersionLabel.current)
-            } icon: {
-                Image(systemName: "command")
+            SettingsCard(tone: .local) {
+                VStack(spacing: SettingsLayout.Spacing.large) {
+                    Image(systemName: "command")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(palette.accent)
+                        .frame(width: 64, height: 64)
+                        .background(palette.accentSoft, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(palette.accent.opacity(0.28), lineWidth: 1)
+                        }
+                        .accessibilityHidden(true)
+
+                    VStack(spacing: SettingsLayout.Spacing.xSmall) {
+                        Text(verbatim: AboutVersionLabel.current)
+                            .font(.system(size: 20, weight: .bold))
+                        Text("Native, open source, and local-first.")
+                            .font(SettingsLayout.Typography.body)
+                        Text("Apache-2.0 licensed.")
+                            .font(SettingsLayout.Typography.label)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, SettingsLayout.Spacing.xxLarge)
             }
-            .font(.title2.bold())
-            Text("Native, open source, and local-first. Apache-2.0 licensed.")
-                .foregroundStyle(.secondary)
+            .id(SettingsAnchor.aboutVersion)
         }
     }
 
@@ -486,7 +567,7 @@ private struct SettingsView: View {
     }
 }
 
-private struct ShortcutRecorder: View {
+struct ShortcutRecorder: View {
     @ObservedObject var settings: SettingsStore
     let beginRecording: () -> Void
     let endRecording: () -> Void
@@ -495,31 +576,38 @@ private struct ShortcutRecorder: View {
     @State private var validationMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             shortcutRow(for: .launcher)
+            Divider()
             shortcutRow(for: .clipboardHistory)
+            Divider()
             shortcutRow(for: .quickPaste)
+            Divider()
             Text("Use Command, Option, or Control with another key. Conflicts remain visible and the menu bar stays available.")
-                .font(.caption)
+                .font(SettingsLayout.Typography.metadata)
                 .foregroundStyle(.secondary)
+                .padding(.top, SettingsLayout.Spacing.medium)
             if let message = validationMessage ?? settings.shortcutValidationError ?? settings.persistenceError {
-                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+                Text(L10n.text(message))
+                    .font(SettingsLayout.Typography.metadata)
+                    .foregroundStyle(.red)
+                    .padding(.top, SettingsLayout.Spacing.small)
             }
             if let message = settings.hotKeyRegistrationError(for: .launcher) {
-                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+                Text(L10n.text(message)).font(SettingsLayout.Typography.metadata).foregroundStyle(.red)
             }
             if let message = settings.hotKeyRegistrationError(for: .clipboardHistory) {
-                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+                Text(L10n.text(message)).font(SettingsLayout.Typography.metadata).foregroundStyle(.red)
             }
             if let message = settings.hotKeyRegistrationError(for: .quickPaste) {
-                Text(L10n.text(message)).font(.caption).foregroundStyle(.red)
+                Text(L10n.text(message)).font(SettingsLayout.Typography.metadata).foregroundStyle(.red)
             }
         }
         .onDisappear { stopRecording() }
     }
 
     private func shortcutRow(for action: HotKeyAction) -> some View {
-        LabeledContent(L10n.text(label(for: action))) {
+        SettingsRow(title: L10n.text(label(for: action))) {
             Button(
                 recordingAction == action
                     ? L10n.text("Press a shortcut…")
@@ -531,7 +619,8 @@ private struct ShortcutRecorder: View {
                     startRecording(action)
                 }
             }
-            .font(.body.monospaced())
+            .font(.system(size: 12, weight: .medium, design: .monospaced))
+            .frame(minWidth: 108)
             .accessibilityLabel(L10n.text(accessibilityLabel(for: action)))
         }
     }
@@ -584,49 +673,56 @@ private struct ShortcutRecorder: View {
     }
 }
 
-private struct QuickPasteSettingsView: View {
+struct QuickPasteSettingsView: View {
     @ObservedObject var settings: SettingsStore
     let openPermissions: () -> Void
     @State private var confirmsEnable = false
 
     var body: some View {
-        GroupBox("Quick Paste") {
-            VStack(alignment: .leading, spacing: 8) {
-                Toggle(
-                    "Enable Quick Paste for the latest text or URL",
-                    isOn: Binding(
-                        get: { settings.quickPasteEnabled },
-                        set: { value in
-                            if value {
-                                confirmsEnable = true
-                            } else {
-                                settings.quickPasteEnabled = false
-                            }
+        SettingsCard(
+            title: L10n.text("Quick Paste"),
+            subtitle: L10n.text("Paste the latest eligible clipboard item into the active app."),
+            systemImage: "arrow.up.doc.on.clipboard",
+            tone: .private
+        ) {
+            SettingsToggleRow(
+                title: L10n.text("Enable Quick Paste for the latest text or URL"),
+                detail: L10n.text("Requires Accessibility access and a unique global shortcut."),
+                isOn: Binding(
+                    get: { settings.quickPasteEnabled },
+                    set: { value in
+                        if value {
+                            confirmsEnable = true
+                        } else {
+                            settings.quickPasteEnabled = false
                         }
-                    )
+                    }
                 )
-                Toggle(
-                    "Allow sensitive-looking text",
-                    isOn: $settings.quickPasteAllowsSensitiveContent
+            )
+
+            Divider()
+
+            SettingsToggleRow(
+                title: L10n.text("Allow sensitive-looking text"),
+                detail: L10n.text("When off, sensitive-looking items open Clipboard History instead."),
+                isOn: $settings.quickPasteAllowsSensitiveContent,
+                isEnabled: settings.quickPasteEnabled
+            )
+
+            if settings.quickPasteShortcut == nil {
+                SettingsNotice(
+                    message: L10n.text("Record a unique Quick Paste shortcut in Shortcuts before it can run."),
+                    systemImage: "keyboard.badge.ellipsis",
+                    tone: .private
                 )
-                .disabled(!settings.quickPasteEnabled)
-                if settings.quickPasteShortcut == nil {
-                    Label(
-                        "Record a unique Quick Paste shortcut in Shortcuts before it can run.",
-                        systemImage: "keyboard.badge.ellipsis"
-                    )
-                    .font(.caption)
-                    .foregroundStyle(settings.quickPasteEnabled ? .orange : .secondary)
-                }
-                Text(
-                    "The shortcut writes the newest history item to the clipboard and sends Command-V only if the same destination app remains frontmost. Images, files, and blocked sensitive items open Clipboard History instead."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                Button("Review Accessibility Permission", action: openPermissions)
-                    .buttonStyle(.link)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            SettingsRow(
+                title: L10n.text("Accessibility permission"),
+                detail: L10n.text("Review the macOS access used to send Command-V to the frontmost app.")
+            ) {
+                Button("Review Permission", action: openPermissions)
+            }
         }
         .alert("Enable Quick Paste?", isPresented: $confirmsEnable) {
             Button("Enable") { settings.quickPasteEnabled = true }
@@ -639,25 +735,37 @@ private struct QuickPasteSettingsView: View {
     }
 }
 
-private struct LoginItemSettingsView: View {
+struct LoginItemSettingsView: View {
     private let service = MacLoginItemService()
     @State private var status: LoginItemStatus = .disabled
     @State private var error: String?
 
     var body: some View {
-        Toggle(
-            "Launch at Login",
-            isOn: Binding(
-                get: { status == .enabled },
-                set: { enabled in update(enabled) }
+        VStack(alignment: .leading, spacing: SettingsLayout.Spacing.small) {
+            SettingsToggleRow(
+                title: L10n.text("Launch at Login"),
+                detail: loginItemDetail,
+                isOn: Binding(
+                    get: { status == .enabled },
+                    set: { enabled in update(enabled) }
+                )
             )
-        )
-        .onAppear { status = service.status() }
-        if status == .requiresApproval {
-            Text("macOS requires approval in System Settings → General → Login Items.")
-                .font(.caption).foregroundStyle(.secondary)
+            if let error {
+                SettingsNotice(
+                    message: L10n.text(error),
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .danger
+                )
+            }
         }
-        if let error { Text(L10n.text(error)).font(.caption).foregroundStyle(.red) }
+        .onAppear { status = service.status() }
+    }
+
+    private var loginItemDetail: String {
+        if status == .requiresApproval {
+            return L10n.text("macOS requires approval in System Settings → General → Login Items.")
+        }
+        return L10n.text("Open Keyestro automatically after you sign in to this Mac.")
     }
 
     private func update(_ enabled: Bool) {
@@ -985,33 +1093,46 @@ private struct ExtensionSettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Installed Extensions").font(.headline)
-                Spacer()
-                Button("Install Local Extension…") { model.choosePackage() }
-                    .disabled(model.isWorking)
+        VStack(alignment: .leading, spacing: SettingsLayout.pageSpacing) {
+            SettingsCard(
+                title: L10n.text("Installed Extensions"),
+                subtitle: L10n.text("Add and manage explicitly trusted local workflows."),
+                systemImage: "puzzlepiece.extension"
+            ) {
+                HStack {
+                    SettingsStatusBadge(
+                        L10n.format("%lld installed", Int64(model.registrations.count)),
+                        systemImage: "shippingbox.fill"
+                    )
+                    Spacer()
+                    Button("Install Local Extension…") { model.choosePackage() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(model.isWorking)
+                }
+                SettingsNotice(
+                    message: L10n.text(
+                        "Native extensions run with your user permissions. Process isolation protects Keyestro from crashes, but it is not a security sandbox. Install only code you trust."
+                    ),
+                    systemImage: "exclamationmark.shield.fill",
+                    tone: .private
+                )
             }
-            Label(
-                "Native extensions run with your user permissions. Process isolation protects Keyestro from crashes, but it is not a security sandbox. Install only code you trust.",
-                systemImage: "exclamationmark.shield"
-            )
-            .font(.callout)
-            .foregroundStyle(.orange)
 
             if !model.pendingImports.isEmpty {
-                GroupBox("Imported Extensions Requiring Reinstallation") {
+                SettingsCard(
+                    title: L10n.text("Imported Extensions Requiring Reinstallation"),
+                    subtitle: L10n.text(
+                        "Select the exact exported package. Its identifier, version, and SHA-256 must all match."
+                    ),
+                    systemImage: "arrow.clockwise.circle",
+                    tone: .private
+                ) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Select and review the exact exported package. Its identifier, version, and SHA-256 must all match.")
-                            .font(.caption).foregroundStyle(.secondary)
                         ForEach(model.pendingImports, id: \.manifest.id) { registration in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(registration.manifest.name)
-                                    Text("\(registration.manifest.id) · \(registration.manifest.version)")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                }
-                                Spacer()
+                            SettingsRow(
+                                title: registration.manifest.name,
+                                detail: "\(registration.manifest.id) · \(registration.manifest.version)"
+                            ) {
                                 Button("Select Package…") { model.choosePackage(for: registration) }
                                     .disabled(model.isWorking)
                             }
@@ -1021,7 +1142,12 @@ private struct ExtensionSettingsView: View {
             }
 
             if let inspected = model.inspected {
-                GroupBox("Review Before Installing") {
+                SettingsCard(
+                    title: L10n.text("Review Before Installing"),
+                    subtitle: L10n.text("Verify the package identity and system security checks before enabling it."),
+                    systemImage: "checkmark.shield",
+                    tone: .private
+                ) {
                     VStack(alignment: .leading, spacing: 7) {
                         LabeledContent("Name", value: "\(inspected.manifest.name) \(inspected.manifest.version)")
                         LabeledContent("Source", value: inspected.installPath)
@@ -1059,46 +1185,49 @@ private struct ExtensionSettingsView: View {
             }
 
             if model.registrations.isEmpty, model.inspected == nil {
-                ContentUnavailableView(
-                    "No extensions installed",
-                    systemImage: "puzzlepiece.extension",
-                    description: Text("Choose a local .extension directory to inspect it before installation.")
-                )
+                SettingsCard {
+                    ContentUnavailableView(
+                        "No extensions installed",
+                        systemImage: "puzzlepiece.extension",
+                        description: Text("Choose a local .extension directory to inspect it before installation.")
+                    )
+                    .frame(minHeight: 150)
+                }
             }
             ForEach(model.registrations) { registration in
-                GroupBox {
+                SettingsCard(
+                    title: registration.manifest.name,
+                    subtitle: "\(registration.id) · \(registration.manifest.version)",
+                    systemImage: "puzzlepiece.extension",
+                    tone: registration.enabled ? .standard : .private
+                ) {
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Image(systemName: "puzzlepiece.extension")
-                            VStack(alignment: .leading) {
-                                Text(registration.manifest.name).font(.headline)
-                                Text("\(registration.id) · \(registration.manifest.version)")
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Toggle(
-                                "Enabled",
-                                isOn: Binding(
-                                    get: { registration.enabled },
-                                    set: { model.setEnabled($0, registration: registration) }
-                                )
+                        SettingsToggleRow(
+                            title: L10n.text("Enabled"),
+                            detail: L10n.text("Allow this extension to run its declared local commands."),
+                            isOn: Binding(
+                                get: { registration.enabled },
+                                set: { model.setEnabled($0, registration: registration) }
                             )
-                            .labelsHidden()
-                        }
+                        )
+                        Divider()
                         Text(registration.manifest.description).foregroundStyle(.secondary)
                         if registration.manifest.searchPolicy == .global {
-                            Toggle(
-                                "Share global query text with this extension",
+                            SettingsToggleRow(
+                                title: L10n.text("Share global query text with this extension"),
+                                detail: L10n.text("Off by default. When enabled, this extension receives queries outside @ mode."),
                                 isOn: Binding(
                                     get: { model.globalSearchEnabled[registration.id] == true },
                                     set: { model.setGlobalSearch($0, registration: registration) }
                                 )
                             )
-                            Text("Off by default. When enabled, this extension receives queries outside @ mode.")
-                                .font(.caption).foregroundStyle(.secondary)
                         } else {
-                            Text("Explicit search: query text is shared only after you open one of this extension’s commands in @ mode.")
-                                .font(.caption).foregroundStyle(.secondary)
+                            SettingsNotice(
+                                message: L10n.text(
+                                    "Explicit search: query text is shared only after you open one of this extension’s commands in @ mode."
+                                ),
+                                systemImage: "at"
+                            )
                         }
                         if !registration.manifest.preferences.isEmpty {
                             Divider()
@@ -1117,7 +1246,13 @@ private struct ExtensionSettingsView: View {
                     }
                 }
             }
-            if let error = model.error { Text(L10n.text(error)).font(.caption).foregroundStyle(.red) }
+            if let error = model.error {
+                SettingsNotice(
+                    message: L10n.text(error),
+                    systemImage: "exclamationmark.triangle.fill",
+                    tone: .danger
+                )
+            }
         }
         .onAppear {
             model.reload()
@@ -1335,19 +1470,23 @@ private struct PerformanceSettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Local Performance Diagnostics").font(.headline)
+        SettingsCard(
+            title: L10n.text("Local Performance Diagnostics"),
+            subtitle: L10n.text("Measure launcher responsiveness without recording private content."),
+            systemImage: "gauge.with.dots.needle.67percent"
+        ) {
             Text(
                 "Keyestro keeps only bounded timing samples in memory. Queries, result titles, clipboard content, and file paths are never recorded."
             )
-            .font(.caption)
+            .font(SettingsLayout.Typography.label)
             .foregroundStyle(.secondary)
-            HStack {
-                Button("Run Local Performance Diagnostics") { model.run() }
-                    .disabled(model.isWorking)
-                Button("Copy Performance Report") { model.copy() }
-                    .disabled(model.report?.summaries.isEmpty != false)
-                Button("Clear Performance Samples") { model.reset() }
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    performanceActions
+                }
+                VStack(alignment: .leading, spacing: SettingsLayout.Spacing.small) {
+                    performanceActions
+                }
             }
             if let report = model.report, !report.summaries.isEmpty {
                 GroupBox("Recent p50 / p95") {
@@ -1364,10 +1503,18 @@ private struct PerformanceSettingsView: View {
                 }
             }
             if let message = model.message {
-                Text(L10n.text(message)).font(.caption).foregroundStyle(.secondary)
+                SettingsNotice(message: L10n.text(message))
             }
         }
-        Divider()
+    }
+
+    @ViewBuilder
+    private var performanceActions: some View {
+        Button("Run Local Performance Diagnostics") { model.run() }
+            .disabled(model.isWorking)
+        Button("Copy Performance Report") { model.copy() }
+            .disabled(model.report?.summaries.isEmpty != false)
+        Button("Clear Performance Samples") { model.reset() }
     }
 }
 
@@ -1433,8 +1580,11 @@ private struct DiagnosticsSettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Diagnostics").font(.headline)
+        SettingsCard(
+            title: L10n.text("Diagnostics"),
+            subtitle: L10n.text("Preview exactly what will be included before creating an archive."),
+            systemImage: "stethoscope"
+        ) {
             HStack {
                 Button("Prepare Export Preview") { model.preparePreview() }
                 Button("Export Diagnostics ZIP…") { model.export() }
@@ -1451,9 +1601,10 @@ private struct DiagnosticsSettingsView: View {
                     .font(.caption)
                 }
             }
-            if let message = model.message { Text(L10n.text(message)).font(.caption).foregroundStyle(.secondary) }
+            if let message = model.message {
+                SettingsNotice(message: L10n.text(message))
+            }
         }
-        Divider()
     }
 }
 
@@ -1596,12 +1747,16 @@ private struct ConfigurationSettingsView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Configuration").font(.headline)
+        SettingsCard(
+            title: L10n.text("Configuration"),
+            subtitle: L10n.text("Move portable preferences and registrations between Macs."),
+            systemImage: "arrow.up.arrow.down.square"
+        ) {
             Text(
-                "Exports contain non-secret settings, quick links, script registration metadata, and extension manifests. They never contain Keychain values, clipboard payloads, script bodies, or private environment values."
+                "Exports contain portable, non-secret preferences, quick links, script registration metadata, and extension manifests. They never contain local capability approvals, safety consent, Keychain values, clipboard payloads, script bodies, or private environment values."
             )
-            .font(.caption).foregroundStyle(.secondary)
+            .font(SettingsLayout.Typography.label)
+            .foregroundStyle(.secondary)
             HStack {
                 Button("Export Configuration…") { model.exportConfiguration() }
                 Button("Import Configuration…") { model.chooseImport() }
@@ -1612,7 +1767,7 @@ private struct ConfigurationSettingsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("\(pending.preview.addedQuicklinks) quick links added · \(pending.preview.replacedQuicklinks) replaced")
                         Text("\(pending.preview.settingsCount) non-secret settings merged")
-                        Text("\(pending.preview.ignoredSettingsCount) unsupported settings ignored")
+                        Text("\(pending.preview.ignoredSettingsCount) unsupported or locally authorized settings ignored")
                         Text(
                             "\(pending.preview.scriptsRequiringReconnection) scripts require reconnection · \(pending.preview.extensionsRequiringReinstallation) extensions require reinstallation"
                         )
@@ -1645,7 +1800,9 @@ private struct ConfigurationSettingsView: View {
                     }
                 }
             }
-            if let message = model.message { Text(L10n.text(message)).font(.caption).foregroundStyle(.secondary) }
+            if let message = model.message {
+                SettingsNotice(message: L10n.text(message))
+            }
         }
         .onAppear { model.reloadPendingImports() }
     }
@@ -1865,7 +2022,7 @@ final class ScriptSettingsModel: ObservableObject {
     }
 }
 
-private struct ScriptSettingsView: View {
+struct ScriptSettingsView: View {
     @StateObject private var model: ScriptSettingsModel
     @State private var removal: ScriptDefinition?
 
@@ -2142,30 +2299,31 @@ private struct ClipboardPrivacyView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label("Clipboard History", systemImage: "doc.on.clipboard")
-                Spacer()
-                Text(stateLabel).foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: SettingsLayout.Spacing.medium) {
+            SettingsRow(
+                title: L10n.text("Encrypted history"),
+                detail: L10n.text("Entries stay on this Mac and are encrypted before persistence.")
+            ) {
+                SettingsStatusBadge(
+                    L10n.text(stateLabel),
+                    systemImage: stateSymbol,
+                    tone: stateTone
+                )
             }
-            HStack {
-                Button("Refresh") { model.refresh() }
-                Button("Clear History…", role: .destructive) { confirmation = .clear }
-                    .disabled(model.store == nil)
-                Menu("Clear by Type") {
-                    Button("Text…") { confirmation = .clearText }
-                    Button("URLs…") { confirmation = .clearURLs }
-                    Button("Files…") { confirmation = .clearFiles }
-                    Button("Images…") { confirmation = .clearImages }
+
+            Divider()
+
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    clipboardActions
                 }
-                .disabled(model.store == nil)
-                if case .keyMissing = model.state {
-                    Button("Delete Undecryptable History and Reinitialize…", role: .destructive) {
-                        confirmation = .recover
-                    }
+                VStack(alignment: .leading, spacing: SettingsLayout.Spacing.small) {
+                    clipboardActions
                 }
             }
-            if let message = model.message { Text(L10n.text(message)).font(.caption).foregroundStyle(.secondary) }
+            if let message = model.message {
+                SettingsNotice(message: L10n.text(message))
+            }
         }
         .confirmationDialog(
             confirmation == .recover ? "Delete undecryptable clipboard history?" : "Clear clipboard history?",
@@ -2202,6 +2360,25 @@ private struct ClipboardPrivacyView: View {
         }
     }
 
+    @ViewBuilder
+    private var clipboardActions: some View {
+        Button("Refresh") { model.refresh() }
+        Button("Clear History…", role: .destructive) { confirmation = .clear }
+            .disabled(model.store == nil)
+        Menu("Clear by Type") {
+            Button("Text…") { confirmation = .clearText }
+            Button("URLs…") { confirmation = .clearURLs }
+            Button("Files…") { confirmation = .clearFiles }
+            Button("Images…") { confirmation = .clearImages }
+        }
+        .disabled(model.store == nil)
+        if case .keyMissing = model.state {
+            Button("Delete Undecryptable History and Reinitialize…", role: .destructive) {
+                confirmation = .recover
+            }
+        }
+    }
+
     private var stateLabel: String {
         switch model.state {
         case .disabled: "Disabled"
@@ -2209,6 +2386,23 @@ private struct ClipboardPrivacyView: View {
         case let .ready(count): "\(count) items"
         case let .keyMissing(count): "Key missing · \(count) items"
         case .failed: "Error"
+        }
+    }
+
+    private var stateSymbol: String {
+        switch model.state {
+        case .disabled: "pause.circle.fill"
+        case .loading: "clock.fill"
+        case .ready: "checkmark.circle.fill"
+        case .keyMissing, .failed: "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var stateTone: SettingsTone {
+        switch model.state {
+        case .ready: .local
+        case .disabled, .loading: .standard
+        case .keyMissing, .failed: .danger
         }
     }
 }
@@ -2414,7 +2608,7 @@ final class QuicklinkSettingsModel: ObservableObject {
     }
 }
 
-private struct QuicklinkSettingsView: View {
+struct QuicklinkSettingsView: View {
     @StateObject private var model: QuicklinkSettingsModel
     @State private var removal: QuicklinkDefinition?
 
@@ -2520,38 +2714,61 @@ private struct PermissionsView: View {
     @State private var screenCaptureGranted = CGPreflightScreenCaptureAccess()
 
     var body: some View {
-        permissionRow(
-            title: "Accessibility",
-            detail: "Used only for window management and optional automatic paste.",
-            granted: accessibilityGranted,
-            request: requestAccessibility,
-            settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
-        )
-        Divider()
-        permissionRow(
-            title: "Screen Recording",
-            detail: "Used only when you start screenshot capture or a window preview.",
-            granted: screenCaptureGranted,
-            request: requestScreenCapture,
-            settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
-        )
-        if isAdHocDevelopmentBuild {
-            Divider()
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Development build permissions", systemImage: "hammer.circle")
-                    .font(.callout.weight(.semibold))
-                Text(
-                    "This ad-hoc development build gets a new macOS identity after every rebuild. If System Settings is enabled but this page says Not allowed, remove the old Keyestro entry and add this exact copy again, or use a stably signed local build. Refreshing or restarting cannot repair an identity mismatch."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                Button("Show This Copy in Finder") {
-                    NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+        VStack(spacing: SettingsLayout.pageSpacing) {
+            SettingsNotice(
+                title: L10n.text("Requested only when needed"),
+                message: L10n.text(
+                    "Keyestro explains why access is needed before macOS asks. You can review or revoke access at any time."
+                ),
+                systemImage: "hand.raised.fill",
+                tone: .private
+            )
+
+            permissionRow(
+                title: "Accessibility",
+                detail: "Used only for window management and optional automatic paste.",
+                symbol: "hand.raised",
+                granted: accessibilityGranted,
+                request: requestAccessibility,
+                settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
+            )
+            .id(SettingsAnchor.permissionsAccessibility)
+
+            permissionRow(
+                title: "Screen Recording",
+                detail: "Used only when you start screenshot capture or a window preview.",
+                symbol: "rectangle.dashed.badge.record",
+                granted: screenCaptureGranted,
+                request: requestScreenCapture,
+                settingsURL: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture"
+            )
+            .id(SettingsAnchor.permissionsScreenRecording)
+
+            if isAdHocDevelopmentBuild {
+                SettingsCard(
+                    title: L10n.text("Development build permissions"),
+                    subtitle: L10n.text(
+                        "This copy receives a new macOS identity after each rebuild, so an older permission entry may no longer apply."
+                    ),
+                    systemImage: "hammer.circle",
+                    tone: .private
+                ) {
+                    Text(
+                        "If System Settings is enabled but this page says Not Allowed, remove the old Keyestro entry and add this exact copy again, or use a stably signed local build."
+                    )
+                    .font(SettingsLayout.Typography.label)
+                    .foregroundStyle(.secondary)
+                    Button("Show This Copy in Finder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                    }
                 }
             }
-        }
-        Button("Refresh status") {
-            refresh()
+
+            HStack {
+                Spacer()
+                Button("Refresh Status") { refresh() }
+                    .controlSize(.small)
+            }
         }
         .task {
             while !Task.isCancelled {
@@ -2564,20 +2781,28 @@ private struct PermissionsView: View {
     private func permissionRow(
         title: String,
         detail: String,
+        symbol: String,
         granted: Bool,
         request: @escaping () -> Void,
         settingsURL: String
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label(title, systemImage: granted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(granted ? .green : .primary)
+        SettingsCard(
+            title: L10n.text(title),
+            subtitle: L10n.text(detail),
+            systemImage: symbol,
+            tone: granted ? .local : .private
+        ) {
+            HStack(spacing: SettingsLayout.Spacing.medium) {
+                SettingsStatusBadge(
+                    L10n.text(granted ? "Allowed" : "Not Allowed"),
+                    systemImage: granted ? "checkmark.circle.fill" : "exclamationmark.circle.fill",
+                    tone: granted ? .local : .private
+                )
                 Spacer()
-                Text(L10n.text(granted ? "Allowed" : "Not Allowed")).foregroundStyle(.secondary)
-            }
-            Text(detail).font(.callout).foregroundStyle(.secondary)
-            HStack {
-                if !granted { Button("Request Access", action: request) }
+                if !granted {
+                    Button("Request Access", action: request)
+                        .buttonStyle(.borderedProminent)
+                }
                 Button("Open System Settings") {
                     if let url = URL(string: settingsURL) { NSWorkspace.shared.open(url) }
                 }

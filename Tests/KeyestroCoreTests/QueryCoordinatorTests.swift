@@ -112,7 +112,13 @@ import Testing
         }
         return nil
     }
-    await waitForPendingSleep(clock)
+    defer { consumer.cancel() }
+    await waitForSleepRequests(clock, atLeast: 2)
+    guard await clock.totalSleepRequestCount() >= 2 else {
+        await coordinator.cancelCurrentSearch()
+        Issue.record("Expected the snapshot batch and provider deadline timers to be registered")
+        return
+    }
     await clock.advance(by: .milliseconds(20))
     let snapshot = try #require(await consumer.value)
     guard case let .failed(error)? = snapshot.statuses["never-final"] else {

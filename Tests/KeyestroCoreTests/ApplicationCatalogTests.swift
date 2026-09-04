@@ -1,4 +1,5 @@
 import Foundation
+import KeyestroDomain
 import Testing
 @testable import KeyestroCore
 
@@ -53,6 +54,69 @@ private struct ApplicationDiscoveryFake: ApplicationDiscovering {
     let record = try #require(await catalog.records().first)
     #expect(record.displayName == "Original Browser")
     #expect(record.aliases.contains("My Browser"))
+}
+
+@Test func applicationSearchAliasesReserveTechnicalIdentifiersBeforeTheBoundary() throws {
+    let record = ApplicationRecord(
+        stableID: "com.example.technical-target",
+        bundleIdentifier: "com.example.technical-target",
+        displayName: "Visible Name",
+        bundleName: "Visible Name",
+        aliases: (0..<60).map { "Alternate Name \($0)" },
+        url: URL(fileURLWithPath: "/Applications/Visible Name.app", isDirectory: true)
+    )
+
+    let aliases = ApplicationProvider.searchAliases(for: record)
+
+    #expect(aliases.count == DomainLimits.keywordCount)
+    #expect(aliases.contains(SearchAlias(value: "com.example.technical-target", role: .technical)))
+    #expect(aliases.contains(SearchAlias(value: record.url.path, role: .technical)))
+
+    let open = ActionDescriptor(id: "open", title: "Open")
+    let item = LauncherItem(
+        id: ItemID(providerID: "applications", providerStableID: record.stableID),
+        providerID: "applications",
+        title: record.displayName,
+        searchAliases: aliases,
+        actions: [open],
+        defaultActionID: open.id
+    )
+    #expect(try #require(item.sanitized()).searchAliases == aliases)
+}
+
+@Test func applicationProviderStreamsLargeCandidateSetsInBoundarySizedBatches() async throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("keyestro-app-batches-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    var applications: [URL] = []
+    for index in 0...DomainLimits.itemsPerBatch {
+        let application = root.appendingPathComponent(
+            String(format: "Application-%03d.app", index),
+            isDirectory: true
+        )
+        try makeApplicationBundle(
+            application,
+            identifier: String(format: "com.example.application-%03d", index),
+            backgroundOnly: false
+        )
+        applications.append(application)
+    }
+    let catalog = ApplicationCatalog(
+        roots: [],
+        discovery: ApplicationDiscoveryFake(urls: applications)
+    )
+    let provider = ApplicationProvider(catalog: catalog)
+    let request = QueryRequest(generation: 1, rawText: "", normalizedText: "", mode: .all)
+    var batches: [(count: Int, isFinal: Bool)] = []
+
+    for try await event in provider.search(request: request) {
+        if case let .items(items, isFinal) = event {
+            batches.append((items.count, isFinal))
+        }
+    }
+
+    #expect(batches.map(\.count) == [DomainLimits.itemsPerBatch, 1])
+    #expect(batches.map(\.isFinal) == [false, true])
 }
 
 @Test func applicationCatalogAppliesLiveInstallAndRemovalWithoutRepeatingAFullDiscovery() async throws {
@@ -148,6 +212,71 @@ private struct ApplicationDiscoveryFake: ApplicationDiscovering {
     #expect(await catalog.records().map(\.stableID) == ["com.example.newer"])
 }
 
+@Test func refreshRevalidationDropsRemovedBundlesAndReplacesStaleSamePathIdentities() throws {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("keyestro-app-refresh-revalidation-\(UUID().uuidString)", isDirectory: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let application = root.appendingPathComponent("Raced.app", isDirectory: true)
+    try makeApplicationBundle(application, identifier: "com.example.before", backgroundOnly: false)
+    let stale = ApplicationRecord(
+        stableID: "com.example.before",
+        bundleIdentifier: "com.example.before",
+        displayName: "Raced",
+        bundleName: "Raced",
+        url: application
+    )
+    let rootOnlyRecords = [stale.stableID: stale]
+
+    // Three continuously changing live revisions mean "retry", not an
+    // authoritative empty root scan that could hide non-Spotlight applications.
+    #expect(
+        ApplicationCatalog.rootRecordsForCommit(
+            rootOnlyRecords,
+            foundStableRevision: false
+        ) == nil
+    )
+    #expect(
+        ApplicationCatalog.rootRecordsForCommit(
+            rootOnlyRecords,
+            foundStableRevision: true
+        ) == rootOnlyRecords
+    )
+
+    try FileManager.default.removeItem(at: application)
+    #expect(ApplicationCatalog.revalidatedApplicationRecords(rootOnlyRecords).isEmpty)
+
+    try makeApplicationBundle(application, identifier: "com.example.after", backgroundOnly: false)
+    let replaced = ApplicationCatalog.revalidatedApplicationRecords(rootOnlyRecords)
+    #expect(replaced.keys.sorted() == ["com.example.after"])
+    #expect(replaced["com.example.after"]?.url == application.standardizedFileURL)
+}
+
+@Test func applicationCatalogUsesAStablePathTieBreakForEqualPriorityDuplicates() {
+    let identifier = "com.example.duplicate"
+    let first = ApplicationRecord(
+        stableID: identifier,
+        bundleIdentifier: identifier,
+        displayName: "Duplicate",
+        bundleName: "Duplicate",
+        url: URL(fileURLWithPath: "/tmp/A/Duplicate.app", isDirectory: true)
+    )
+    let second = ApplicationRecord(
+        stableID: identifier,
+        bundleIdentifier: identifier,
+        displayName: "Duplicate",
+        bundleName: "Duplicate",
+        url: URL(fileURLWithPath: "/tmp/B/Duplicate.app", isDirectory: true)
+    )
+
+    var forward = [identifier: second]
+    ApplicationCatalog.merge(first, into: &forward)
+    var reverse = [identifier: first]
+    ApplicationCatalog.merge(second, into: &reverse)
+
+    #expect(forward[identifier]?.url.path == first.url.path)
+    #expect(reverse[identifier]?.url.path == first.url.path)
+}
+
 @Test func cancellingAColdApplicationCatalogWaiterReturnsWithoutCancellingSharedRefresh() async throws {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent("keyestro-app-cancelled-refresh-\(UUID().uuidString)", isDirectory: true)
@@ -237,14 +366,15 @@ private func makeApplicationBundle(
     _ root: URL,
     identifier: String,
     backgroundOnly: Bool,
-    bundleName: String? = nil
+    bundleName: String? = nil,
+    alternateNames: [String] = []
 ) throws {
     let executableDirectory = root.appendingPathComponent("Contents/MacOS", isDirectory: true)
     try FileManager.default.createDirectory(at: executableDirectory, withIntermediateDirectories: true)
     let executable = executableDirectory.appendingPathComponent("Example")
     try Data("#!/bin/sh\nexit 0\n".utf8).write(to: executable)
     try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: executable.path)
-    let info: [String: Any] = [
+    var info: [String: Any] = [
         "CFBundleIdentifier": identifier,
         "CFBundleName": bundleName ?? root.deletingPathExtension().lastPathComponent,
         "CFBundleDisplayName": bundleName ?? root.deletingPathExtension().lastPathComponent,
@@ -252,6 +382,7 @@ private func makeApplicationBundle(
         "CFBundlePackageType": "APPL",
         "LSBackgroundOnly": backgroundOnly,
     ]
+    if !alternateNames.isEmpty { info["CFBundleAlternateNames"] = alternateNames }
     let data = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
     try data.write(to: root.appendingPathComponent("Contents/Info.plist"))
 }

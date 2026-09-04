@@ -55,6 +55,8 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
     public let icon: IconReference?
     public let canonicalResource: CanonicalResource?
     public let keywords: [String]
+    /// Semantic aliases used instead of legacy subtitle/keyword matching when nonempty.
+    public let searchAliases: [SearchAlias]
     public let accessories: [Accessory]
     public let actions: [ActionDescriptor]
     public let defaultActionID: ActionID
@@ -69,6 +71,7 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
         icon: IconReference? = nil,
         canonicalResource: CanonicalResource? = nil,
         keywords: [String] = [],
+        searchAliases: [SearchAlias] = [],
         accessories: [Accessory] = [],
         actions: [ActionDescriptor],
         defaultActionID: ActionID,
@@ -82,6 +85,7 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
         self.icon = icon
         self.canonicalResource = canonicalResource
         self.keywords = keywords
+        self.searchAliases = searchAliases
         self.accessories = accessories
         self.actions = actions
         self.defaultActionID = defaultActionID
@@ -105,6 +109,11 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
         let safeKeywords = keywords.prefix(DomainLimits.keywordCount).map {
             $0.limitedToUnicodeScalars(DomainLimits.keywordUnicodeScalars)
         }
+        let safeSearchAliases: [SearchAlias] = searchAliases.prefix(DomainLimits.keywordCount).compactMap { alias -> SearchAlias? in
+            let value = alias.value.limitedToUnicodeScalars(DomainLimits.keywordUnicodeScalars)
+            guard !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            return SearchAlias(value: value, role: alias.role, matchPolicy: alias.matchPolicy)
+        }
 
         let safeIcon: IconReference?
         if case let .thumbnailPNG(data) = icon {
@@ -121,6 +130,7 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
             icon: safeIcon,
             canonicalResource: canonicalResource,
             keywords: safeKeywords,
+            searchAliases: safeSearchAliases,
             accessories: accessories,
             actions: Array(safeActions),
             defaultActionID: defaultActionID,
@@ -138,6 +148,7 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
             icon: icon,
             canonicalResource: canonicalResource,
             keywords: keywords,
+            searchAliases: searchAliases,
             accessories: accessories,
             actions: actions,
             defaultActionID: defaultActionID,
@@ -155,12 +166,70 @@ public struct LauncherItem: Codable, Equatable, Identifiable, Sendable {
             icon: icon,
             canonicalResource: canonicalResource,
             keywords: keywords,
+            searchAliases: searchAliases,
             accessories: accessories,
             actions: actions,
             defaultActionID: defaultActionID,
             scoreFeatures: scoreFeatures,
             privacy: privacy
         )
+    }
+}
+
+extension LauncherItem {
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case providerID
+        case title
+        case subtitle
+        case icon
+        case canonicalResource
+        case keywords
+        case searchAliases
+        case accessories
+        case actions
+        case defaultActionID
+        case scoreFeatures
+        case privacy
+    }
+
+    /// Decodes items written before semantic aliases existed with legacy keyword behavior intact.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try container.decode(ItemID.self, forKey: .id),
+            providerID: try container.decode(ProviderID.self, forKey: .providerID),
+            title: try container.decode(String.self, forKey: .title),
+            subtitle: try container.decodeIfPresent(String.self, forKey: .subtitle),
+            icon: try container.decodeIfPresent(IconReference.self, forKey: .icon),
+            canonicalResource: try container.decodeIfPresent(CanonicalResource.self, forKey: .canonicalResource),
+            keywords: try container.decode([String].self, forKey: .keywords),
+            searchAliases: try container.decodeIfPresent([SearchAlias].self, forKey: .searchAliases) ?? [],
+            accessories: try container.decode([Accessory].self, forKey: .accessories),
+            actions: try container.decode([ActionDescriptor].self, forKey: .actions),
+            defaultActionID: try container.decode(ActionID.self, forKey: .defaultActionID),
+            scoreFeatures: try container.decode(ScoreFeatures.self, forKey: .scoreFeatures),
+            privacy: try container.decode(ItemPrivacy.self, forKey: .privacy)
+        )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(providerID, forKey: .providerID)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(subtitle, forKey: .subtitle)
+        try container.encodeIfPresent(icon, forKey: .icon)
+        try container.encodeIfPresent(canonicalResource, forKey: .canonicalResource)
+        try container.encode(keywords, forKey: .keywords)
+        if !searchAliases.isEmpty {
+            try container.encode(searchAliases, forKey: .searchAliases)
+        }
+        try container.encode(accessories, forKey: .accessories)
+        try container.encode(actions, forKey: .actions)
+        try container.encode(defaultActionID, forKey: .defaultActionID)
+        try container.encode(scoreFeatures, forKey: .scoreFeatures)
+        try container.encode(privacy, forKey: .privacy)
     }
 }
 

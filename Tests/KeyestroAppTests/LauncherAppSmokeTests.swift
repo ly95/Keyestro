@@ -394,6 +394,7 @@ import Testing
         ) == .command(.submitSecondary)
     )
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "1", commandModified: true, isComposing: false) == .executeIndex(0))
+    #expect(LauncherKeyInterpreter.commandEquivalent(key: "0", commandModified: true, isComposing: false) == .executeIndex(9))
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "a", commandModified: true, isComposing: false) == .selectAll)
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "A", commandModified: true, isComposing: false) == .selectAll)
     #expect(LauncherKeyInterpreter.commandEquivalent(key: "p", commandModified: true, isComposing: false) == .openFilters)
@@ -439,6 +440,84 @@ import Testing
     #expect(selectAllRequest.selectAll)
     #expect(repeatedSelectAllRequest.selectAll)
     #expect(Set([caretRequest.id, selectAllRequest.id, repeatedSelectAllRequest.id]).count == 3)
+}
+
+@Test @MainActor func launcherNumberShortcutsFollowThePhysicalNumberRowAcrossKeyboardLayouts() {
+    let numberRowKeyCodes: [UInt16] = [
+        UInt16(kVK_ANSI_1),
+        UInt16(kVK_ANSI_2),
+        UInt16(kVK_ANSI_3),
+        UInt16(kVK_ANSI_4),
+        UInt16(kVK_ANSI_5),
+        UInt16(kVK_ANSI_6),
+        UInt16(kVK_ANSI_7),
+        UInt16(kVK_ANSI_8),
+        UInt16(kVK_ANSI_9),
+        UInt16(kVK_ANSI_0),
+    ]
+    let azertyCharacters = ["&", "é", "\"", "'", "(", "-", "è", "_", "ç", "à"]
+
+    for (index, keyCode) in numberRowKeyCodes.enumerated() {
+        #expect(LauncherKeyInterpreter.numberShortcutIndex(forKeyCode: keyCode) == index)
+        #expect(
+            LauncherKeyInterpreter.commandEquivalent(
+                key: azertyCharacters[index],
+                keyCode: keyCode,
+                commandModified: true,
+                isComposing: false
+            ) == .executeIndex(index)
+        )
+    }
+
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "あ",
+            keyCode: UInt16(kVK_ANSI_4),
+            commandModified: true,
+            isComposing: false
+        ) == .executeIndex(3)
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: nil,
+            keyCode: UInt16(kVK_ANSI_0),
+            commandModified: true,
+            isComposing: false
+        ) == .executeIndex(9)
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "9",
+            keyCode: UInt16(kVK_ANSI_1),
+            commandModified: true,
+            isComposing: false
+        ) == .executeIndex(0)
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "1",
+            keyCode: UInt16(kVK_ANSI_Keypad1),
+            commandModified: true,
+            isComposing: false
+        ) == .actionShortcut(key: "1", modifiers: [.command])
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "&",
+            keyCode: UInt16(kVK_ANSI_1),
+            commandModified: true,
+            shiftModified: true,
+            isComposing: false
+        ) == .actionShortcut(key: "&", modifiers: [.command, .shift])
+    )
+    #expect(
+        LauncherKeyInterpreter.commandEquivalent(
+            key: "&",
+            keyCode: UInt16(kVK_ANSI_1),
+            commandModified: true,
+            isComposing: true
+        ) == nil
+    )
 }
 
 @Test @MainActor func launcherSearchFieldCommandASelectsTheEntireQueryImmediately() throws {
@@ -685,7 +764,9 @@ func launcherFiltersActionsAndExecutesFilteredSelectionAndShortcut() async throw
     controller.show()
     try await waitUntil { controller.isVisible && model.results.count == 20 && !model.isSearching }
     let panel = try #require(
-        NSApplication.shared.windows.first { $0.identifier == LauncherPanelController.panelWindowIdentifier }
+        NSApplication.shared.windows.first {
+            $0.identifier == LauncherPanelController.panelWindowIdentifier && $0.isVisible
+        }
     )
     let contentView = try #require(panel.contentView)
     try await waitUntil {
@@ -885,7 +966,10 @@ func launcherFiltersActionsAndExecutesFilteredSelectionAndShortcut() async throw
 
     try await startHeldRefresh(model: model, provider: provider, retainedItemID: retainedItemID)
     await provider.publishIntermediateRefresh()
-    for _ in 0..<100 { await Task.yield() }
+    // QueryCoordinator deliberately coalesces live provider events for 8 ms.
+    // Yielding alone does not guarantee wall-clock progress on a fast test host.
+    try await Task.sleep(for: .milliseconds(20))
+    try await waitUntil { model.results.count == 2 }
 
     #expect(model.results.map(\.id).first == retainedItemID)
     #expect(model.results.map(\.item.title) == ["Retained Result", "Intermediate Result"])
@@ -1180,16 +1264,20 @@ private enum OnboardingComponentHostRetainer {
 @Test @MainActor func importedSettingsRollbackAllEarlierChangesWhenOneWriteFails() {
     let persistence = FaultingSettingsPersistence()
     let settings = SettingsStore(persistence: persistence)
-    persistence.failingKey = "ranking.learningEnabled"
+    let replacement = HotKeyShortcut(keyCode: UInt32(kVK_ANSI_K), modifiers: UInt32(cmdKey | shiftKey))
+    persistence.failingKey = "shortcuts.launcher.combined"
 
     #expect(throws: SettingsImportError.persistenceFailed) {
         try settings.applyImportedConfiguration([
             "search.prefixesEnabled": .bool(false),
-            "ranking.learningEnabled": .bool(false),
+            "shortcuts.launcher.keyCode": .integer(Int64(replacement.keyCode)),
+            "shortcuts.launcher.modifiers": .integer(Int64(replacement.modifiers)),
         ])
     }
 
     #expect(settings.prefixesEnabled)
+    #expect(settings.launcherAppearance == .automatic)
+    #expect(settings.launcherShortcut == .optionSpace)
     #expect(settings.rankingLearningEnabled)
     #expect(settings.rankingLearningPreferences.isEnabled())
     #expect(persistence.object(forKey: "search.prefixesEnabled") as? Bool == true)
@@ -1296,7 +1384,7 @@ private enum OnboardingComponentHostRetainer {
     #expect(settings.quickPasteShortcut == shortcut)
 }
 
-@Test @MainActor func quickPasteConfigurationRoundTripsThroughExportPreviewAndImport() async throws {
+@Test @MainActor func quickPasteShortcutIsPortableButItsCapabilityAndSensitiveConsentAreNot() async throws {
     let source = SettingsStore(persistence: FaultingSettingsPersistence())
     let shortcut = HotKeyShortcut(
         keyCode: UInt32(kVK_ANSI_P),
@@ -1320,6 +1408,8 @@ private enum OnboardingComponentHostRetainer {
         appVersion: "1.0.0"
     )
     let exported = source.exportedConfiguration()
+    #expect(exported["clipboard.quickPaste.enabled"] == nil)
+    #expect(exported["clipboard.quickPaste.allowsSensitiveContent"] == nil)
     let data = try await service.export(settings: exported)
     let validated = try await service.inspectImport(data)
     #expect(validated.preview.settingsCount == exported.count)
@@ -1328,8 +1418,68 @@ private enum OnboardingComponentHostRetainer {
     let imported = SettingsStore(persistence: FaultingSettingsPersistence())
     try imported.applyImportedConfiguration(validated.document.payload.settings)
     #expect(imported.quickPasteShortcut == shortcut)
-    #expect(imported.quickPasteEnabled)
-    #expect(!imported.quickPasteAllowsSensitiveContent)
+    #expect(!imported.quickPasteEnabled)
+    #expect(imported.quickPasteAllowsSensitiveContent)
+}
+
+@Test @MainActor func legacyConfigurationPreservesLocalAuthorizationWhileApplyingPortablePreferences() throws {
+    let settings = SettingsStore(persistence: FaultingSettingsPersistence())
+    settings.rankingLearningEnabled = false
+    settings.clipboardEnabled = true
+    settings.clipboardPaused = true
+    settings.quickPasteEnabled = true
+    settings.quickPasteAllowsSensitiveContent = false
+    settings.clipboardRetentionPreset = "7-days"
+    settings.clipboardExcludedApplications = "com.example.private"
+    settings.fileSearchEnabled = true
+    settings.fileContentSearchEnabled = false
+    settings.fileHiddenFilesEnabled = true
+    settings.fileSystemLocationsEnabled = false
+    settings.fileTrashEnabled = true
+    settings.confirmSleepEveryTime = true
+
+    let classifiedKeys = ConfigurationService.supportedSettingKeys
+        .union(ConfigurationService.locallyAuthorizedSettingKeys)
+    let localBeforeImport = settings.localConfigurationSnapshot()
+    #expect(Set(localBeforeImport.keys) == classifiedKeys)
+    #expect(settings.exportedConfiguration()["clipboard.retentionPreset"] == .string("7-days"))
+    #expect(
+        settings.exportedConfiguration()["clipboard.excludedApplications"]
+            == .string("com.example.private")
+    )
+    var legacyImport: [String: JSONValue] = [
+        "search.prefixesEnabled": .bool(false),
+        "clipboard.retentionPreset": .string("unlimited"),
+        "clipboard.excludedApplications": .string(""),
+    ]
+    for key in ConfigurationService.locallyAuthorizedSettingKeys {
+        guard case let .bool(value) = try #require(localBeforeImport[key]) else {
+            Issue.record("Locally authorized setting \(key) needs a test fixture for its value type.")
+            continue
+        }
+        legacyImport[key] = .bool(!value)
+        #expect(settings.exportedConfiguration()[key] == nil)
+    }
+
+    try settings.applyImportedConfiguration(legacyImport)
+
+    for key in ConfigurationService.locallyAuthorizedSettingKeys {
+        #expect(settings.localConfigurationSnapshot()[key] == localBeforeImport[key])
+    }
+    #expect(!settings.rankingLearningEnabled)
+    #expect(settings.clipboardEnabled)
+    #expect(settings.clipboardPaused)
+    #expect(settings.quickPasteEnabled)
+    #expect(!settings.quickPasteAllowsSensitiveContent)
+    #expect(settings.clipboardRetentionPreset == "unlimited")
+    #expect(settings.clipboardExcludedApplications.isEmpty)
+    #expect(settings.fileSearchEnabled)
+    #expect(!settings.fileContentSearchEnabled)
+    #expect(settings.fileHiddenFilesEnabled)
+    #expect(!settings.fileSystemLocationsEnabled)
+    #expect(settings.fileTrashEnabled)
+    #expect(settings.confirmSleepEveryTime)
+    #expect(!settings.prefixesEnabled)
 }
 
 @Test func simplifiedChineseShortcutConflictCoversAllConfiguredShortcuts() throws {
